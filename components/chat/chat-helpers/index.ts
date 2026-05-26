@@ -20,6 +20,7 @@ import {
   ChatMessage,
   ChatPayload,
   ChatSettings,
+  FlowEvent,
   LLM,
   MessageImage
 } from "@/types"
@@ -158,7 +159,8 @@ export const handleLocalChat = async (
   setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>,
   setFirstTokenReceived: React.Dispatch<React.SetStateAction<boolean>>,
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-  setToolInUse: React.Dispatch<React.SetStateAction<string>>
+  setToolInUse: React.Dispatch<React.SetStateAction<string>>,
+  onThinkingUpdate?: (thinking: string) => void
 ) => {
   const formattedMessages = await buildFinalMessages(payload, profile, [])
 
@@ -187,7 +189,8 @@ export const handleLocalChat = async (
     newAbortController,
     setFirstTokenReceived,
     setChatMessages,
-    setToolInUse
+    setToolInUse,
+    onThinkingUpdate
   )
 }
 
@@ -201,8 +204,15 @@ export const handleFlowChat = async (
   flowState: FlowStateInfo,
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
   setFirstTokenReceived: React.Dispatch<React.SetStateAction<boolean>>,
-  onFinalMessages?: (messages: any[]) => void
-): Promise<{ content: string; intentName: string | null }> => {
+  onFinalMessages?: (messages: any[]) => void,
+  onThinkingUpdate?: (thinking: string) => void,
+  onEvent?: (event: Pick<FlowEvent, "type" | "data">) => void
+): Promise<{
+  content: string
+  thinking: string | null
+  intentName: string | null
+  toolExchange: Array<{ role: string; content: any }> | null
+}> => {
   const messages = await buildFinalMessages(
     payload,
     profile,
@@ -237,7 +247,63 @@ export const handleFlowChat = async (
   const data = await res.json()
 
   let content = ""
+  let thinking: string | null = null
   let intentName: string | null = null
+  let toolExchange: Array<{ role: string; content: any }> | null = null
+
+  const targetId = isRegeneration
+    ? payload.chatMessages[payload.chatMessages.length - 1].message.id
+    : tempAssistantChatMessage.message.id
+
+  const showIndicatorAndStream = async (
+    exchangeMessages: Array<{ role: string; content: any }>,
+    indicatorText: string
+  ) => {
+    toolExchange = exchangeMessages
+    content = indicatorText
+    setFirstTokenReceived(true)
+    setChatMessages(prev =>
+      prev.map(m =>
+        m.message.id === targetId
+          ? { ...m, message: { ...m.message, content } }
+          : m
+      )
+    )
+    onEvent?.({ type: "second_turn", data: {} })
+    // Second turn: stream conversational response with think-block extraction
+    const res2 = await fetch(apiEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chatSettings: payload.chatSettings,
+        messages: [...messages, ...exchangeMessages.map(m => ({ ...m }))],
+        customModelId: provider === "custom" ? modelData.hostedId : undefined
+      })
+    })
+    if (res2.ok && res2.body) {
+      let rawAccum = ""
+      await consumeReadableStream(
+        res2.body,
+        chunk => {
+          rawAccum += chunk
+          const { displayText, thinkingText } = extractThinkBlocks(rawAccum)
+          content = indicatorText + displayText
+          if (thinkingText) {
+            thinking = thinkingText
+            onThinkingUpdate?.(thinkingText)
+          }
+          setChatMessages(prev =>
+            prev.map(m =>
+              m.message.id === targetId
+                ? { ...m, message: { ...m.message, content } }
+                : m
+            )
+          )
+        },
+        new AbortController().signal
+      )
+    }
+  }
 
   if (provider === "anthropic") {
     const textBlock = data.content?.find((b: any) => b.type === "text")
@@ -246,6 +312,18 @@ export const handleFlowChat = async (
     )
     content = textBlock?.text ?? ""
     intentName = toolBlock?.input?.intent_name ?? null
+
+    if (toolBlock && !content) {
+      onEvent?.({ type: "tool_call", data: { intentName, raw: toolBlock } })
+      const assistantMsg = { role: "assistant", content: data.content }
+      const toolResultMsg = {
+        role: "user",
+        content: [
+          { type: "tool_result", tool_use_id: toolBlock.id, content: "ok" }
+        ]
+      }
+      await showIndicatorAndStream([assistantMsg, toolResultMsg], "")
+    }
   } else {
     // OpenAI-compatible (openai, custom, azure)
     const msg = data.choices?.[0]?.message
@@ -257,15 +335,32 @@ export const handleFlowChat = async (
       try {
         intentName = JSON.parse(call.function.arguments)?.intent_name ?? null
       } catch {}
+
+      if (!content) {
+        onEvent?.({ type: "tool_call", data: { intentName, raw: call } })
+        const assistantMsg = {
+          role: "assistant",
+          content: msg.content ?? null,
+          tool_calls: msg.tool_calls
+        }
+        const toolMsg = { role: "tool", tool_call_id: call.id, content: "ok" }
+        await showIndicatorAndStream([assistantMsg, toolMsg], "")
+      }
     }
   }
 
-  // Update displayed message
-  setFirstTokenReceived(true)
-  const targetId = isRegeneration
-    ? payload.chatMessages[payload.chatMessages.length - 1].message.id
-    : tempAssistantChatMessage.message.id
+  // Extract think blocks from direct (non-streaming) content paths
+  if (content && !thinking) {
+    const { displayText, thinkingText } = extractThinkBlocks(content)
+    if (thinkingText) {
+      content = displayText
+      thinking = thinkingText
+      onThinkingUpdate?.(thinkingText)
+    }
+  }
 
+  // Final update covers the case where content came from the first call directly
+  setFirstTokenReceived(true)
   setChatMessages(prev =>
     prev.map(m =>
       m.message.id === targetId
@@ -274,7 +369,7 @@ export const handleFlowChat = async (
     )
   )
 
-  return { content, intentName }
+  return { content, thinking, intentName, toolExchange }
 }
 
 export const handleHostedChat = async (
@@ -290,7 +385,8 @@ export const handleHostedChat = async (
   setFirstTokenReceived: React.Dispatch<React.SetStateAction<boolean>>,
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
   setToolInUse: React.Dispatch<React.SetStateAction<string>>,
-  onFinalMessages?: (messages: any[]) => void
+  onFinalMessages?: (messages: any[]) => void,
+  onThinkingUpdate?: (thinking: string) => void
 ) => {
   const provider =
     modelData.provider === "openai" && profile.use_azure_openai
@@ -341,7 +437,8 @@ export const handleHostedChat = async (
     newAbortController,
     setFirstTokenReceived,
     setChatMessages,
-    setToolInUse
+    setToolInUse,
+    onThinkingUpdate
   )
 }
 
@@ -377,6 +474,38 @@ export const fetchChatResponse = async (
   return response
 }
 
+function extractThinkBlocks(raw: string): {
+  displayText: string
+  thinkingText: string
+} {
+  const startTag = "<think>"
+  const endTag = "</think>"
+  const startIdx = raw.indexOf(startTag)
+
+  if (startIdx === -1) {
+    return { displayText: raw, thinkingText: "" }
+  }
+
+  const endIdx = raw.indexOf(endTag, startIdx)
+  const preThink = raw.slice(0, startIdx)
+
+  if (endIdx === -1) {
+    // Think block still open: hide it from display, accumulate as thinking
+    return {
+      displayText: preThink,
+      thinkingText: raw.slice(startIdx + startTag.length)
+    }
+  }
+
+  // Think block closed: extract thinking, stitch display text
+  const thinkingText = raw.slice(startIdx + startTag.length, endIdx)
+  const postThink = raw.slice(endIdx + endTag.length).trimStart()
+  return {
+    displayText: preThink ? preThink + postThink : postThink,
+    thinkingText
+  }
+}
+
 export const processResponse = async (
   response: Response,
   lastChatMessage: ChatMessage,
@@ -384,9 +513,11 @@ export const processResponse = async (
   controller: AbortController,
   setFirstTokenReceived: React.Dispatch<React.SetStateAction<boolean>>,
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-  setToolInUse: React.Dispatch<React.SetStateAction<string>>
+  setToolInUse: React.Dispatch<React.SetStateAction<string>>,
+  onThinkingUpdate?: (thinking: string) => void
 ) => {
-  let fullText = ""
+  let rawAccum = ""
+  let lastDisplayText = ""
   let contentToAdd = ""
 
   if (response.body) {
@@ -410,9 +541,16 @@ export const processResponse = async (
                   (acc, line) => acc + JSON.parse(line).message.content,
                   ""
                 )
-          fullText += contentToAdd
+          rawAccum += contentToAdd
         } catch (error) {
           console.error("Error parsing JSON:", error)
+        }
+
+        const { displayText, thinkingText } = extractThinkBlocks(rawAccum)
+        lastDisplayText = displayText
+
+        if (onThinkingUpdate && thinkingText) {
+          onThinkingUpdate(thinkingText)
         }
 
         setChatMessages(prev =>
@@ -421,7 +559,7 @@ export const processResponse = async (
               const updatedChatMessage: ChatMessage = {
                 message: {
                   ...chatMessage.message,
-                  content: fullText
+                  content: displayText
                 },
                 fileItems: chatMessage.fileItems
               }
@@ -436,7 +574,7 @@ export const processResponse = async (
       controller.signal
     )
 
-    return fullText
+    return lastDisplayText
   } else {
     throw new Error("Response body is null")
   }

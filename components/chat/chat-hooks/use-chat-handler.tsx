@@ -7,9 +7,16 @@ import { getCollectionFilesByCollectionId } from "@/db/collection-files"
 import { deleteMessagesIncludingAndAfter } from "@/db/messages"
 import { buildFinalMessages } from "@/lib/build-prompt"
 import { Tables } from "@/supabase/types"
-import { ChatMessage, ChatPayload, LLMID, ModelProvider } from "@/types"
+import {
+  ChatMessage,
+  ChatPayload,
+  FlowEvent,
+  LLMID,
+  ModelProvider
+} from "@/types"
 import { useRouter } from "next/navigation"
 import { useContext, useEffect, useRef } from "react"
+import { v4 as uuidv4 } from "uuid"
 import { LLM_LIST } from "../../../lib/models/llm/llm-list"
 import {
   createTempMessages,
@@ -70,7 +77,10 @@ export const useChatHandler = () => {
     isToolPickerOpen,
     flowState,
     flowEngine,
-    setFlowDebugLog
+    setFlowState,
+    setFlowDebugLog,
+    setThinkingLog,
+    addFlowEvent
   } = useContext(ChatbotUIContext)
 
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -275,9 +285,42 @@ export const useChatHandler = () => {
         flowState: flowState || undefined
       }
 
+      const preTransitionFlowState = flowState
+        ? {
+            currentState: flowState.currentState,
+            goal: flowState.goal ?? null,
+            guide: flowState.guide ?? null,
+            teach: flowState.teach ?? null,
+            validIntents: [...(flowState.validIntents ?? [])]
+          }
+        : null
+
       let generatedText = ""
       let sentMessages: any[] = []
       let flowIntentName: string | null = null
+      let flowToolExchange: Array<{ role: string; content: any }> | null = null
+
+      const seqNum = isRegeneration
+        ? payload.chatMessages[payload.chatMessages.length - 1].message
+            .sequence_number
+        : tempAssistantChatMessage.message.sequence_number
+
+      // Dispatch flow_context event at turn start
+      if (preTransitionFlowState) {
+        addFlowEvent({
+          id: uuidv4(),
+          seqNum,
+          type: "flow_context",
+          timestamp: Date.now(),
+          data: {
+            state: preTransitionFlowState.currentState,
+            goal: preTransitionFlowState.goal,
+            guide: preTransitionFlowState.guide,
+            teach: preTransitionFlowState.teach,
+            validIntents: preTransitionFlowState.validIntents
+          }
+        })
+      }
 
       if (selectedTools.length > 0) {
         setToolInUse("Tools")
@@ -335,10 +378,27 @@ export const useChatHandler = () => {
           setFirstTokenReceived,
           msgs => {
             sentMessages = msgs
+            addFlowEvent({
+              id: uuidv4(),
+              seqNum,
+              type: "llm_request",
+              timestamp: Date.now(),
+              data: {
+                messageCount: msgs.length,
+                hasTools: true
+              }
+            })
+          },
+          thinking => {
+            setThinkingLog(prev => ({ ...prev, [seqNum]: thinking }))
+          },
+          ev => {
+            addFlowEvent({ id: uuidv4(), seqNum, timestamp: Date.now(), ...ev })
           }
         )
         generatedText = result.content
         flowIntentName = result.intentName
+        flowToolExchange = result.toolExchange
       } else {
         if (modelData!.provider === "ollama") {
           generatedText = await handleLocalChat(
@@ -351,7 +411,10 @@ export const useChatHandler = () => {
             setIsGenerating,
             setFirstTokenReceived,
             setChatMessages,
-            setToolInUse
+            setToolInUse,
+            thinking => {
+              setThinkingLog(prev => ({ ...prev, [seqNum]: thinking }))
+            }
           )
         } else {
           generatedText = await handleHostedChat(
@@ -369,42 +432,75 @@ export const useChatHandler = () => {
             setToolInUse,
             msgs => {
               sentMessages = msgs
+            },
+            thinking => {
+              setThinkingLog(prev => ({ ...prev, [seqNum]: thinking }))
             }
           )
         }
       }
 
-      // Flow engine post-turn: call FSM with tool-call intent, record debug info
+      // Post-turn: run FSM transition (flow only) then record debug info for all turns
+      const transitionEffects: any[] = []
       if (flowEngine) {
-        const transitionEffects: any[] = []
         if (flowIntentName) {
           const fx = flowEngine.send_intent(flowIntentName)
-          if (Array.isArray(fx)) transitionEffects.push(...fx)
+          if (Array.isArray(fx)) {
+            transitionEffects.push(...fx)
+            // Imperative channel: sync flowState from return-value effects.
+            // Guards against observer not updating context (engineRef.current timing).
+            const transitionEffect = fx.find(
+              (e: any) => e.type === "transition"
+            )
+            if (transitionEffect) {
+              const newState = flowEngine.get_current_state()
+              setFlowState({
+                currentState: newState,
+                goal: fx.find((e: any) => e.type === "goal")?.text,
+                guide: fx.find((e: any) => e.type === "guide")?.text,
+                teach: fx.find((e: any) => e.type === "teach")?.text,
+                validIntents: Array.from(
+                  flowEngine.get_valid_intents() || []
+                ) as string[]
+              })
+              addFlowEvent({
+                id: uuidv4(),
+                seqNum,
+                type: "fsm_transition",
+                timestamp: Date.now(),
+                data: {
+                  intent: flowIntentName,
+                  from: transitionEffect.from,
+                  to: transitionEffect.to,
+                  effects: fx,
+                  newGoal: fx.find((e: any) => e.type === "goal")?.text ?? null,
+                  newGuide:
+                    fx.find((e: any) => e.type === "guide")?.text ?? null
+                }
+              })
+            }
+          }
         }
         const tickFx = flowEngine.tick_prompt()
         if (Array.isArray(tickFx)) transitionEffects.push(...tickFx)
-
-        const seqNum = isRegeneration
-          ? payload.chatMessages[payload.chatMessages.length - 1].message
-              .sequence_number
-          : tempAssistantChatMessage.message.sequence_number
-
-        setFlowDebugLog(prev => ({
-          ...prev,
-          [seqNum]: {
-            sequenceNumber: seqNum,
-            stateAtSend: flowState?.currentState ?? "",
-            goal: flowState?.goal ?? null,
-            guide: flowState?.guide ?? null,
-            teach: flowState?.teach ?? null,
-            validIntents: flowState?.validIntents ?? [],
-            sentMessages,
-            rawResponse: generatedText,
-            intentFound: flowIntentName,
-            transitionEffects
-          }
-        }))
       }
+
+      setFlowDebugLog(prev => ({
+        ...prev,
+        [seqNum]: {
+          sequenceNumber: seqNum,
+          stateAtSend: preTransitionFlowState?.currentState ?? "",
+          goal: preTransitionFlowState?.goal ?? null,
+          guide: preTransitionFlowState?.guide ?? null,
+          teach: preTransitionFlowState?.teach ?? null,
+          validIntents: preTransitionFlowState?.validIntents ?? [],
+          sentMessages,
+          rawResponse: generatedText,
+          intentFound: flowIntentName,
+          transitionEffects,
+          toolExchange: flowToolExchange
+        }
+      }))
 
       if (!currentChat) {
         currentChat = await handleCreateChat(

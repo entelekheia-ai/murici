@@ -18,6 +18,7 @@ import {
   ChatFile,
   ChatMessage,
   ChatSettings,
+  FlowEvent,
   FlowTurnDebug,
   LLM,
   MessageImage,
@@ -27,7 +28,7 @@ import {
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { useRouter } from "next/navigation"
-import { FC, useEffect, useState } from "react"
+import { FC, useCallback, useEffect, useState } from "react"
 
 interface GlobalStateProps {
   children: React.ReactNode
@@ -136,6 +137,16 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [flowDebugLog, setFlowDebugLog] = useState<
     Record<number, FlowTurnDebug>
   >({})
+
+  // THINKING LOG STORE
+  const [thinkingLog, setThinkingLog] = useState<Record<number, string>>({})
+
+  // FLOW EVENT LOG
+  const [flowEvents, setFlowEvents] = useState<FlowEvent[]>([])
+  const addFlowEvent = useCallback(
+    (e: FlowEvent) => setFlowEvents(prev => [...prev, e]),
+    []
+  )
 
   useEffect(() => {
     ;(async () => {
@@ -344,7 +355,15 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         flowState,
         setFlowState,
         flowDebugLog,
-        setFlowDebugLog
+        setFlowDebugLog,
+
+        // THINKING LOG STORE
+        thinkingLog,
+        setThinkingLog,
+
+        // FLOW EVENT LOG
+        flowEvents,
+        addFlowEvent
       }}
     >
       {children}

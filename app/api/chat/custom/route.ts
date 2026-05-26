@@ -1,7 +1,6 @@
 import { Database } from "@/supabase/types"
 import { ChatSettings } from "@/types"
 import { createClient } from "@supabase/supabase-js"
-import { OpenAIStream, StreamingTextResponse } from "ai"
 import { ServerRuntime } from "next"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
@@ -52,8 +51,43 @@ export async function POST(request: Request) {
       return Response.json(response)
     }
 
-    const stream = OpenAIStream(response as any)
-    return new StreamingTextResponse(stream)
+    // Custom streaming: handles both delta.content and delta.reasoning_content
+    // (used by Qwen3, DeepSeek R1 and other thinking models via OpenAI-compatible APIs).
+    // We wrap reasoning_content in <think>...</think> so the client parser can extract it.
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        let thinkOpen = false
+        try {
+          for await (const chunk of response as any) {
+            const delta = chunk.choices?.[0]?.delta as any
+
+            if (delta?.reasoning_content) {
+              if (!thinkOpen) {
+                controller.enqueue(encoder.encode("<think>"))
+                thinkOpen = true
+              }
+              controller.enqueue(encoder.encode(delta.reasoning_content))
+            }
+
+            if (delta?.content) {
+              if (thinkOpen) {
+                controller.enqueue(encoder.encode("</think>"))
+                thinkOpen = false
+              }
+              controller.enqueue(encoder.encode(delta.content))
+            }
+          }
+        } finally {
+          if (thinkOpen) controller.enqueue(encoder.encode("</think>"))
+          controller.close()
+        }
+      }
+    })
+
+    return new Response(stream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" }
+    })
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500

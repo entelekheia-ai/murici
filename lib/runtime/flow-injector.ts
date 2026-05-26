@@ -24,7 +24,11 @@ export function injectFlowContext(
   if (flowState.teach) flowBlock += `\nKnowledge:\n${flowState.teach}\n`
   if (flowState.validIntents.length > 0) {
     flowBlock += `Available intents: [${intentsList}]\n`
-    flowBlock += `When the goal of this state is achieved, call the "trigger_intent" tool with the appropriate intent name. Do not mention the tool call to the user.\n`
+    if (flowState.goal) {
+      flowBlock += `When the goal of this state is achieved, call the "trigger_intent" tool with the appropriate intent name. Do not mention the tool call to the user.\n`
+    } else {
+      flowBlock += `Classify the user's message into one of the available intents and immediately call the "trigger_intent" tool with the matching intent name. Do not mention the tool call to the user.\n`
+    }
   }
   flowBlock += `[/FLOW_CONTEXT]`
 

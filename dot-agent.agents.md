@@ -36,20 +36,28 @@ You are the guardian of the `dot-agent` architecture in `chatbot-ui`. Your role 
 
 8. **Non-streaming for flow turns:** When a flow state has valid intents, the API request uses `stream: false` so that `tool_calls` are available in the full JSON response. The streaming path is reserved for turns without active intent routing.
 
+9. **Thinking content isolation:** `<think>...</think>` blocks must be extracted from `message.content` by `extractThinkBlocks()` in `processResponse` / `handleFlowChat`. Never store or display raw `<think>` tags in the message content. Reasoning content goes to `thinkingLog`, not to the message text.
+
+10. **Real-time event dispatch:** Flow events (`FlowEvent`) must be dispatched via `addFlowEvent` at the moment they occur, not batch-written at end of turn. The `flowEvents` array is the authoritative real-time log; `flowDebugLog` is a legacy end-of-turn snapshot kept for raw inspection only.
+
+11. **API streaming:** The `openai` and `custom` routes use a manual `for await` loop on the OpenAI SDK async iterator — never `OpenAIStream` from the `ai` package. This ensures `delta.reasoning_content` is captured and emitted as `<think>` tags for downstream parsing.
+
 ---
 
 ## Key Components
 
 | Area | File(s) | Role |
 |------|---------|------|
-| **UI** | `components/agents/agent-right-panel.tsx` | Loads flow, registers observer, renders Mermaid graph (purple = current, gray = visited), provides simulate buttons. Stores engine in context. |
+| **UI** | `components/agents/agent-right-panel.tsx` | Loads flow, registers observer, renders `StateGraph` (purple = current, gray = visited), provides simulate buttons. Stores engine in context. |
 | **Engine** | `dot-agent-kernel` (WASM) | Parses `.flow`, manages FSM state, fires effects via observer. Never execute FSM logic in TypeScript. |
 | **LLM Bridge** | `lib/runtime/flow-injector.ts` | Builds `[FLOW_CONTEXT]` block, filters old injections, injects `guide` into user message content, exports `buildTriggerIntentTool()`. |
-| **Flow Chat** | `components/chat/chat-helpers/index.ts` → `handleFlowChat` | Non-streaming request with tool definition; parses `tool_calls` (OpenAI) or `content[].type === "tool_use"` (Anthropic). |
-| **Chat Handler** | `components/chat/chat-hooks/use-chat-handler.tsx` | Branches to `handleFlowChat` when flow has valid intents; calls `send_intent()` + `tick_prompt()`; writes `FlowTurnDebug` to context. |
-| **Debug Panel** | `components/messages/message.tsx` | Reads `flowDebugLog` from context, renders collapsible debug info below each assistant message. |
-| **Context** | `context/context.tsx` + `components/utility/global-state.tsx` | Stores `flowEngine`, `flowState`, `flowDebugLog`. |
-| **API Routes** | `app/api/chat/openai`, `anthropic`, `custom` | Accept `tools` in body; switch to `stream: false` when present; return full JSON response. |
+| **Flow Chat** | `components/chat/chat-helpers/index.ts` → `handleFlowChat` | Non-streaming first turn with tool definition; parses `tool_calls` (OpenAI) or `content[].type === "tool_use"` (Anthropic). Streams second turn. Dispatches `tool_call` + `second_turn` events via `onEvent` callback. Extracts `<think>` blocks via `extractThinkBlocks`. |
+| **Chat Handler** | `components/chat/chat-hooks/use-chat-handler.tsx` | Branches to `handleFlowChat` when flow has valid intents; calls `send_intent()` + `tick_prompt()`; dispatches `flow_context`, `llm_request`, `fsm_transition` events in real time; writes `FlowTurnDebug` snapshot to context. |
+| **Thinking Display** | `components/messages/message-thinking-block.tsx` | Collapsible `🧠 Raciocínio` block rendered inside assistant message bubble; reads `thinkingLog[sequence_number]` from context. |
+| **Flow Event Cards** | `components/messages/flow-event-card.tsx` | One card component per `FlowEventType`; rendered in `chat-messages.tsx` before each assistant message in timestamp order. |
+| **Context** | `context/context.tsx` + `components/utility/global-state.tsx` | Stores `flowEngine`, `flowState`, `flowDebugLog`, `thinkingLog`, `flowEvents` + `addFlowEvent`. |
+| **API Routes** | `app/api/chat/openai`, `anthropic`, `custom` | `openai` and `custom` use manual `for await` streaming; wrap `delta.reasoning_content` in `<think>` tags; switch to `stream: false` only when `tools` present. `anthropic` unchanged. |
+| **Types** | `types/flow-event.ts`, `types/flow-debug.ts` | `FlowEvent` (real-time event log) and `FlowTurnDebug` (end-of-turn debug snapshot, includes `toolExchange`). |
 
 ---
 
@@ -65,7 +73,13 @@ If the agent fails to transition state, investigate in this order:
 
 4. **Model called the tool?** Check "Transition effects" in the debug panel. If `intentFound` is non-null, the tool was called and `send_intent()` was invoked. If null, the model didn't call the tool — adjust the `[FLOW_CONTEXT]` instruction or check if the model supports tool calling.
 
-5. **Mermaid not updating?** The graph updates via the `transition` effect in the observer. The current state turns purple and previously visited states turn gray. If the FSM transitioned (step 4) but the graph didn't update, check the `transition` case in the observer in `agent-right-panel.tsx`.
+5. **StateGraph not updating?** The graph updates via the `transition` effect in the observer. The current state turns purple and previously visited states turn gray. If the FSM transitioned (step 4) but the graph didn't update, check the `transition` case in the observer in `agent-right-panel.tsx`.
+
+6. **Flow event cards not appearing?** Check `flowEvents` in React DevTools. Events are keyed by `seqNum` — verify the `seqNum` computed in `use-chat-handler.tsx` matches `message.sequence_number` rendered by `Message`. If `addFlowEvent` is called but cards don't show, check the filter in `chat-messages.tsx`.
+
+7. **Thinking block not showing after flow turn?** `handleFlowChat`'s `showIndicatorAndStream` calls `onThinkingUpdate` during the second-turn stream. Verify the `onThinkingUpdate` callback is passed through from `use-chat-handler.tsx` and that `thinkingLog[seqNum]` is set before `Message` re-renders.
+
+8. **`<think>` tags visible in message?** `extractThinkBlocks` wasn't called on that content path. Check that both the streaming path (`processResponse`) and the non-streaming fallback in `handleFlowChat` apply the extraction. Also check that the API route wraps `reasoning_content` in `<think>` tags (only `custom` and `openai` routes do this — `anthropic` is handled separately).
 
 ---
 

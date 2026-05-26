@@ -8,7 +8,7 @@ import {
   OpenRouterLLM,
   WorkspaceImage
 } from "@/types"
-import { FlowTurnDebug } from "@/types"
+import { FlowEvent, FlowTurnDebug } from "@/types"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { Dispatch, SetStateAction, createContext } from "react"
@@ -159,6 +159,14 @@ interface ChatbotUIContext {
   >
   flowDebugLog: Record<number, FlowTurnDebug>
   setFlowDebugLog: Dispatch<SetStateAction<Record<number, FlowTurnDebug>>>
+
+  // THINKING LOG STORE
+  thinkingLog: Record<number, string>
+  setThinkingLog: Dispatch<SetStateAction<Record<number, string>>>
+
+  // FLOW EVENT LOG
+  flowEvents: FlowEvent[]
+  addFlowEvent: (event: FlowEvent) => void
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({
@@ -292,5 +300,13 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   flowState: null,
   setFlowState: () => {},
   flowDebugLog: {},
-  setFlowDebugLog: () => {}
+  setFlowDebugLog: () => {},
+
+  // THINKING LOG STORE
+  thinkingLog: {},
+  setThinkingLog: () => {},
+
+  // FLOW EVENT LOG
+  flowEvents: [],
+  addFlowEvent: () => {}
 })

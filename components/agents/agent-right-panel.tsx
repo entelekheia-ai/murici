@@ -1,6 +1,6 @@
 import { FC, useState, useEffect, useRef, useContext } from "react"
 import { Button } from "../ui/button"
-import { MermaidDiagram } from "./mermaid-diagram"
+import { StateGraph } from "./state-graph"
 import { ChatbotUIContext } from "@/context/context"
 
 export const AgentRightPanel: FC = () => {
@@ -9,7 +9,8 @@ export const AgentRightPanel: FC = () => {
   const [activeTab, setActiveTab] = useState<"flow" | "agent">("flow")
   const [engine, setEngine] = useState<any>(null)
   const [currentState, setCurrentState] = useState<string>("")
-  const [mermaidChart, setMermaidChart] = useState<string>("")
+  const [graphData, setGraphData] = useState<any>(null)
+  const [visitedStates, setVisitedStates] = useState<Set<string>>(new Set())
   const [flowText, setFlowText] = useState(
     `state welcome\n  goal "Help the user get started"\n  guide "Be friendly and concise"\n  interact\n  on intent "continue" next setup\n\nstate setup\n  goal "Collect user preferences"\n  interact\n  on intent "done" next end\n\nstate end\n  goal "Session complete"`
   )
@@ -21,28 +22,6 @@ export const AgentRightPanel: FC = () => {
   const currentStateRef = useRef<string>("")
   const engineRef = useRef<any>(null)
   const visitedRef = useRef<Set<string>>(new Set())
-
-  const buildMermaidChart = (
-    graph: any,
-    active: string,
-    visited: Set<string>
-  ) => {
-    if (!graph) return ""
-    const lines = ["stateDiagram-v2"]
-    for (const t of graph.transitions || []) {
-      lines.push(`  ${t.from} --> ${t.to}: ${t.label}`)
-    }
-    lines.push(
-      `  classDef active fill:#7c3aed,color:#fff,stroke:#4c1d95,stroke-width:2px`
-    )
-    lines.push(
-      `  classDef visited fill:#4b5563,color:#d1d5db,stroke:#374151,stroke-width:1px`
-    )
-    if (active) lines.push(`  class ${active} active`)
-    const pastStates = [...visited].filter(s => s !== active)
-    if (pastStates.length) lines.push(`  class ${pastStates.join(",")} visited`)
-    return lines.join("\n")
-  }
 
   const updateFlowState = (eng: any) => {
     const state = eng.get_current_state()
@@ -67,9 +46,8 @@ export const AgentRightPanel: FC = () => {
       currentStateRef.current = state
       visitedRef.current.add(state)
       setCurrentState(state)
-
-      const graph = eng.get_graph()
-      setMermaidChart(buildMermaidChart(graph, state, visitedRef.current))
+      setVisitedStates(new Set([state]))
+      setGraphData(eng.get_graph())
       updateFlowState(eng)
     } catch (e) {
       console.error("Error loading flow:", e)
@@ -106,20 +84,14 @@ export const AgentRightPanel: FC = () => {
                 visitedRef.current.add(effect.to)
                 currentStateRef.current = effect.to
                 setCurrentState(effect.to)
-                if (engineRef.current) {
-                  const graph = engineRef.current.get_graph()
-                  setMermaidChart(
-                    buildMermaidChart(
-                      graph,
-                      effect.to,
-                      new Set(visitedRef.current)
-                    )
-                  )
-                }
                 break
               case "request_interact":
-                // All entry directives have fired — now update flowState
-                if (engineRef.current) updateFlowState(engineRef.current)
+                // All entry directives have fired — FSM is fully settled in the new state
+                if (engineRef.current) {
+                  updateFlowState(engineRef.current)
+                  setGraphData(engineRef.current.get_graph())
+                  setVisitedStates(new Set(visitedRef.current))
+                }
                 break
               case "parse_error":
                 console.error("Flow parse error:", effect.message)
@@ -189,11 +161,15 @@ export const AgentRightPanel: FC = () => {
               Load / Reload Flow
             </Button>
 
-            {mermaidChart && (
+            {graphData && (
               <div className="bg-muted/50 flex flex-1 flex-col overflow-hidden rounded border p-2">
                 <h3 className="mb-2 font-semibold">State Graph</h3>
                 <div className="border-primary/50 bg-background flex-1 overflow-auto rounded border border-dashed p-2">
-                  <MermaidDiagram chart={mermaidChart} />
+                  <StateGraph
+                    graph={graphData}
+                    activeState={currentState}
+                    visitedStates={visitedStates}
+                  />
                 </div>
               </div>
             )}

@@ -9,4 +9,5 @@ export interface FlowTurnDebug {
   rawResponse: string
   intentFound: string | null
   transitionEffects: any[]
+  toolExchange: Array<{ role: string; content: any }> | null
 }
