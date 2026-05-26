@@ -9,9 +9,10 @@ export const runtime: ServerRuntime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages } = json as {
+  const { chatSettings, messages, tools } = json as {
     chatSettings: ChatSettings
     messages: any[]
+    tools?: any[]
   }
 
   try {
@@ -24,6 +25,8 @@ export async function POST(request: Request) {
       organization: profile.openai_organization_id
     })
 
+    const useStreaming = !tools?.length
+
     const response = await openai.chat.completions.create({
       model: chatSettings.model as ChatCompletionCreateParamsBase["model"],
       messages: messages as ChatCompletionCreateParamsBase["messages"],
@@ -32,12 +35,16 @@ export async function POST(request: Request) {
         chatSettings.model === "gpt-4-vision-preview" ||
         chatSettings.model === "gpt-4o"
           ? 4096
-          : null, // TODO: Fix
-      stream: true
-    })
+          : null,
+      stream: useStreaming,
+      ...(tools?.length ? { tools, tool_choice: "auto" } : {})
+    } as any)
 
-    const stream = OpenAIStream(response)
+    if (!useStreaming) {
+      return Response.json(response)
+    }
 
+    const stream = OpenAIStream(response as any)
     return new StreamingTextResponse(stream)
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"

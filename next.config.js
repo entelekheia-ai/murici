@@ -27,6 +27,14 @@ module.exports = withBundleAnalyzer(
     },
     experimental: {
       serverComponentsExternalPackages: ["sharp", "onnxruntime-node"]
+    },
+    webpack: (config, { isServer }) => {
+      config.experiments = {
+        ...config.experiments,
+        asyncWebAssembly: true,
+        layers: true
+      }
+      return config
     }
   })
 )

@@ -7,13 +7,16 @@ import {
   IconMessage,
   IconPencil,
   IconRobotFace,
-  IconSparkles
+  IconSparkles,
+  IconSitemap
 } from "@tabler/icons-react"
 import { FC } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { TabsList } from "../ui/tabs"
 import { WithTooltip } from "../ui/with-tooltip"
 import { ProfileSettings } from "../utility/profile-settings"
 import { SidebarSwitchItem } from "./sidebar-switch-item"
+import { Button } from "../ui/button"
 
 export const SIDEBAR_ICON_SIZE = 28
 
@@ -24,6 +27,21 @@ interface SidebarSwitcherProps {
 export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
   onContentTypeChange
 }) => {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const isAgentOpen = searchParams.get("agent") === "true"
+
+  const toggleAgentPanel = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (isAgentOpen) {
+      params.delete("agent")
+    } else {
+      params.set("agent", "true")
+    }
+    router.replace(`${pathname}?${params.toString()}`)
+  }
+
   return (
     <div className="flex flex-col justify-between border-r-2 pb-5">
       <TabsList className="bg-background grid h-[440px] grid-rows-7">
@@ -82,6 +100,19 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
 
         {/* TODO */}
         {/* <Alerts /> */}
+
+        <WithTooltip
+          display={<div>.agent / .flow Panel</div>}
+          trigger={
+            <Button
+              variant={isAgentOpen ? "default" : "ghost"}
+              size="icon"
+              onClick={toggleAgentPanel}
+            >
+              <IconSitemap size={SIDEBAR_ICON_SIZE} />
+            </Button>
+          }
+        />
 
         <WithTooltip
           display={<div>Profile Settings</div>}

@@ -10,10 +10,11 @@ export const runtime: ServerRuntime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, customModelId } = json as {
+  const { chatSettings, messages, customModelId, tools } = json as {
     chatSettings: ChatSettings
     messages: any[]
     customModelId: string
+    tools?: any[]
   }
 
   try {
@@ -37,15 +38,21 @@ export async function POST(request: Request) {
       baseURL: customModel.base_url
     })
 
+    const useStreaming = !tools?.length
+
     const response = await custom.chat.completions.create({
       model: chatSettings.model as ChatCompletionCreateParamsBase["model"],
       messages: messages as ChatCompletionCreateParamsBase["messages"],
       temperature: chatSettings.temperature,
-      stream: true
-    })
+      stream: useStreaming,
+      ...(tools?.length ? { tools, tool_choice: "auto" } : {})
+    } as any)
 
-    const stream = OpenAIStream(response)
+    if (!useStreaming) {
+      return Response.json(response)
+    }
 
+    const stream = OpenAIStream(response as any)
     return new StreamingTextResponse(stream)
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"

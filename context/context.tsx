@@ -8,6 +8,7 @@ import {
   OpenRouterLLM,
   WorkspaceImage
 } from "@/types"
+import { FlowTurnDebug } from "@/types"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { Dispatch, SetStateAction, createContext } from "react"
@@ -136,6 +137,28 @@ interface ChatbotUIContext {
   setSelectedTools: Dispatch<SetStateAction<Tables<"tools">[]>>
   toolInUse: string
   setToolInUse: Dispatch<SetStateAction<string>>
+
+  // FLOW ENGINE STORE
+  flowEngine: any | null
+  setFlowEngine: Dispatch<SetStateAction<any | null>>
+  flowState: {
+    currentState: string
+    goal?: string
+    guide?: string
+    teach?: string
+    validIntents: string[]
+  } | null
+  setFlowState: Dispatch<
+    SetStateAction<{
+      currentState: string
+      goal?: string
+      guide?: string
+      teach?: string
+      validIntents: string[]
+    } | null>
+  >
+  flowDebugLog: Record<number, FlowTurnDebug>
+  setFlowDebugLog: Dispatch<SetStateAction<Record<number, FlowTurnDebug>>>
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({
@@ -261,5 +284,13 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   selectedTools: [],
   setSelectedTools: () => {},
   toolInUse: "none",
-  setToolInUse: () => {}
+  setToolInUse: () => {},
+
+  // FLOW ENGINE STORE
+  flowEngine: null,
+  setFlowEngine: () => {},
+  flowState: null,
+  setFlowState: () => {},
+  flowDebugLog: {},
+  setFlowDebugLog: () => {}
 })

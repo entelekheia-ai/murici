@@ -9,6 +9,10 @@ import {
   buildFinalMessages,
   adaptMessagesForGoogleGemini
 } from "@/lib/build-prompt"
+import {
+  buildTriggerIntentTool,
+  FlowStateInfo
+} from "@/lib/runtime/flow-injector"
 import { consumeReadableStream } from "@/lib/consume-stream"
 import { Tables, TablesInsert } from "@/supabase/types"
 import {
@@ -187,6 +191,92 @@ export const handleLocalChat = async (
   )
 }
 
+export const handleFlowChat = async (
+  payload: ChatPayload,
+  profile: Tables<"profiles">,
+  modelData: LLM,
+  tempAssistantChatMessage: ChatMessage,
+  isRegeneration: boolean,
+  chatImages: MessageImage[],
+  flowState: FlowStateInfo,
+  setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
+  setFirstTokenReceived: React.Dispatch<React.SetStateAction<boolean>>,
+  onFinalMessages?: (messages: any[]) => void
+): Promise<{ content: string; intentName: string | null }> => {
+  const messages = await buildFinalMessages(
+    payload,
+    profile,
+    chatImages,
+    onFinalMessages
+  )
+  const tools = [buildTriggerIntentTool(flowState.validIntents)]
+
+  const provider =
+    modelData.provider === "openai" && profile.use_azure_openai
+      ? "azure"
+      : modelData.provider
+  const apiEndpoint =
+    provider === "custom" ? "/api/chat/custom" : `/api/chat/${provider}`
+
+  const res = await fetch(apiEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chatSettings: payload.chatSettings,
+      messages,
+      tools,
+      customModelId: provider === "custom" ? modelData.hostedId : undefined
+    })
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: "Request failed" }))
+    throw new Error(err.message || "Flow chat request failed")
+  }
+
+  const data = await res.json()
+
+  let content = ""
+  let intentName: string | null = null
+
+  if (provider === "anthropic") {
+    const textBlock = data.content?.find((b: any) => b.type === "text")
+    const toolBlock = data.content?.find(
+      (b: any) => b.type === "tool_use" && b.name === "trigger_intent"
+    )
+    content = textBlock?.text ?? ""
+    intentName = toolBlock?.input?.intent_name ?? null
+  } else {
+    // OpenAI-compatible (openai, custom, azure)
+    const msg = data.choices?.[0]?.message
+    content = msg?.content ?? ""
+    const call = msg?.tool_calls?.find(
+      (c: any) => c.function?.name === "trigger_intent"
+    )
+    if (call) {
+      try {
+        intentName = JSON.parse(call.function.arguments)?.intent_name ?? null
+      } catch {}
+    }
+  }
+
+  // Update displayed message
+  setFirstTokenReceived(true)
+  const targetId = isRegeneration
+    ? payload.chatMessages[payload.chatMessages.length - 1].message.id
+    : tempAssistantChatMessage.message.id
+
+  setChatMessages(prev =>
+    prev.map(m =>
+      m.message.id === targetId
+        ? { ...m, message: { ...m.message, content } }
+        : m
+    )
+  )
+
+  return { content, intentName }
+}
+
 export const handleHostedChat = async (
   payload: ChatPayload,
   profile: Tables<"profiles">,
@@ -199,18 +289,27 @@ export const handleHostedChat = async (
   setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>,
   setFirstTokenReceived: React.Dispatch<React.SetStateAction<boolean>>,
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-  setToolInUse: React.Dispatch<React.SetStateAction<string>>
+  setToolInUse: React.Dispatch<React.SetStateAction<string>>,
+  onFinalMessages?: (messages: any[]) => void
 ) => {
   const provider =
     modelData.provider === "openai" && profile.use_azure_openai
       ? "azure"
       : modelData.provider
 
-  let draftMessages = await buildFinalMessages(payload, profile, chatImages)
+  let draftMessages = await buildFinalMessages(
+    payload,
+    profile,
+    chatImages,
+    onFinalMessages
+  )
 
-  let formattedMessages : any[] = []
+  let formattedMessages: any[] = []
   if (provider === "google") {
-    formattedMessages = await adaptMessagesForGoogleGemini(payload, draftMessages)
+    formattedMessages = await adaptMessagesForGoogleGemini(
+      payload,
+      draftMessages
+    )
   } else {
     formattedMessages = draftMessages
   }

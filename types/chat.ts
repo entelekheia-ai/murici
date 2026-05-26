@@ -18,6 +18,13 @@ export interface ChatPayload {
   assistant: Tables<"assistants"> | null
   messageFileItems: Tables<"file_items">[]
   chatFileItems: Tables<"file_items">[]
+  flowState?: {
+    currentState: string
+    goal?: string
+    guide?: string
+    teach?: string
+    validIntents: string[]
+  }
 }
 
 export interface ChatAPIPayload {

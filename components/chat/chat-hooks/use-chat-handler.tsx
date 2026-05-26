@@ -15,6 +15,7 @@ import {
   createTempMessages,
   handleCreateChat,
   handleCreateMessages,
+  handleFlowChat,
   handleHostedChat,
   handleLocalChat,
   handleRetrieval,
@@ -66,7 +67,10 @@ export const useChatHandler = () => {
     models,
     isPromptPickerOpen,
     isFilePickerOpen,
-    isToolPickerOpen
+    isToolPickerOpen,
+    flowState,
+    flowEngine,
+    setFlowDebugLog
   } = useContext(ChatbotUIContext)
 
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -267,10 +271,13 @@ export const useChatHandler = () => {
           : [...chatMessages, tempUserChatMessage],
         assistant: selectedChat?.assistant_id ? selectedAssistant : null,
         messageFileItems: retrievedFileItems,
-        chatFileItems: chatFileItems
+        chatFileItems: chatFileItems,
+        flowState: flowState || undefined
       }
 
       let generatedText = ""
+      let sentMessages: any[] = []
+      let flowIntentName: string | null = null
 
       if (selectedTools.length > 0) {
         setToolInUse("Tools")
@@ -278,7 +285,10 @@ export const useChatHandler = () => {
         const formattedMessages = await buildFinalMessages(
           payload,
           profile!,
-          chatImages
+          chatImages,
+          msgs => {
+            sentMessages = msgs
+          }
         )
 
         const response = await fetch("/api/chat/tools", {
@@ -306,6 +316,29 @@ export const useChatHandler = () => {
           setChatMessages,
           setToolInUse
         )
+      } else if (
+        flowEngine &&
+        flowState?.validIntents &&
+        flowState.validIntents.length > 0 &&
+        modelData!.provider !== "ollama"
+      ) {
+        // Flow-controlled turn: non-streaming with tool calling
+        const result = await handleFlowChat(
+          payload,
+          profile!,
+          modelData!,
+          tempAssistantChatMessage,
+          isRegeneration,
+          chatImages,
+          flowState,
+          setChatMessages,
+          setFirstTokenReceived,
+          msgs => {
+            sentMessages = msgs
+          }
+        )
+        generatedText = result.content
+        flowIntentName = result.intentName
       } else {
         if (modelData!.provider === "ollama") {
           generatedText = await handleLocalChat(
@@ -333,9 +366,44 @@ export const useChatHandler = () => {
             setIsGenerating,
             setFirstTokenReceived,
             setChatMessages,
-            setToolInUse
+            setToolInUse,
+            msgs => {
+              sentMessages = msgs
+            }
           )
         }
+      }
+
+      // Flow engine post-turn: call FSM with tool-call intent, record debug info
+      if (flowEngine) {
+        const transitionEffects: any[] = []
+        if (flowIntentName) {
+          const fx = flowEngine.send_intent(flowIntentName)
+          if (Array.isArray(fx)) transitionEffects.push(...fx)
+        }
+        const tickFx = flowEngine.tick_prompt()
+        if (Array.isArray(tickFx)) transitionEffects.push(...tickFx)
+
+        const seqNum = isRegeneration
+          ? payload.chatMessages[payload.chatMessages.length - 1].message
+              .sequence_number
+          : tempAssistantChatMessage.message.sequence_number
+
+        setFlowDebugLog(prev => ({
+          ...prev,
+          [seqNum]: {
+            sequenceNumber: seqNum,
+            stateAtSend: flowState?.currentState ?? "",
+            goal: flowState?.goal ?? null,
+            guide: flowState?.guide ?? null,
+            teach: flowState?.teach ?? null,
+            validIntents: flowState?.validIntents ?? [],
+            sentMessages,
+            rawResponse: generatedText,
+            intentFound: flowIntentName,
+            transitionEffects
+          }
+        }))
       }
 
       if (!currentChat) {

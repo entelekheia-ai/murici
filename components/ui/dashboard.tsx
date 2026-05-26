@@ -12,6 +12,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { FC, useState } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { CommandK } from "../utility/command-k"
+import { AgentRightPanel } from "../agents/agent-right-panel"
 
 export const SIDEBAR_WIDTH = 350
 
@@ -26,6 +27,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tabValue = searchParams.get("tab") || "chats"
+  const isAgentOpen = searchParams.get("agent") === "true"
 
   const { handleSelectDeviceFile } = useSelectFileHandler()
 
@@ -110,7 +112,10 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
             drop file here
           </div>
         ) : (
-          children
+          <div className="flex size-full overflow-hidden">
+            <div className="flex-1 overflow-hidden">{children}</div>
+            {isAgentOpen && <AgentRightPanel />}
+          </div>
         )}
 
         <Button

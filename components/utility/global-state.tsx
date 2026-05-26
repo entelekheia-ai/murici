@@ -18,6 +18,7 @@ import {
   ChatFile,
   ChatMessage,
   ChatSettings,
+  FlowTurnDebug,
   LLM,
   MessageImage,
   OpenRouterLLM,
@@ -122,6 +123,19 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   // TOOL STORE
   const [selectedTools, setSelectedTools] = useState<Tables<"tools">[]>([])
   const [toolInUse, setToolInUse] = useState<string>("none")
+
+  // FLOW ENGINE STORE
+  const [flowEngine, setFlowEngine] = useState<any | null>(null)
+  const [flowState, setFlowState] = useState<{
+    currentState: string
+    goal?: string
+    guide?: string
+    teach?: string
+    validIntents: string[]
+  } | null>(null)
+  const [flowDebugLog, setFlowDebugLog] = useState<
+    Record<number, FlowTurnDebug>
+  >({})
 
   useEffect(() => {
     ;(async () => {
@@ -322,7 +336,15 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         selectedTools,
         setSelectedTools,
         toolInUse,
-        setToolInUse
+        setToolInUse,
+
+        // FLOW ENGINE STORE
+        flowEngine,
+        setFlowEngine,
+        flowState,
+        setFlowState,
+        flowDebugLog,
+        setFlowDebugLog
       }}
     >
       {children}

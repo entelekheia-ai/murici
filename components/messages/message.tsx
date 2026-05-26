@@ -59,7 +59,8 @@ export const Message: FC<MessageProps> = ({
     assistantImages,
     toolInUse,
     files,
-    models
+    models,
+    flowDebugLog
   } = useContext(ChatbotUIContext)
 
   const { handleSendMessage } = useChatHandler()
@@ -149,6 +150,11 @@ export const Message: FC<MessageProps> = ({
   )?.base64
 
   const modelDetails = LLM_LIST.find(model => model.modelId === message.model)
+
+  const flowDebug =
+    message.role === "assistant"
+      ? flowDebugLog?.[message.sequence_number] ?? null
+      : null
 
   const fileAccumulator: Record<
     string,
@@ -308,6 +314,72 @@ export const Message: FC<MessageProps> = ({
             <MessageMarkdown content={message.content} />
           )}
         </div>
+
+        {flowDebug && (
+          <details className="border-border text-muted-foreground mt-3 rounded border text-xs">
+            <summary className="hover:bg-muted/50 cursor-pointer select-none px-3 py-2 font-mono text-blue-400">
+              ⚙ Flow Debug — state:{" "}
+              <strong>{flowDebug.stateAtSend || "—"}</strong>
+              {flowDebug.intentFound && (
+                <span className="ml-2 text-orange-400">
+                  → intent: &quot;{flowDebug.intentFound}&quot;
+                </span>
+              )}
+            </summary>
+            <div className="space-y-2 px-3 py-2 font-mono">
+              {flowDebug.goal && (
+                <div>
+                  <span className="text-yellow-400">goal:</span>{" "}
+                  {flowDebug.goal}
+                </div>
+              )}
+              {flowDebug.guide && (
+                <div>
+                  <span className="text-green-400">guide:</span>{" "}
+                  {flowDebug.guide}
+                </div>
+              )}
+              {flowDebug.teach && (
+                <div>
+                  <span className="text-purple-400">teach:</span>{" "}
+                  {flowDebug.teach}
+                </div>
+              )}
+              <div>
+                <span className="text-blue-400">intents offered:</span>{" "}
+                {flowDebug.validIntents.length > 0
+                  ? flowDebug.validIntents.join(", ")
+                  : "none"}
+              </div>
+              <details>
+                <summary className="cursor-pointer hover:opacity-70">
+                  Sent messages ({flowDebug.sentMessages.length})
+                </summary>
+                <pre className="bg-muted mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded p-2">
+                  {JSON.stringify(flowDebug.sentMessages, null, 2)}
+                </pre>
+              </details>
+              <details>
+                <summary className="cursor-pointer hover:opacity-70">
+                  Raw response
+                </summary>
+                <pre className="bg-muted mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2">
+                  {flowDebug.rawResponse}
+                </pre>
+              </details>
+              {flowDebug.transitionEffects.length > 0 && (
+                <details>
+                  <summary className="cursor-pointer hover:opacity-70">
+                    Transition effects ({flowDebug.transitionEffects.length})
+                  </summary>
+                  <pre className="bg-muted mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2">
+                    {JSON.stringify(flowDebug.transitionEffects, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </details>
+        )}
 
         {fileItems.length > 0 && (
           <div className="border-primary mt-6 border-t pt-4 font-bold">

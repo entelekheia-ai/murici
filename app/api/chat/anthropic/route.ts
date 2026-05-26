@@ -10,9 +10,10 @@ export const runtime = "edge"
 
 export async function POST(request: NextRequest) {
   const json = await request.json()
-  const { chatSettings, messages } = json as {
+  const { chatSettings, messages, tools } = json as {
     chatSettings: ChatSettings
     messages: any[]
+    tools?: any[]
   }
 
   try {
@@ -59,6 +60,15 @@ export async function POST(request: NextRequest) {
       apiKey: profile.anthropic_api_key || ""
     })
 
+    // Convert OpenAI-style tools to Anthropic format
+    const anthropicTools = tools?.map((t: any) => ({
+      name: t.function.name,
+      description: t.function.description,
+      input_schema: t.function.parameters
+    }))
+
+    const useStreaming = !anthropicTools?.length
+
     try {
       const response = await anthropic.messages.create({
         model: chatSettings.model,
@@ -67,11 +77,18 @@ export async function POST(request: NextRequest) {
         system: messages[0].content,
         max_tokens:
           CHAT_SETTING_LIMITS[chatSettings.model].MAX_TOKEN_OUTPUT_LENGTH,
-        stream: true
-      })
+        stream: useStreaming,
+        ...(anthropicTools?.length
+          ? { tools: anthropicTools, tool_choice: { type: "auto" } }
+          : {})
+      } as any)
+
+      if (!useStreaming) {
+        return NextResponse.json(response)
+      }
 
       try {
-        const stream = AnthropicStream(response)
+        const stream = AnthropicStream(response as any)
         return new StreamingTextResponse(stream)
       } catch (error: any) {
         console.error("Error parsing Anthropic API response:", error)
