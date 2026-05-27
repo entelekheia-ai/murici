@@ -1,5 +1,5 @@
 "use client"
-export function Stub() {
+export function CreatePreset() {
   return null
 }
-export default Stub
+export default CreatePreset

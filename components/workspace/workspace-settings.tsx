@@ -1,5 +1,5 @@
 "use client"
-export function Stub() {
+export function WorkspaceSettings() {
   return null
 }
-export default Stub
+export default WorkspaceSettings

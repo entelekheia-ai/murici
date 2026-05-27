@@ -1,5 +1,5 @@
 "use client"
-export function Stub() {
+export function ToolItem() {
   return null
 }
-export default Stub
+export default ToolItem
