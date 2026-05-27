@@ -1,6 +1,7 @@
 // Only used in use-chat-handler.tsx to keep it clean
 
 import { createChat } from "@/db/chats"
+import { getModelById } from "@/db/models"
 import { createMessages, updateMessage } from "@/db/messages"
 import {
   createChatFiles,
@@ -29,6 +30,13 @@ import {
 import React from "react"
 import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
+
+async function resolveCustomModel(hostedId: string | undefined) {
+  if (!hostedId) return undefined
+  const m = await getModelById(hostedId)
+  if (!m) return undefined
+  return { api_key: m.api_key, base_url: m.base_url, model_id: m.model_id }
+}
 
 function buildApiKeys(profile: Tables<"profiles">) {
   return {
@@ -250,6 +258,11 @@ export const handleFlowChat = async (
   const apiEndpoint =
     provider === "custom" ? "/api/chat/custom" : `/api/chat/${provider}`
 
+  const customModel =
+    provider === "custom"
+      ? await resolveCustomModel(modelData.hostedId)
+      : undefined
+
   const res = await fetch(apiEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -257,7 +270,7 @@ export const handleFlowChat = async (
       chatSettings: payload.chatSettings,
       messages,
       tools,
-      customModelId: provider === "custom" ? modelData.hostedId : undefined,
+      customModel,
       apiKeys: buildApiKeys(profile)
     })
   })
@@ -300,7 +313,7 @@ export const handleFlowChat = async (
       body: JSON.stringify({
         chatSettings: payload.chatSettings,
         messages: [...messages, ...exchangeMessages.map(m => ({ ...m }))],
-        customModelId: provider === "custom" ? modelData.hostedId : undefined,
+        customModel,
         apiKeys: buildApiKeys(profile)
       })
     })
@@ -437,10 +450,15 @@ export const handleHostedChat = async (
   const apiEndpoint =
     provider === "custom" ? "/api/chat/custom" : `/api/chat/${provider}`
 
+  const customModel =
+    provider === "custom"
+      ? await resolveCustomModel(modelData.hostedId)
+      : undefined
+
   const requestBody = {
     chatSettings: payload.chatSettings,
     messages: formattedMessages,
-    customModelId: provider === "custom" ? modelData.hostedId : "",
+    customModel,
     apiKeys: buildApiKeys(profile)
   }
 
