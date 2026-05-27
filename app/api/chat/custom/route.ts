@@ -1,6 +1,4 @@
-import { Database } from "@/supabase/types"
 import { ChatSettings } from "@/types"
-import { createClient } from "@supabase/supabase-js"
 import { ServerRuntime } from "next"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
@@ -9,27 +7,16 @@ export const runtime: ServerRuntime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, customModelId, tools } = json as {
+  const { chatSettings, messages, customModel, tools } = json as {
     chatSettings: ChatSettings
     messages: any[]
-    customModelId: string
+    customModel: { api_key: string; base_url: string; model_id: string }
     tools?: any[]
   }
 
   try {
-    const supabaseAdmin = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    const { data: customModel, error } = await supabaseAdmin
-      .from("models")
-      .select("*")
-      .eq("id", customModelId)
-      .single()
-
-    if (!customModel) {
-      throw new Error(error.message)
+    if (!customModel?.base_url) {
+      throw new Error("Custom model base_url is required")
     }
 
     const custom = new OpenAI({
@@ -94,10 +81,10 @@ export async function POST(request: Request) {
 
     if (errorMessage.toLowerCase().includes("api key not found")) {
       errorMessage =
-        "Custom API Key not found. Please set it in your profile settings."
+        "Custom API Key not found. Please set it in your model settings."
     } else if (errorMessage.toLowerCase().includes("incorrect api key")) {
       errorMessage =
-        "Custom API Key is incorrect. Please fix it in your profile settings."
+        "Custom API Key is incorrect. Please fix it in your model settings."
     }
 
     return new Response(JSON.stringify({ message: errorMessage }), {

@@ -1,4 +1,4 @@
-import { Tables } from "@/supabase/types"
+import { Tables } from "@/types/database"
 import { ChatPayload, MessageImage } from "@/types"
 import { encode } from "gpt-tokenizer"
 import { getBase64FromDataURL, getMediaTypeFromDataURL } from "@/lib/utils"

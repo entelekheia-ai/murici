@@ -1,12 +1,14 @@
 import { ChatbotUIContext } from "@/context/context"
-import { getAssistantCollectionsByAssistantId } from "@/db/assistant-collections"
-import { getAssistantFilesByAssistantId } from "@/db/assistant-files"
-import { getAssistantToolsByAssistantId } from "@/db/assistant-tools"
-import { updateChat } from "@/db/chats"
-import { getCollectionFilesByCollectionId } from "@/db/collection-files"
-import { deleteMessagesIncludingAndAfter } from "@/db/messages"
+import {
+  getAssistantCollectionsByAssistantId,
+  getAssistantFilesByAssistantId,
+  getAssistantToolsByAssistantId,
+  updateChat,
+  getCollectionFilesByCollectionId,
+  deleteMessagesIncludingAndAfter
+} from "@/lib/local-db/stubs"
 import { buildFinalMessages } from "@/lib/build-prompt"
-import { Tables } from "@/supabase/types"
+import { Tables } from "@/types/database"
 import {
   ChatMessage,
   ChatPayload,

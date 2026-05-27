@@ -1,10 +1,13 @@
 // Only used in use-chat-handler.tsx to keep it clean
 
-import { createChatFiles } from "@/db/chat-files"
-import { createChat } from "@/db/chats"
-import { createMessageFileItems } from "@/db/message-file-items"
-import { createMessages, updateMessage } from "@/db/messages"
-import { uploadMessageImage } from "@/db/storage/message-images"
+import {
+  createChatFiles,
+  createChat,
+  createMessageFileItems,
+  createMessages,
+  updateMessage,
+  uploadMessageImage
+} from "@/lib/local-db/stubs"
 import {
   buildFinalMessages,
   adaptMessagesForGoogleGemini
@@ -14,7 +17,7 @@ import {
   FlowStateInfo
 } from "@/lib/runtime/flow-injector"
 import { consumeReadableStream } from "@/lib/consume-stream"
-import { Tables, TablesInsert } from "@/supabase/types"
+import { Tables, TablesInsert } from "@/types/database"
 import {
   ChatFile,
   ChatMessage,

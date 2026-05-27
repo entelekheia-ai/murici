@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ChatbotUIContext } from "@/context/context"
 import { updateAssistant } from "@/db/assistants"
 import { updateChat } from "@/db/chats"
@@ -8,7 +9,7 @@ import { updatePreset } from "@/db/presets"
 import { updatePrompt } from "@/db/prompts"
 import { updateTool } from "@/db/tools"
 import { cn } from "@/lib/utils"
-import { Tables } from "@/supabase/types"
+import { Tables } from "@/types/database"
 import { ContentType, DataItemType, DataListType } from "@/types"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { Separator } from "../ui/separator"

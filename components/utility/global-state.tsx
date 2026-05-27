@@ -4,16 +4,13 @@
 
 import { ChatbotUIContext } from "@/context/context"
 import { getProfileByUserId } from "@/db/profile"
-import { getWorkspaceImageFromStorage } from "@/db/storage/workspace-images"
 import { getWorkspacesByUserId } from "@/db/workspaces"
-import { convertBlobToBase64 } from "@/lib/blob-to-b64"
 import {
   fetchHostedModels,
   fetchOllamaModels,
   fetchOpenRouterModels
 } from "@/lib/models/fetch-models"
-import { supabase } from "@/lib/supabase/browser-client"
-import { Tables } from "@/supabase/types"
+import { Tables } from "@/types/database"
 import {
   ChatFile,
   ChatMessage,
@@ -27,7 +24,6 @@ import {
 } from "@/types"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
-import { useRouter } from "next/navigation"
 import { FC, useCallback, useEffect, useState } from "react"
 
 interface GlobalStateProps {
@@ -35,8 +31,6 @@ interface GlobalStateProps {
 }
 
 export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
-  const router = useRouter()
-
   // PROFILE STORE
   const [profile, setProfile] = useState<Tables<"profiles"> | null>(null)
 
@@ -178,48 +172,13 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   }, [])
 
   const fetchStartingData = async () => {
-    const session = (await supabase.auth.getSession()).data.session
+    const profile = await getProfileByUserId("local")
+    setProfile(profile)
 
-    if (session) {
-      const user = session.user
+    const workspaces = await getWorkspacesByUserId("local")
+    setWorkspaces(workspaces)
 
-      const profile = await getProfileByUserId(user.id)
-      setProfile(profile)
-
-      if (!profile.has_onboarded) {
-        return router.push("/setup")
-      }
-
-      const workspaces = await getWorkspacesByUserId(user.id)
-      setWorkspaces(workspaces)
-
-      for (const workspace of workspaces) {
-        let workspaceImageUrl = ""
-
-        if (workspace.image_path) {
-          workspaceImageUrl =
-            (await getWorkspaceImageFromStorage(workspace.image_path)) || ""
-        }
-
-        if (workspaceImageUrl) {
-          const response = await fetch(workspaceImageUrl)
-          const blob = await response.blob()
-          const base64 = await convertBlobToBase64(blob)
-
-          setWorkspaceImages(prev => [
-            ...prev,
-            {
-              workspaceId: workspace.id,
-              path: workspace.image_path,
-              base64: base64,
-              url: workspaceImageUrl
-            }
-          ])
-        }
-      }
-
-      return profile
-    }
+    return profile
   }
 
   return (

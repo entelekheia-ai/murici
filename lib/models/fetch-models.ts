@@ -1,4 +1,4 @@
-import { Tables } from "@/supabase/types"
+import { Tables } from "@/types/database"
 import { LLM, LLMID, OpenRouterLLM } from "@/types"
 import { toast } from "sonner"
 import { LLM_LIST_MAP } from "./llm/llm-list"

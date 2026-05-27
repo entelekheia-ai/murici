@@ -1,4 +1,7 @@
-import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
+import {
+  checkApiKey,
+  getProfileFromBody
+} from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
@@ -12,7 +15,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const profile = await getServerProfile()
+    const profile = getProfileFromBody(json)
 
     checkApiKey(profile.google_gemini_api_key, "Google")
 

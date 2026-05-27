@@ -1,6 +1,6 @@
 import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
-import { Tables } from "@/supabase/types"
+import { Tables } from "@/types/database"
 import { FC, Fragment, useContext, useState } from "react"
 import { FlowEventCard } from "../messages/flow-event-card"
 import { FlowSystemDebugBubble } from "../messages/flow-system-debug-bubble"

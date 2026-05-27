@@ -1,5 +1,8 @@
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
-import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
+import {
+  checkApiKey,
+  getProfileFromBody
+} from "@/lib/server/server-chat-helpers"
 import { getBase64FromDataURL, getMediaTypeFromDataURL } from "@/lib/utils"
 import { ChatSettings } from "@/types"
 import Anthropic from "@anthropic-ai/sdk"
@@ -17,7 +20,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const profile = await getServerProfile()
+    const profile = getProfileFromBody(json)
 
     checkApiKey(profile.anthropic_api_key, "Anthropic")
 

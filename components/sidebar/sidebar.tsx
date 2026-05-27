@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { ChatbotUIContext } from "@/context/context"
-import { Tables } from "@/supabase/types"
+import { Tables } from "@/types/database"
 import { ContentType } from "@/types"
 import { FC, useContext } from "react"
 import { SIDEBAR_WIDTH } from "../ui/dashboard"

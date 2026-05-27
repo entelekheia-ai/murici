@@ -1,4 +1,4 @@
-import { Tables } from "@/supabase/types"
+import { Tables } from "@/types/database"
 import { ChatMessage, LLMID } from "."
 
 export interface ChatSettings {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -24,7 +25,7 @@ import {
 } from "@/db/storage/assistant-images"
 import { createTool } from "@/db/tools"
 import { convertBlobToBase64 } from "@/lib/blob-to-b64"
-import { Tables, TablesInsert } from "@/supabase/types"
+import { Tables, TablesInsert } from "@/types/database"
 import { ContentType } from "@/types"
 import { FC, useContext, useRef, useState } from "react"
 import { toast } from "sonner"

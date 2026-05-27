@@ -1,5 +1,8 @@
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
-import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
+import {
+  checkApiKey,
+  getProfileFromBody
+} from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { OpenAIStream, StreamingTextResponse } from "ai"
 import OpenAI from "openai"
@@ -13,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const profile = await getServerProfile()
+    const profile = getProfileFromBody(json)
 
     checkApiKey(profile.groq_api_key, "G")
 

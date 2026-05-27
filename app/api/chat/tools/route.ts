@@ -1,21 +1,30 @@
 import { openapiToFunctions } from "@/lib/openapi-conversion"
-import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
-import { Tables } from "@/supabase/types"
+import {
+  checkApiKey,
+  getProfileFromBody
+} from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { OpenAIStream, StreamingTextResponse } from "ai"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
+
+interface ToolRecord {
+  id: string
+  name: string
+  schema: string
+  custom_headers: string | null
+}
 
 export async function POST(request: Request) {
   const json = await request.json()
   const { chatSettings, messages, selectedTools } = json as {
     chatSettings: ChatSettings
     messages: any[]
-    selectedTools: Tables<"tools">[]
+    selectedTools: ToolRecord[]
   }
 
   try {
-    const profile = await getServerProfile()
+    const profile = getProfileFromBody(json)
 
     checkApiKey(profile.openai_api_key, "OpenAI")
 
