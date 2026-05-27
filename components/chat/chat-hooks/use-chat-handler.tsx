@@ -1,11 +1,11 @@
 import { ChatbotUIContext } from "@/context/context"
+import { updateChat } from "@/db/chats"
+import { deleteMessagesIncludingAndAfter } from "@/db/messages"
 import {
   getAssistantCollectionsByAssistantId,
   getAssistantFilesByAssistantId,
   getAssistantToolsByAssistantId,
-  updateChat,
-  getCollectionFilesByCollectionId,
-  deleteMessagesIncludingAndAfter
+  getCollectionFilesByCollectionId
 } from "@/lib/local-db/stubs"
 import { buildFinalMessages } from "@/lib/build-prompt"
 import { Tables } from "@/types/database"
@@ -344,7 +344,20 @@ export const useChatHandler = () => {
           body: JSON.stringify({
             chatSettings: payload.chatSettings,
             messages: formattedMessages,
-            selectedTools
+            selectedTools,
+            apiKeys: profile
+              ? {
+                  openai: profile.openai_api_key ?? undefined,
+                  anthropic: profile.anthropic_api_key ?? undefined,
+                  google: profile.google_gemini_api_key ?? undefined,
+                  mistral: profile.mistral_api_key ?? undefined,
+                  groq: profile.groq_api_key ?? undefined,
+                  perplexity: profile.perplexity_api_key ?? undefined,
+                  openrouter: profile.openrouter_api_key ?? undefined,
+                  openaiOrgId: profile.openai_organization_id ?? undefined,
+                  useAzure: profile.use_azure_openai
+                }
+              : undefined
           })
         })
 

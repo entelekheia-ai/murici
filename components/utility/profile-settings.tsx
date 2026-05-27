@@ -1,29 +1,15 @@
 import { ChatbotUIContext } from "@/context/context"
-import {
-  PROFILE_CONTEXT_MAX,
-  PROFILE_DISPLAY_NAME_MAX,
-  PROFILE_USERNAME_MAX,
-  PROFILE_USERNAME_MIN
-} from "@/db/limits"
+import { PROFILE_CONTEXT_MAX, PROFILE_DISPLAY_NAME_MAX } from "@/db/limits"
 import { updateProfile } from "@/db/profile"
 import { uploadProfileImage } from "@/db/storage/profile-images"
 import { exportLocalStorageAsJSON } from "@/lib/export-old-data"
 import { fetchOpenRouterModels } from "@/lib/models/fetch-models"
 import { LLM_LIST_MAP } from "@/lib/models/llm/llm-list"
-import { supabase } from "@/lib/supabase/browser-client"
 import { cn } from "@/lib/utils"
 import { OpenRouterLLM } from "@/types"
-import {
-  IconCircleCheckFilled,
-  IconCircleXFilled,
-  IconFileDownload,
-  IconLoader2,
-  IconLogout,
-  IconUser
-} from "@tabler/icons-react"
+import { IconFileDownload, IconUser } from "@tabler/icons-react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { FC, useCallback, useContext, useRef, useState } from "react"
+import { FC, useContext, useRef, useState } from "react"
 import { toast } from "sonner"
 import { SIDEBAR_ICON_SIZE } from "../sidebar/sidebar-switcher"
 import { Button } from "../ui/button"
@@ -55,16 +41,11 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     availableOpenRouterModels
   } = useContext(ChatbotUIContext)
 
-  const router = useRouter()
-
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [isOpen, setIsOpen] = useState(false)
 
   const [displayName, setDisplayName] = useState(profile?.display_name || "")
-  const [username, setUsername] = useState(profile?.username || "")
-  const [usernameAvailable, setUsernameAvailable] = useState(true)
-  const [loadingUsername, setLoadingUsername] = useState(false)
   const [profileImageSrc, setProfileImageSrc] = useState(
     profile?.image_url || ""
   )
@@ -118,13 +99,6 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     profile?.openrouter_api_key || ""
   )
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
-    router.refresh()
-    return
-  }
-
   const handleSave = async () => {
     if (!profile) return
     let profileImageUrl = profile.image_url
@@ -139,7 +113,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     const updatedProfile = await updateProfile(profile.id, {
       ...profile,
       display_name: displayName,
-      username,
+      username: profile.username,
       profile_context: profileInstructions,
       image_url: profileImageUrl,
       image_path: profileImagePath,
@@ -227,64 +201,6 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     setIsOpen(false)
   }
 
-  const debounce = (func: (...args: any[]) => void, wait: number) => {
-    let timeout: NodeJS.Timeout | null
-
-    return (...args: any[]) => {
-      const later = () => {
-        if (timeout) clearTimeout(timeout)
-        func(...args)
-      }
-
-      if (timeout) clearTimeout(timeout)
-      timeout = setTimeout(later, wait)
-    }
-  }
-
-  const checkUsernameAvailability = useCallback(
-    debounce(async (username: string) => {
-      if (!username) return
-
-      if (username.length < PROFILE_USERNAME_MIN) {
-        setUsernameAvailable(false)
-        return
-      }
-
-      if (username.length > PROFILE_USERNAME_MAX) {
-        setUsernameAvailable(false)
-        return
-      }
-
-      const usernameRegex = /^[a-zA-Z0-9_]+$/
-      if (!usernameRegex.test(username)) {
-        setUsernameAvailable(false)
-        toast.error(
-          "Username must be letters, numbers, or underscores only - no other characters or spacing allowed."
-        )
-        return
-      }
-
-      setLoadingUsername(true)
-
-      const response = await fetch(`/api/username/available`, {
-        method: "POST",
-        body: JSON.stringify({ username })
-      })
-
-      const data = await response.json()
-      const isAvailable = data.isAvailable
-
-      setUsernameAvailable(isAvailable)
-
-      if (username === profile?.username) {
-        setUsernameAvailable(true)
-      }
-
-      setLoadingUsername(false)
-    }, 500),
-    []
-  )
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter") {
       buttonRef.current?.click()
@@ -318,19 +234,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
       >
         <div className="grow overflow-auto">
           <SheetHeader>
-            <SheetTitle className="flex items-center justify-between space-x-2">
-              <div>User Settings</div>
-
-              <Button
-                tabIndex={-1}
-                className="text-xs"
-                size="sm"
-                onClick={handleSignOut}
-              >
-                <IconLogout className="mr-1" size={20} />
-                Logout
-              </Button>
-            </SheetTitle>
+            <SheetTitle>Settings</SheetTitle>
           </SheetHeader>
 
           <Tabs defaultValue="profile">
@@ -340,53 +244,6 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
             </TabsList>
 
             <TabsContent className="mt-4 space-y-4" value="profile">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <Label>Username</Label>
-
-                  <div className="text-xs">
-                    {username !== profile.username ? (
-                      usernameAvailable ? (
-                        <div className="text-green-500">AVAILABLE</div>
-                      ) : (
-                        <div className="text-red-500">UNAVAILABLE</div>
-                      )
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <Input
-                    className="pr-10"
-                    placeholder="Username..."
-                    value={username}
-                    onChange={e => {
-                      setUsername(e.target.value)
-                      checkUsernameAvailability(e.target.value)
-                    }}
-                    minLength={PROFILE_USERNAME_MIN}
-                    maxLength={PROFILE_USERNAME_MAX}
-                  />
-
-                  {username !== profile.username ? (
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      {loadingUsername ? (
-                        <IconLoader2 className="animate-spin" />
-                      ) : usernameAvailable ? (
-                        <IconCircleCheckFilled className="text-green-500" />
-                      ) : (
-                        <IconCircleXFilled className="text-red-500" />
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-
-                <LimitDisplay
-                  used={username.length}
-                  limit={PROFILE_USERNAME_MAX}
-                />
-              </div>
-
               <div className="space-y-1">
                 <Label>Profile Image</Label>
 

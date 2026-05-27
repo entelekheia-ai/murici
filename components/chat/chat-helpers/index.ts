@@ -1,11 +1,10 @@
 // Only used in use-chat-handler.tsx to keep it clean
 
+import { createChat } from "@/db/chats"
+import { createMessages, updateMessage } from "@/db/messages"
 import {
   createChatFiles,
-  createChat,
   createMessageFileItems,
-  createMessages,
-  updateMessage,
   uploadMessageImage
 } from "@/lib/local-db/stubs"
 import {
@@ -30,6 +29,26 @@ import {
 import React from "react"
 import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
+
+function buildApiKeys(profile: Tables<"profiles">) {
+  return {
+    openai: profile.openai_api_key ?? undefined,
+    anthropic: profile.anthropic_api_key ?? undefined,
+    google: profile.google_gemini_api_key ?? undefined,
+    mistral: profile.mistral_api_key ?? undefined,
+    groq: profile.groq_api_key ?? undefined,
+    perplexity: profile.perplexity_api_key ?? undefined,
+    azure: profile.azure_openai_api_key ?? undefined,
+    openrouter: profile.openrouter_api_key ?? undefined,
+    openaiOrgId: profile.openai_organization_id ?? undefined,
+    azureEndpoint: profile.azure_openai_endpoint ?? undefined,
+    azure35TurboId: profile.azure_openai_35_turbo_id ?? undefined,
+    azure45TurboId: profile.azure_openai_45_turbo_id ?? undefined,
+    azure45VisionId: profile.azure_openai_45_vision_id ?? undefined,
+    azureEmbeddingsId: profile.azure_openai_embeddings_id ?? undefined,
+    useAzure: profile.use_azure_openai
+  }
+}
 
 export const validateChatSettings = (
   chatSettings: ChatSettings | null,
@@ -238,7 +257,8 @@ export const handleFlowChat = async (
       chatSettings: payload.chatSettings,
       messages,
       tools,
-      customModelId: provider === "custom" ? modelData.hostedId : undefined
+      customModelId: provider === "custom" ? modelData.hostedId : undefined,
+      apiKeys: buildApiKeys(profile)
     })
   })
 
@@ -280,7 +300,8 @@ export const handleFlowChat = async (
       body: JSON.stringify({
         chatSettings: payload.chatSettings,
         messages: [...messages, ...exchangeMessages.map(m => ({ ...m }))],
-        customModelId: provider === "custom" ? modelData.hostedId : undefined
+        customModelId: provider === "custom" ? modelData.hostedId : undefined,
+        apiKeys: buildApiKeys(profile)
       })
     })
     if (res2.ok && res2.body) {
@@ -419,7 +440,8 @@ export const handleHostedChat = async (
   const requestBody = {
     chatSettings: payload.chatSettings,
     messages: formattedMessages,
-    customModelId: provider === "custom" ? modelData.hostedId : ""
+    customModelId: provider === "custom" ? modelData.hostedId : "",
+    apiKeys: buildApiKeys(profile)
   }
 
   const response = await fetchChatResponse(
