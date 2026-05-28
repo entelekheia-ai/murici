@@ -1,0 +1,49 @@
+appId: com.entelekheia.chatbot
+productName: Entelekheia
+copyright: "Copyright © 2024"
+
+directories:
+  output: dist-electron
+  buildResources: electron/assets
+
+# Only the compiled electron process + resources
+files:
+  - electron-dist/**
+  - "!node_modules/**"
+
+# Next.js standalone server packed into resources/server
+extraResources:
+  - from: .next/standalone
+    to: server
+    filter:
+      - "**/*"
+
+# WASM and kernel binaries must be outside ASAR
+asarUnpack:
+  - "**/*.wasm"
+  - "**/dot-agent-kernel/**"
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  category: public.app-category.productivity
+  darkModeSupport: true
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+publish:
+  provider: github
+  releaseType: release

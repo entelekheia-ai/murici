@@ -2,6 +2,7 @@
   "name": "chatbot-ui",
   "version": "2.0.0",
   "private": true,
+  "main": "electron-dist/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,7 +14,11 @@
     "type-check": "tsc --noEmit",
     "format:write": "prettier --write \"{app,lib,components,context,types}/**/*.{ts,tsx}\" --cache",
     "format:check": "prettier --check \"{app,lib,components,context,types}**/*.{ts,tsx}\" --cache",
-    "test": "jest"
+    "test": "jest",
+    "electron:compile": "tsc -p tsconfig.electron.json",
+    "electron:dev": "npm run electron:compile && NODE_ENV=development ELECTRON_ENV=development concurrently -k -n next,electron \"next dev\" \"wait-on http://localhost:3000 && electron electron-dist/main.js\"",
+    "electron:build": "ELECTRON_BUILD=1 npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && npm run electron:compile && electron-builder",
+    "electron:publish": "npm run electron:build -- --publish always"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.18.0",
@@ -58,6 +63,7 @@
     "d3-dsv": "^2.0.0",
     "date-fns": "^2.30.0",
     "dot-agent-kernel": "file:../dot-agent-spec/dsl/dot-agent-kernel/pkg",
+    "electron-updater": "^6.8.3",
     "endent": "^2.1.0",
     "gpt-tokenizer": "^2.1.2",
     "i18next": "^23.7.16",
@@ -97,6 +103,9 @@
     "@types/uuid": "^9.0.7",
     "autoprefixer": "^10.4.16",
     "clsx": "^2.0.0",
+    "concurrently": "^9.2.1",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
     "eslint": "^8",
     "eslint-config-next": "^14.0.2",
     "eslint-config-prettier": "^9.1.0",
@@ -110,6 +119,7 @@
     "tailwindcss": "^3.3.5",
     "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^9.0.10"
   }
 }

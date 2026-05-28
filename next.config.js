@@ -9,6 +9,8 @@ const withPWA = require("next-pwa")({
 module.exports = withBundleAnalyzer(
   withPWA({
     reactStrictMode: true,
+    // Standalone output for Electron production builds
+    ...(process.env.ELECTRON_BUILD ? { output: "standalone" } : {}),
     images: {
       remotePatterns: [
         {

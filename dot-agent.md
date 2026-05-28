@@ -2,9 +2,39 @@
 
 This document records the architectural decisions and implementations in `chatbot-ui` to support the `dot-agent-spec` (`.agent` and `.flow` files).
 
-## Scope (In-Memory MVP)
+## Deployment Targets
 
-The current goal is to validate deterministic FSM-based chat routing without persisting agent packages to a database (Supabase). Everything runs client-side / in-memory.
+The repo ships in three progressively layered forms — same codebase, different surfaces:
+
+| Phase | Command | Who uses it |
+|-------|---------|-------------|
+| **Web / dev** | `npm run dev` | Devs testing flows locally |
+| **Electron desktop** | `npm run electron:dev` / `npm run electron:build` | Any user — installs `.dmg`/`.exe`/`.AppImage`, no terminal needed |
+| **Electron production** | `next build` (standalone) → `electron-builder` | Distributed via GitHub Releases |
+
+### Persistence — IndexedDB (Phase 1+)
+
+All data (conversations, messages, custom models, settings, API keys) is stored in browser-native **IndexedDB** via the `idb` library, in a database named `"entelekheia"`. There is no Supabase, no external auth, no external database.
+
+- `lib/local-db/` — schema + CRUD helpers (`conversations`, `messages`, `customModels`, `settings`)
+- `db/` — shim layer that re-exports from `lib/local-db/`; existing import paths unchanged
+- IndexedDB works identically in Chromium (web) and in Electron's renderer process (same engine)
+
+### WASM in Electron (production concern)
+
+`dot-agent-kernel` loads its `.wasm` binary via `fetch(new URL('...bg.wasm', import.meta.url))`. Inside an Electron ASAR archive this fetch fails. `electron-builder.yml` therefore sets:
+
+```yaml
+asarUnpack:
+  - "**/*.wasm"
+  - "**/dot-agent-kernel/**"
+```
+
+In production the Next.js app runs as a standalone child process spawned by the Electron main process (`electron/next-server.ts`). The WASM fetch goes through the embedded HTTP server, which serves unpacked files normally.
+
+## Scope
+
+The current goal is to validate deterministic FSM-based chat routing. Everything runs browser-native — no Supabase, no external database. Agent packages (`.flow` DSL text) remain in-memory; conversations, messages, custom models, and API keys are persisted to IndexedDB.
 
 ## Architecture
 
