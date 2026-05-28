@@ -47,7 +47,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [workspaces, setWorkspaces] = useState<Tables<"workspaces">[]>([])
 
   // MODELS STORE
-  const [envKeyMap, setEnvKeyMap] = useState<Record<string, VALID_ENV_KEYS>>({})
+  const [envKeyMap, setEnvKeyMap] = useState<Record<string, boolean>>({})
   const [availableHostedModels, setAvailableHostedModels] = useState<LLM[]>([])
   const [availableLocalModels, setAvailableLocalModels] = useState<LLM[]>([])
   const [availableOpenRouterModels, setAvailableOpenRouterModels] = useState<

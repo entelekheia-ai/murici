@@ -103,10 +103,14 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     const modelData = await getModelWorkspacesByWorkspaceId(workspaceId)
     setModels(modelData.models)
 
+    const defaultModel =
+      searchParams.get("model") ||
+      workspace?.default_model ||
+      modelData.models[0]?.model_id ||
+      ""
+
     setChatSettings({
-      model: (searchParams.get("model") ||
-        workspace?.default_model ||
-        "gpt-4-turbo-preview") as LLMID,
+      model: defaultModel as LLMID,
       prompt:
         workspace?.default_prompt ||
         "You are a friendly, helpful AI assistant.",

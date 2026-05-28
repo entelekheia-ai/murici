@@ -13,15 +13,19 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
       providers.push("openai")
     }
 
-    const response = await fetch("/api/keys")
-
-    if (!response.ok) {
-      throw new Error(`Server is not responding.`)
+    // Check which providers have keys set via env vars (server-side fallback)
+    let envKeyMap: Record<string, boolean> = {}
+    try {
+      const response = await fetch("/api/keys")
+      if (response.ok) {
+        const data = await response.json()
+        envKeyMap = data.isUsingEnvKeyMap ?? {}
+      }
+    } catch {
+      // /api/keys unavailable — rely on profile keys only
     }
 
-    const data = await response.json()
-
-    let modelsToAdd: LLM[] = []
+    const modelsToAdd: LLM[] = []
 
     for (const provider of providers) {
       let providerKey: keyof typeof profile
@@ -34,7 +38,7 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
         providerKey = `${provider}_api_key` as keyof typeof profile
       }
 
-      if (profile?.[providerKey] || data.isUsingEnvKeyMap[provider]) {
+      if (profile?.[providerKey] || envKeyMap[provider]) {
         const models = LLM_LIST_MAP[provider]
 
         if (Array.isArray(models)) {
@@ -44,7 +48,7 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
     }
 
     return {
-      envKeyMap: data.isUsingEnvKeyMap,
+      envKeyMap,
       hostedModels: modelsToAdd
     }
   } catch (error) {
