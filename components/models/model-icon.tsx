@@ -1,3 +1,8 @@
+/*
+ * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
+ * This file is part of a derivative work, originally licensed under the MIT License.
+ */
+
 import { cn } from "@/lib/utils"
 import mistral from "@/public/providers/mistral.png"
 import groq from "@/public/providers/groq.png"

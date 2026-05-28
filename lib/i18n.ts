@@ -1,3 +1,8 @@
+/*
+ * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
+ * This file is part of a derivative work, originally licensed under the MIT License.
+ */
+
 import i18nConfig from "@/i18nConfig"
 import { createInstance } from "i18next"
 import resourcesToBackend from "i18next-resources-to-backend"

@@ -1,3 +1,8 @@
+/*
+ * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
+ * This file is part of a derivative work, originally licensed under the MIT License.
+ */
+
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"

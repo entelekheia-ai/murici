@@ -1,3 +1,8 @@
+/*
+ * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
+ * This file is part of a derivative work, originally licensed under the MIT License.
+ */
+
 export enum VALID_ENV_KEYS {
   OPENAI_API_KEY = "OPENAI_API_KEY",
   ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY",

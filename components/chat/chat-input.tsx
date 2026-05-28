@@ -1,3 +1,8 @@
+/*
+ * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
+ * This file is part of a derivative work, originally licensed under the MIT License.
+ */
+
 import { ChatbotUIContext } from "@/context/context"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"

@@ -3,3 +3,4 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 npm run lint:fix && npm run format:write && git add .
+bash scripts/ensure-license-headers.sh

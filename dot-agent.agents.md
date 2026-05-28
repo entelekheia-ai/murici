@@ -42,6 +42,12 @@ You are the guardian of the `dot-agent` architecture in `chatbot-ui`. Your role 
 
 11. **API streaming:** The `openai` and `custom` routes use a manual `for await` loop on the OpenAI SDK async iterator — never `OpenAIStream` from the `ai` package. This ensures `delta.reasoning_content` is captured and emitted as `<think>` tags for downstream parsing.
 
+12. **License headers are mandatory on every source file.** Before committing any `.ts`, `.tsx`, `.js`, or `.jsx` file you must ensure the correct header is present at the very top of the file:
+    - **New file** (not in `upstream/main`): full Apache 2.0 header, sole copyright Danilo Borges 2026.
+    - **Modified legacy file** (exists in `upstream/main`, changed): mixed attribution header — Apache 2.0 + "Portions Copyright McKay Wrigley (MIT)".
+    - **Unmodified legacy file** (exists in `upstream/main`, unchanged): MIT attribution header only.
+    The pre-commit hook (`scripts/ensure-license-headers.sh`, registered in `.husky/pre-commit`) enforces this automatically and re-stages patched files. If you add a file programmatically and bypass the hook, inject the header manually before staging. Never remove or alter existing copyright notices.
+
 ---
 
 ## Electron Constraints

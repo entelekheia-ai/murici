@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
+ * Licensed under the Apache License, Version 2.0
+ *
+ * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
+ */
+
 export async function createPreset(data: any): Promise<any> { return { id: "stub", ...data } }
 export async function updatePreset(id: string, data: any): Promise<any> { return { id, ...data } }
 export async function deletePreset(id: string): Promise<void> {}

@@ -1,3 +1,8 @@
+/*
+ * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
+ * This file is part of a derivative work, originally licensed under the MIT License.
+ */
+
 import { LLM } from "@/types"
 import { ANTHROPIC_LLM_LIST } from "./anthropic-llm-list"
 import { GOOGLE_LLM_LIST } from "./google-llm-list"

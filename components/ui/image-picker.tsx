@@ -1,3 +1,8 @@
+/*
+ * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
+ * This file is part of a derivative work, originally licensed under the MIT License.
+ */
+
 import Image from "next/image"
 import { ChangeEvent, FC, useState } from "react"
 import { toast } from "sonner"
