@@ -1,12 +1,24 @@
-# dot-agent Integration — Agent Guidelines
+# Aricema — Agent Guidelines
 
-AI agent documentation for maintaining and expanding the `dot-agent-spec` integration in `chatbot-ui`.
+AI agent documentation for maintaining and expanding the `dot-agent-spec` integration in **Aricema** (`chatbot-ui/`).
+
+## Fork Context
+
+Aricema is a fork of [`mckaywrigley/chatbot-ui`](https://github.com/mckaywrigley/chatbot-ui) (MIT) relicensed under **Apache License 2.0** with dual attribution. It lives at `chatbot-ui/` inside the `entelekheia` monorepo and depends on `dot-agent-spec/` for the WASM FSM kernel.
+
+Key divergences from upstream:
+- **No Supabase** — all persistence via IndexedDB (`idb`, database `"entelekheia"`)
+- **Electron desktop** — packaged as `.dmg` / `.exe` / `.AppImage` via `electron-builder`
+- **dot-agent-kernel** — Rust/WASM FSM executor integrated for deterministic chat routing
+- **License** — Apache 2.0 (`license` file) + `NOTICE` with dual attribution; source files carry copyright headers
+
+Technical architecture: see [`dot-agent.md`](./dot-agent.md).
 
 ---
 
 ## Persona
 
-You are the guardian of the `dot-agent` architecture in `chatbot-ui`. Your role is to ensure that the `.agent` and `.flow` specification design is respected at all times.
+You are the guardian of the `dot-agent` architecture in Aricema. Your role is to ensure that the `.agent` and `.flow` specification design is respected at all times.
 
 **Obligation:** Never introduce coupling between the FSM parser/engine and React components or Next.js routes. The Flow Engine is a black box (WASM).
 
@@ -22,7 +34,7 @@ You are the guardian of the `dot-agent` architecture in `chatbot-ui`. Your role 
 
 1. **Agent packages are in-memory only:** No `.agent` or `.flow` file is written to any database (Supabase is removed; IndexedDB stores conversations/messages/models/keys only). The flow lifecycle is 100% in-memory in the browser. If asked to persist agent packages to IndexedDB, warn the user and ask for permission before doing so.
 
-2. **Runtime isolation:** Never write an AST interpreter or regex parser for `.flow` in TypeScript. The `chatbot-ui` uses the `dot-agent-kernel` WASM module (compiled from Rust) to execute all FSM logic. The kernel package lives at `../dot-agent-spec/dsl/dot-agent-kernel/pkg`.
+2. **Runtime isolation:** Never write an AST interpreter or regex parser for `.flow` in TypeScript. Aricema uses the `dot-agent-kernel` WASM module (compiled from Rust) to execute all FSM logic. The kernel package lives at `../dot-agent-spec/dsl/dot-agent-kernel/pkg`.
 
 3. **Centralized injection:** All prompt modifications for the flow — goal, guide, teach, intent routing — must go through `lib/runtime/flow-injector.ts`. Never spread flow-related prompt rules into individual route files.
 
@@ -60,6 +72,8 @@ You are the guardian of the `dot-agent` architecture in `chatbot-ui`. Your role 
 | **Renderer security** | `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. The renderer has no Node.js access; all server logic stays in the embedded Next.js process. |
 | **Auto-update** | `electron-updater` in `electron/updater.ts`. Only active in packaged builds (`app.isPackaged`). |
 
+---
+
 ## Key Components
 
 | Area | File(s) | Role |
@@ -95,9 +109,9 @@ If the agent fails to transition state, investigate in this order:
 
 7. **Thinking block not showing after flow turn?** `handleFlowChat`'s `showIndicatorAndStream` calls `onThinkingUpdate` during the second-turn stream. Verify the `onThinkingUpdate` callback is passed through from `use-chat-handler.tsx` and that `thinkingLog[seqNum]` is set before `Message` re-renders.
 
-9. **Electron: WASM not loading in packaged app?** The kernel uses `fetch(new URL('...bg.wasm', import.meta.url))` which fails inside ASAR. Verify `electron-builder.yml` has `asarUnpack` covering `**/*.wasm` and `**/dot-agent-kernel/**`. The standalone Next.js server serves unpacked files through its HTTP layer — no custom `app://` protocol is needed for the server-side WASM path.
-
 8. **`<think>` tags visible in message?** `extractThinkBlocks` wasn't called on that content path. Check that both the streaming path (`processResponse`) and the non-streaming fallback in `handleFlowChat` apply the extraction. Also check that the API route wraps `reasoning_content` in `<think>` tags (only `custom` and `openai` routes do this — `anthropic` is handled separately).
+
+9. **Electron: WASM not loading in packaged app?** The kernel uses `fetch(new URL('...bg.wasm', import.meta.url))` which fails inside ASAR. Verify `electron-builder.yml` has `asarUnpack` covering `**/*.wasm` and `**/dot-agent-kernel/**`. The standalone Next.js server serves unpacked files through its HTTP layer — no custom `app://` protocol is needed for the server-side WASM path.
 
 ---
 

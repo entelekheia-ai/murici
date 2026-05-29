@@ -1,4 +1,4 @@
-# dot-agent Integration in chatbot-ui
+# dot-agent Integration in Aricema
 
 This document records the architectural decisions and implementations in `chatbot-ui` to support the `dot-agent-spec` (`.agent` and `.flow` files).
 
@@ -182,7 +182,7 @@ The pre-commit hook is registered in `.husky/pre-commit` and runs after `lint:fi
 
 | File | Contents |
 |------|---------|
-| `license` | Full Apache License 2.0 text |
+| `license` | Full Apache License 2.0 text (lowercase filename — valid per Apache spec) |
 | `NOTICE` | Attribution block: `.agent UI Runtime` + original Chatbot UI credit |
 
 ---
@@ -194,3 +194,7 @@ The pre-commit hook is registered in `.husky/pre-commit` and runs after `lint:fi
 - **Context hygiene:** Every request filters previous `[FLOW_CONTEXT]` injections so the message history never accumulates stale state instructions.
 - **Runtime isolation:** All FSM logic lives in the WASM kernel. No `.flow` parsing or state management in TypeScript.
 - **Real-time observability:** Flow events are dispatched as they fire (not batch-written at end of turn), so the chat UI updates temporally — each actor's action appears at the moment it happens.
+
+---
+
+Agent coding guidelines (rules, constraints, troubleshooting): see [AGENTS.md](./AGENTS.md).

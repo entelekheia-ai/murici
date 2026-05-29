@@ -35,6 +35,7 @@ async function createWindow() {
     minHeight: 600,
     titleBarStyle: "default",
     show: false,
+    icon: path.join(__dirname, "../icon/Aricema@2x.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,

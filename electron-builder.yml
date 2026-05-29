@@ -1,6 +1,6 @@
-appId: com.entelekheia.chatbot
-productName: Entelekheia
-copyright: "Copyright © 2024"
+appId: com.entelekheia.aricema
+productName: Aricema
+copyright: "Copyright © 2026 Danilo Borges. All rights reserved."
 
 directories:
   output: dist-electron
