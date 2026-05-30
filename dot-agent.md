@@ -1,4 +1,4 @@
-# dot-agent Integration in Aricema
+# dot-agent Integration in Murici
 
 This document records the architectural decisions and implementations in `chatbot-ui` to support the `dot-agent-spec` (`.agent` and `.flow` files).
 

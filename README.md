@@ -1,4 +1,4 @@
-# Aricema
+# Murici
 
 > Chat UI with deterministic FSM-based routing via [dot-agent-kernel](../dot-agent-spec/).
 
@@ -9,7 +9,7 @@ Original MIT license and attribution preserved — see [`NOTICE`](./NOTICE).
 
 ## What's different from upstream
 
-| Upstream (`mckaywrigley/chatbot-ui`) | Aricema |
+| Upstream (`mckaywrigley/chatbot-ui`) | Murici |
 |--------------------------------------|---------|
 | Supabase (Postgres + Auth) | IndexedDB — no external backend |
 | Vercel deployment | Electron desktop (`.dmg` / `.exe` / `.AppImage`) |
@@ -49,7 +49,7 @@ Code: `lib/local-db/` (schema + CRUD) — `db/` re-exports for backwards-compati
 
 ## dot-agent integration
 
-Aricema validates deterministic FSM-based chat routing using the `dot-agent-kernel` WASM module compiled from [`dot-agent-spec/`](../dot-agent-spec/).
+Murici validates deterministic FSM-based chat routing using the `dot-agent-kernel` WASM module compiled from [`dot-agent-spec/`](../dot-agent-spec/).
 
 - Paste a `.flow` DSL file into the Agent right panel to load a flow.
 - The kernel manages state; the UI reflects transitions in real time via a Mermaid graph.

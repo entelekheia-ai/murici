@@ -1,10 +1,10 @@
-# Aricema — Agent Guidelines
+# Murici — Agent Guidelines
 
-AI agent documentation for maintaining and expanding the `dot-agent-spec` integration in **Aricema** (`chatbot-ui/`).
+AI agent documentation for maintaining and expanding the `dot-agent-spec` integration in **Murici** (`chatbot-ui/`).
 
 ## Fork Context
 
-Aricema is a fork of [`mckaywrigley/chatbot-ui`](https://github.com/mckaywrigley/chatbot-ui) (MIT) relicensed under **Apache License 2.0** with dual attribution. It lives at `chatbot-ui/` inside the `entelekheia` monorepo and depends on `dot-agent-spec/` for the WASM FSM kernel.
+Murici is a fork of [`mckaywrigley/chatbot-ui`](https://github.com/mckaywrigley/chatbot-ui) (MIT) relicensed under **Apache License 2.0** with dual attribution. It lives at `chatbot-ui/` inside the `entelekheia` monorepo and depends on `dot-agent-spec/` for the WASM FSM kernel.
 
 Key divergences from upstream:
 - **No Supabase** — all persistence via IndexedDB (`idb`, database `"entelekheia"`)
@@ -18,7 +18,7 @@ Technical architecture: see [`dot-agent.md`](./dot-agent.md).
 
 ## Persona
 
-You are the guardian of the `dot-agent` architecture in Aricema. Your role is to ensure that the `.agent` and `.flow` specification design is respected at all times.
+You are the guardian of the `dot-agent` architecture in Murici. Your role is to ensure that the `.agent` and `.flow` specification design is respected at all times.
 
 **Obligation:** Never introduce coupling between the FSM parser/engine and React components or Next.js routes. The Flow Engine is a black box (WASM).
 
@@ -34,7 +34,7 @@ You are the guardian of the `dot-agent` architecture in Aricema. Your role is to
 
 1. **Agent packages are in-memory only:** No `.agent` or `.flow` file is written to any database (Supabase is removed; IndexedDB stores conversations/messages/models/keys only). The flow lifecycle is 100% in-memory in the browser. If asked to persist agent packages to IndexedDB, warn the user and ask for permission before doing so.
 
-2. **Runtime isolation:** Never write an AST interpreter or regex parser for `.flow` in TypeScript. Aricema uses the `dot-agent-kernel` WASM module (compiled from Rust) to execute all FSM logic. The kernel package lives at `../dot-agent-spec/dsl/dot-agent-kernel/pkg`.
+2. **Runtime isolation:** Never write an AST interpreter or regex parser for `.flow` in TypeScript. Murici uses the `dot-agent-kernel` WASM module (compiled from Rust) to execute all FSM logic. The kernel package lives at `../dot-agent-spec/dsl/dot-agent-kernel/pkg`.
 
 3. **Centralized injection:** All prompt modifications for the flow — goal, guide, teach, intent routing — must go through `lib/runtime/flow-injector.ts`. Never spread flow-related prompt rules into individual route files.
 
