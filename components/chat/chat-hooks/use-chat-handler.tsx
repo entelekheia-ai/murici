@@ -383,8 +383,8 @@ export const useChatHandler = () => {
         )
       } else if (
         flowEngine &&
-        flowState?.validIntents &&
-        flowState.validIntents.length > 0 &&
+        flowState &&
+        (flowState.validIntents.length > 0 || flowState.hasOfftopic) &&
         modelData!.provider !== "ollama"
       ) {
         // Flow-controlled turn: non-streaming with tool calling
@@ -465,17 +465,16 @@ export const useChatHandler = () => {
       // Post-turn: run FSM transition (flow only) then record debug info for all turns
       const transitionEffects: any[] = []
       if (flowEngine) {
-        if (flowIntentName) {
-          const fx = flowEngine.send_intent(flowIntentName)
+        if (flowIntentName === "offtopic") {
+          const fx = flowEngine.send_offtopic()
           if (Array.isArray(fx)) {
             transitionEffects.push(...fx)
-            // Imperative channel: sync flowState from return-value effects.
-            // Guards against observer not updating context (engineRef.current timing).
             const transitionEffect = fx.find(
               (e: any) => e.type === "transition"
             )
             if (transitionEffect) {
               const newState = flowEngine.get_current_state()
+              const hasOfftopic = flowState?.hasOfftopic
               setFlowState({
                 currentState: newState,
                 goal: fx.find((e: any) => e.type === "goal")?.text,
@@ -483,7 +482,45 @@ export const useChatHandler = () => {
                 teach: fx.find((e: any) => e.type === "teach")?.text,
                 validIntents: Array.from(
                   flowEngine.get_valid_intents() || []
-                ) as string[]
+                ) as string[],
+                hasOfftopic
+              })
+              addFlowEvent({
+                id: uuidv4(),
+                seqNum,
+                type: "fsm_transition",
+                timestamp: Date.now(),
+                data: {
+                  intent: "offtopic",
+                  from: transitionEffect.from,
+                  to: transitionEffect.to,
+                  effects: fx,
+                  newGoal: fx.find((e: any) => e.type === "goal")?.text ?? null,
+                  newGuide:
+                    fx.find((e: any) => e.type === "guide")?.text ?? null
+                }
+              })
+            }
+          }
+        } else if (flowIntentName) {
+          const fx = flowEngine.send_intent(flowIntentName)
+          if (Array.isArray(fx)) {
+            transitionEffects.push(...fx)
+            const transitionEffect = fx.find(
+              (e: any) => e.type === "transition"
+            )
+            if (transitionEffect) {
+              const newState = flowEngine.get_current_state()
+              const hasOfftopic = flowState?.hasOfftopic
+              setFlowState({
+                currentState: newState,
+                goal: fx.find((e: any) => e.type === "goal")?.text,
+                guide: fx.find((e: any) => e.type === "guide")?.text,
+                teach: fx.find((e: any) => e.type === "teach")?.text,
+                validIntents: Array.from(
+                  flowEngine.get_valid_intents() || []
+                ) as string[],
+                hasOfftopic
               })
               addFlowEvent({
                 id: uuidv4(),

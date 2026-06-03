@@ -48,3 +48,4 @@ workbox-*.js.map
 # Electron
 /electron-dist/
 /dist-electron/
+public/kernel-dsl.wasm

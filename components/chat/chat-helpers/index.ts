@@ -256,7 +256,9 @@ export const handleFlowChat = async (
     chatImages,
     onFinalMessages
   )
-  const tools = [buildTriggerIntentTool(flowState.validIntents)]
+  const tools = [
+    buildTriggerIntentTool(flowState.validIntents, flowState.hasOfftopic)
+  ]
 
   const provider =
     modelData.provider === "openai" && profile.use_azure_openai

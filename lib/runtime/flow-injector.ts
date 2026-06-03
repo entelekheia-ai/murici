@@ -20,6 +20,7 @@ export interface FlowStateInfo {
   guide?: string
   teach?: string
   validIntents: string[]
+  hasOfftopic?: boolean
 }
 
 export function injectFlowContext(
@@ -38,12 +39,19 @@ export function injectFlowContext(
   let flowBlock = `[FLOW_CONTEXT]\nCurrent State: "${flowState.currentState}"\n`
   if (flowState.goal) flowBlock += `Goal: "${flowState.goal}"\n`
   if (flowState.teach) flowBlock += `\nKnowledge:\n${flowState.teach}\n`
-  if (flowState.validIntents.length > 0) {
-    flowBlock += `Available intents: [${intentsList}]\n`
+  if (flowState.validIntents.length > 0 || flowState.hasOfftopic) {
+    const allIntents = flowState.hasOfftopic
+      ? [...flowState.validIntents, "offtopic"]
+      : flowState.validIntents
+    const allIntentsList = allIntents.map(i => `"${i}"`).join(", ")
+    flowBlock += `Available intents: [${allIntentsList}]\n`
     if (flowState.goal) {
       flowBlock += `When the goal of this state is achieved, call the "trigger_intent" tool with the appropriate intent name. Do not mention the tool call to the user.\n`
     } else {
       flowBlock += `Classify the user's message into one of the available intents and immediately call the "trigger_intent" tool with the matching intent name. Do not mention the tool call to the user.\n`
+    }
+    if (flowState.hasOfftopic) {
+      flowBlock += `If the user's message is off-topic or unrelated to the current goal, call "trigger_intent" with intent_name="offtopic".\n`
     }
   }
   flowBlock += `[/FLOW_CONTEXT]`
@@ -76,19 +84,23 @@ export function injectFlowContext(
   return clean
 }
 
-export function buildTriggerIntentTool(validIntents: string[]) {
+export function buildTriggerIntentTool(
+  validIntents: string[],
+  hasOfftopic?: boolean
+) {
+  const allIntents = hasOfftopic ? [...validIntents, "offtopic"] : validIntents
   return {
     type: "function",
     function: {
       name: "trigger_intent",
       description:
-        "Signals a state transition in the deterministic flow engine when the current state's goal is achieved. Call this only when the conversation goal has been fulfilled.",
+        "Signals a state transition in the deterministic flow engine when the current state's goal is achieved or the message is off-topic. Call this only when the conversation goal has been fulfilled or the message is off-topic.",
       parameters: {
         type: "object",
         properties: {
           intent_name: {
             type: "string",
-            enum: validIntents,
+            enum: allIntents,
             description: "The exact intent name to trigger."
           }
         },

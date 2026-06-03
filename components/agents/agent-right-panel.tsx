@@ -28,8 +28,25 @@ export const AgentRightPanel: FC = () => {
   const [currentState, setCurrentState] = useState<string>("")
   const [graphData, setGraphData] = useState<any>(null)
   const [visitedStates, setVisitedStates] = useState<Set<string>>(new Set())
+  const [parseError, setParseError] = useState<string | null>(null)
   const [behaviorText, setBehaviorText] = useState(
-    `state welcome\n  goal "Help the user get started"\n  guide "Be friendly and concise"\n  interact\n  on intent "continue" transition to setup\n\nstate setup\n  goal "Collect user preferences"\n  interact\n  on intent "done" transition to end\n\nstate end\n  goal "Session complete"`
+    `state welcome
+  goal "Help the user get started"
+  guide "Be friendly and concise"
+  interact
+  on intent "continue" transition to setup
+  on offtopic transition to welcome
+
+state setup
+  goal "Collect user preferences"
+  interact
+  on intent "done" transition to end
+  on offtopic transition to setup
+
+state end
+  goal "Session complete"
+  interact
+  on intent "restart" transition to welcome`
   )
 
   // Refs to avoid stale closures inside the WASM observer callback
@@ -42,12 +59,17 @@ export const AgentRightPanel: FC = () => {
 
   const updateFlowState = (eng: any) => {
     const state = eng.get_current_state()
+    const hasOfftopic =
+      graphData?.transitions?.some(
+        (t: any) => t.from === state && t.label === "offtopic"
+      ) ?? false
     setFlowState({
       currentState: state,
       goal: goalRef.current,
       guide: guideRef.current,
       teach: teachRef.current,
-      validIntents: Array.from(eng.get_valid_intents() || []) as string[]
+      validIntents: Array.from(eng.get_valid_intents() || []) as string[],
+      hasOfftopic
     })
   }
 
@@ -56,16 +78,39 @@ export const AgentRightPanel: FC = () => {
     guideRef.current = undefined
     teachRef.current = undefined
     visitedRef.current = new Set()
+    setParseError(null)
 
     try {
-      eng.load_behavior(text)
+      const effects = eng.load_behavior(text)
+      console.log("load_behavior effects:", effects)
+      const parseErrorEffect = effects.find(
+        (e: any) => e.type === "parse_error"
+      )
+      if (parseErrorEffect) {
+        setParseError(parseErrorEffect.message)
+        return
+      }
       const state = eng.get_current_state()
       currentStateRef.current = state
       visitedRef.current.add(state)
       setCurrentState(state)
       setVisitedStates(new Set([state]))
-      setGraphData(eng.get_graph())
-      updateFlowState(eng)
+      const graph = eng.get_graph()
+      console.log("get_graph() returned:", graph)
+      setGraphData(graph)
+      // Pass graph to updateFlowState so it can compute hasOfftopic
+      const hasOfftopic =
+        graph?.transitions?.some(
+          (t: any) => t.from === state && t.label === "offtopic"
+        ) ?? false
+      setFlowState({
+        currentState: state,
+        goal: goalRef.current,
+        guide: guideRef.current,
+        teach: teachRef.current,
+        validIntents: Array.from(eng.get_valid_intents() || []) as string[],
+        hasOfftopic
+      })
     } catch (e) {
       console.error("Error loading flow:", e)
     }
@@ -224,6 +269,15 @@ export const AgentRightPanel: FC = () => {
               Load / Reload Flow
             </Button>
 
+            {parseError && (
+              <div className="rounded border border-red-500 bg-red-500/10 p-3 text-sm text-red-500">
+                <div className="mb-1 font-bold">Parse error</div>
+                <pre className="whitespace-pre-wrap font-mono text-xs">
+                  {parseError}
+                </pre>
+              </div>
+            )}
+
             {graphData && (
               <div className="bg-muted/50 flex flex-1 flex-col overflow-hidden rounded border p-2">
                 <h3 className="mb-2 font-semibold">State Graph</h3>
@@ -243,7 +297,12 @@ export const AgentRightPanel: FC = () => {
                 {currentState || "—"}
               </div>
 
-              {validIntents.length > 0 && (
+              {(validIntents.length > 0 ||
+                graphData?.transitions?.some(
+                  (t: any) =>
+                    t.from === currentState &&
+                    (t.label === "offtopic" || t.label === "fallback")
+                )) && (
                 <div className="flex flex-wrap gap-1">
                   <span className="mr-1 font-bold">Simulate:</span>
                   {validIntents.map(intent => (
@@ -257,6 +316,19 @@ export const AgentRightPanel: FC = () => {
                       {intent}
                     </Button>
                   ))}
+                  {graphData?.transitions?.some(
+                    (t: any) =>
+                      t.from === currentState && t.label === "offtopic"
+                  ) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 border-yellow-500 text-xs text-yellow-500"
+                      onClick={() => engine.send_offtopic()}
+                    >
+                      offtopic
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

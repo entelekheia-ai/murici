@@ -16,10 +16,22 @@ import { cn } from "@/lib/utils"
 import { ContentType } from "@/types"
 import { IconChevronCompactRight } from "@tabler/icons-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import dynamic from "next/dynamic"
 import { FC, useState } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { CommandK } from "../utility/command-k"
-import { AgentRightPanel } from "../agents/agent-right-panel"
+
+// Load AgentRightPanel only on client to avoid WASM SSR issues
+const AgentRightPanel = dynamic(
+  () =>
+    import("../agents/agent-right-panel").then(mod => ({
+      default: mod.AgentRightPanel
+    })),
+  {
+    ssr: false,
+    loading: () => <div className="bg-muted h-full w-[400px] animate-pulse" />
+  }
+)
 
 export const SIDEBAR_WIDTH = 350
 

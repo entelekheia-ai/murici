@@ -154,6 +154,7 @@ interface ChatbotUIContext {
     guide?: string
     teach?: string
     validIntents: string[]
+    hasOfftopic?: boolean
   } | null
   setFlowState: Dispatch<
     SetStateAction<{
@@ -162,6 +163,7 @@ interface ChatbotUIContext {
       guide?: string
       teach?: string
       validIntents: string[]
+      hasOfftopic?: boolean
     } | null>
   >
   flowDebugLog: Record<number, FlowTurnDebug>

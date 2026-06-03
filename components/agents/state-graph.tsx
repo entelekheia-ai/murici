@@ -103,7 +103,7 @@ export const StateGraph: FC<StateGraphProps> = ({
   activeState,
   visitedStates
 }) => {
-  if (!graph || !graph.states.length) return null
+  if (!graph?.states?.length) return null
 
   const { positions, svgW, svgH } = computeLayout(graph)
   const PAD = 12
