@@ -24,7 +24,7 @@ export type Effect =
   | { type: "goal"; text: string }
   | { type: "guide"; text: string }
   | { type: "teach"; text: string }
-  | { type: "request_interact"; requiring: string | null }
+  | { type: "request_interact" }
   | { type: "transition"; from: string; to: string }
   | {
       type: "run_script"

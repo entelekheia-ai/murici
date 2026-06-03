@@ -299,9 +299,7 @@ state end
 
               {(validIntents.length > 0 ||
                 graphData?.transitions?.some(
-                  (t: any) =>
-                    t.from === currentState &&
-                    (t.label === "offtopic" || t.label === "fallback")
+                  (t: any) => t.from === currentState && t.label === "offtopic"
                 )) && (
                 <div className="flex flex-wrap gap-1">
                   <span className="mr-1 font-bold">Simulate:</span>

@@ -124,7 +124,7 @@ The observer callback receives one of these objects per call:
 | `goal` | `text` | Store in `goalRef`; push to `flowState` on `request_interact` |
 | `guide` | `text` | Store in `guideRef`; inject into last user message content |
 | `teach` | `text` | Store in `teachRef`; inject as knowledge block in system message |
-| `request_interact` | `requiring` | Flush accumulated directives into `flowState` |
+| `request_interact` | *(no fields)* | Flush accumulated directives into `flowState` |
 | `transition` | `from`, `to` | Add `from` to `visitedStates`; update Mermaid diagram; reset directive refs |
 | `run_script` | `target`, `label`, `silent` | Execute script; call `engine.send_event("script.done")` when done |
 | `run_tool` | `target`, `label` | Invoke tool; pass result to LLM; call `engine.send_event("tool.done")` |
