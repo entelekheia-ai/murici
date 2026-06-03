@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { Effect } from "./kernel-effect"
+
 export interface FlowTurnDebug {
   sequenceNumber: number
   stateAtSend: string
@@ -24,6 +26,6 @@ export interface FlowTurnDebug {
   sentMessages: any[]
   rawResponse: string
   intentFound: string | null
-  transitionEffects: any[]
+  transitionEffects: Effect[]
   toolExchange: Array<{ role: string; content: any }> | null
 }

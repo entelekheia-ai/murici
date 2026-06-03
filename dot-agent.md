@@ -51,11 +51,28 @@ A right sidebar (`components/agents/agent-right-panel.tsx`) manages the active f
 The FSM is executed by a compiled Rust/WASM module (`dot-agent-kernel`), not in TypeScript:
 
 - **Package:** `"dot-agent-kernel": "file:../dot-agent-spec/dsl/dot-agent-kernel/pkg"`
-- **Observer pattern:** The engine exposes `observe(callback)` — the equivalent of a WebAssembly `importObject`. The callback fires once per `Effect` object whenever the FSM produces output (`goal`, `guide`, `teach`, `transition`, `request_interact`, etc.).
+  > **Publishing note:** Currently consumed as a local `file:` path from the monorepo. When the kernel is published (target: [github.com/dot-agent-spec/kernel-dsl](https://github.com/dot-agent-spec/kernel-dsl)), update `package.json`, `AGENTS.md`, and `README.md` to use `"dot-agent-kernel": "github:dot-agent-spec/kernel-dsl"` or the npm version.
+- **Observer pattern:** The engine exposes `observe(callback)` — the equivalent of a WebAssembly `importObject`. The callback fires once per `Effect` object whenever the FSM produces output. Effect types include: **LLM directives** (`goal`, `guide`, `teach`), **interaction control** (`request_interact`), **execution** (`run_script`, `run_subagent`, `run_tool`), **UI** (`apply_css`, `remove_css`, `apply_html`, `remove_html`, `apply_video`, `remove_video`), **informational** (`transition`, `set_memory`, `parse_error`). See `types/kernel-effect.ts` for the complete `Effect` union type.
 - **Reactive state:** `agent-right-panel.tsx` registers the observer immediately after creating the engine. The observer accumulates `goal`/`guide`/`teach` directives and on `request_interact` pushes the full `flowState` to React context (`ChatbotUIContext`). On `transition` it records the visited state and updates the Mermaid diagram.
 - **Shared engine:** The engine instance is stored in context (`flowEngine`) so that `use-chat-handler.tsx` can call `send_intent()` and `tick_prompt()` after each LLM response without prop-drilling.
 
-### 3. LLM Bridge — Flow Injector
+### 3. Effect Types & Handling
+
+The kernel emits 17 distinct effect types, categorized by responsibility:
+
+| Category | Effect | Who handles it | Implementation |
+|----------|--------|---|---|
+| **LLM directives** | `goal`, `guide`, `teach` | LLM runtime | Injected into system/user messages by `flow-injector.ts` |
+| **Interaction** | `request_interact` | Flow UI | Observer marks FSM as "waiting for user input" |
+| **Execution** | `run_script`, `run_subagent`, `run_tool` | Future: script runtime | Currently logged to console in `agent-right-panel.tsx` |
+| **State change** | `transition` | Flow UI + debugger | Updates current state, visited states, Mermaid graph |
+| **Memory** | `set_memory` | Memory store | Kernel-internal; logged for debugging |
+| **UI effects** | `apply_css`, `remove_css`, `apply_html`, `remove_html`, `apply_video`, `remove_video` | UI layer | Future: DOM manipulation; currently logged to console |
+| **Error** | `parse_error` | Debugger | Logged to browser console; render error in FSM state |
+
+Full type definition: [`types/kernel-effect.ts`](./types/kernel-effect.ts) — implements the `Effect` union matching the kernel's `src/effect.rs`.
+
+### 4. LLM Bridge — Flow Injector
 
 `lib/runtime/flow-injector.ts` modifies the messages array before it reaches the model:
 
@@ -66,7 +83,7 @@ The FSM is executed by a compiled Rust/WASM module (`dot-agent-kernel`), not in 
 
 `build-prompt.ts` calls `injectFlowContext` and passes an optional `onFinalMessages` callback so callers can capture the final messages array for debugging.
 
-### 4. Tool Calling — Structured Intent Signaling
+### 5. Tool Calling — Structured Intent Signaling
 
 When a flow state has valid intents, each LLM request includes the `trigger_intent` tool:
 
@@ -91,7 +108,7 @@ The API routes (`/api/chat/openai`, `/api/chat/anthropic`, `/api/chat/custom`) d
 
 `handleFlowChat` (in `components/chat/chat-helpers/index.ts`) handles this non-streaming path: it builds the messages, calls the appropriate route with `tools`, parses the response to extract both the text content and the `trigger_intent` call, and updates the chat UI directly.
 
-### 5. Post-Turn Routing Loop
+### 6. Post-Turn Routing Loop
 
 After each LLM response, `use-chat-handler.tsx`:
 
@@ -101,7 +118,7 @@ After each LLM response, `use-chat-handler.tsx`:
 4. Always calls `flowEngine.tick_prompt()` to advance the prompt counter (enables `after N prompts` handlers in the DSL).
 5. Records a `FlowTurnDebug` entry in `flowDebugLog` context (keyed by assistant message `sequence_number`).
 
-### 6. Thinking / Reasoning Display
+### 7. Thinking / Reasoning Display
 
 When a model returns reasoning content (either inline `<think>...</think>` tags or `delta.reasoning_content` from OpenAI-compatible APIs), the UI extracts it from the stream in real time:
 
@@ -110,7 +127,7 @@ When a model returns reasoning content (either inline `<think>...</think>` tags 
 - **Storage:** `thinkingLog: Record<number, string>` in `ChatbotUIContext`, keyed by `message.sequence_number`.
 - **Rendering:** `MessageThinkingBlock` renders a collapsible `🧠 Raciocínio — N palavras` block **inside** the assistant message bubble, above `MessageMarkdown`.
 
-### 7. Real-Time Flow Event Log
+### 8. Real-Time Flow Event Log
 
 Instead of a single consolidated debug bubble, each turn produces individual `FlowEvent` cards that appear in the chat in temporal order — before the assistant message — as each event fires:
 

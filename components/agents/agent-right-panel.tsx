@@ -18,6 +18,7 @@ import { FC, useState, useEffect, useRef, useContext } from "react"
 import { Button } from "../ui/button"
 import { StateGraph } from "./state-graph"
 import { ChatbotUIContext } from "@/context/context"
+import { Effect } from "@/types/kernel-effect"
 
 export const AgentRightPanel: FC = () => {
   const { setFlowState, setFlowEngine } = useContext(ChatbotUIContext)
@@ -27,8 +28,8 @@ export const AgentRightPanel: FC = () => {
   const [currentState, setCurrentState] = useState<string>("")
   const [graphData, setGraphData] = useState<any>(null)
   const [visitedStates, setVisitedStates] = useState<Set<string>>(new Set())
-  const [flowText, setFlowText] = useState(
-    `state welcome\n  goal "Help the user get started"\n  guide "Be friendly and concise"\n  interact\n  on intent "continue" next setup\n\nstate setup\n  goal "Collect user preferences"\n  interact\n  on intent "done" next end\n\nstate end\n  goal "Session complete"`
+  const [behaviorText, setBehaviorText] = useState(
+    `state welcome\n  goal "Help the user get started"\n  guide "Be friendly and concise"\n  interact\n  on intent "continue" transition to setup\n\nstate setup\n  goal "Collect user preferences"\n  interact\n  on intent "done" transition to end\n\nstate end\n  goal "Session complete"`
   )
 
   // Refs to avoid stale closures inside the WASM observer callback
@@ -50,14 +51,14 @@ export const AgentRightPanel: FC = () => {
     })
   }
 
-  const loadFlow = (eng: any, text: string) => {
+  const loadBehavior = (eng: any, text: string) => {
     goalRef.current = undefined
     guideRef.current = undefined
     teachRef.current = undefined
     visitedRef.current = new Set()
 
     try {
-      eng.load_flow(text)
+      eng.load_behavior(text)
       const state = eng.get_current_state()
       currentStateRef.current = state
       visitedRef.current.add(state)
@@ -73,53 +74,96 @@ export const AgentRightPanel: FC = () => {
   useEffect(() => {
     let mounted = true
 
-    import("dot-agent-kernel")
+    import("@dot-agent/kernel-dsl")
       .then(module => {
-        module.default().then(() => {
-          if (!mounted) return
+        if (!mounted) return
 
-          const flowEngine = new module.FlowEngine()
+        const behaviorEngine = new module.AgentDSLKernel()
 
-          // Register observer — single subscriber, fires once per effect
-          flowEngine.observe((effect: any) => {
-            switch (effect.type) {
-              case "goal":
-                goalRef.current = effect.text
-                break
-              case "guide":
-                guideRef.current = effect.text
-                break
-              case "teach":
-                teachRef.current = effect.text
-                break
-              case "transition":
-                goalRef.current = undefined
-                guideRef.current = undefined
-                teachRef.current = undefined
-                visitedRef.current.add(effect.from)
-                visitedRef.current.add(effect.to)
-                currentStateRef.current = effect.to
-                setCurrentState(effect.to)
-                break
-              case "request_interact":
-                // All entry directives have fired — FSM is fully settled in the new state
-                if (engineRef.current) {
-                  updateFlowState(engineRef.current)
-                  setGraphData(engineRef.current.get_graph())
-                  setVisitedStates(new Set(visitedRef.current))
-                }
-                break
-              case "parse_error":
-                console.error("Flow parse error:", effect.message)
-                break
-            }
-          })
-
-          engineRef.current = flowEngine
-          setEngine(flowEngine)
-          setFlowEngine(flowEngine)
-          loadFlow(flowEngine, flowText)
+        // Register observer — single subscriber, fires once per effect
+        behaviorEngine.observe((effect: Effect) => {
+          switch (effect.type) {
+            case "goal":
+              goalRef.current = effect.text
+              break
+            case "guide":
+              guideRef.current = effect.text
+              break
+            case "teach":
+              teachRef.current = effect.text
+              break
+            case "transition":
+              goalRef.current = undefined
+              guideRef.current = undefined
+              teachRef.current = undefined
+              visitedRef.current.add(effect.from)
+              visitedRef.current.add(effect.to)
+              currentStateRef.current = effect.to
+              setCurrentState(effect.to)
+              break
+            case "request_interact":
+              // All entry directives have fired — FSM is fully settled in the new state
+              if (engineRef.current) {
+                updateFlowState(engineRef.current)
+                setGraphData(engineRef.current.get_graph())
+                setVisitedStates(new Set(visitedRef.current))
+              }
+              break
+            case "parse_error":
+              console.error("Behavior parse error:", effect.message)
+              break
+            case "run_script":
+              console.log("Behavior: run_script", {
+                target: effect.target,
+                label: effect.label,
+                silent: effect.silent
+              })
+              break
+            case "run_subagent":
+              console.log("Behavior: run_subagent", {
+                target: effect.target,
+                label: effect.label,
+                background: effect.background
+              })
+              break
+            case "run_tool":
+              console.log("Behavior: run_tool", {
+                target: effect.target,
+                label: effect.label
+              })
+              break
+            case "set_memory":
+              console.log("Behavior: set_memory", {
+                domain: effect.domain,
+                key: effect.key,
+                value: effect.value
+              })
+              break
+            case "apply_css":
+              console.log("Behavior: apply_css", effect.value)
+              break
+            case "remove_css":
+              console.log("Behavior: remove_css", effect.value)
+              break
+            case "apply_html":
+              console.log("Behavior: apply_html", effect.value)
+              break
+            case "remove_html":
+              console.log("Behavior: remove_html", effect.value)
+              break
+            case "apply_video":
+              console.log("Behavior: apply_video", effect.value)
+              break
+            case "remove_video":
+              console.log("Behavior: remove_video", effect.value)
+              break
+          }
         })
+
+        engineRef.current = behaviorEngine
+        setEngine(behaviorEngine)
+        setFlowEngine(behaviorEngine)
+        loadBehavior(behaviorEngine, behaviorText)
       })
       .catch(console.error)
 
@@ -129,7 +173,7 @@ export const AgentRightPanel: FC = () => {
   }, [])
 
   const handleReload = () => {
-    if (engine) loadFlow(engine, flowText)
+    if (engine) loadBehavior(engine, behaviorText)
   }
 
   const handleSimulateIntent = (intent: string) => {
@@ -168,9 +212,9 @@ export const AgentRightPanel: FC = () => {
           <div className="flex flex-col space-y-4">
             <textarea
               className="bg-muted h-48 w-full rounded border p-2 font-mono text-sm"
-              value={flowText}
-              onChange={e => setFlowText(e.target.value)}
-              placeholder="Type your .flow here..."
+              value={behaviorText}
+              onChange={e => setBehaviorText(e.target.value)}
+              placeholder="Type your .behavior here..."
             />
 
             <Button size="sm" variant="outline" onClick={handleReload}>
