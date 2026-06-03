@@ -75,8 +75,11 @@ export const AgentRightPanel: FC = () => {
     let mounted = true
 
     import("@dot-agent/kernel-dsl")
-      .then(module => {
+      .then(async module => {
         if (!mounted) return
+
+        // Initialize wasm module
+        await module.init()
 
         const behaviorEngine = new module.AgentDSLKernel()
 
