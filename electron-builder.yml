@@ -2,6 +2,15 @@ appId: com.entelekheia.murici
 productName: Murici
 copyright: "Copyright © 2026 Danilo Borges. All rights reserved."
 
+fileAssociations:
+  - ext: agent
+    name: Agent File
+    role: Editor
+    icon:
+      win: dot-agent-icon.ico
+      mac: dot-agent-icon.icns
+      linux: dot-agent-icon.png
+
 directories:
   output: dist-electron
   buildResources: electron/assets

@@ -26,6 +26,25 @@ const isDev =
 
 let mainWindow: BrowserWindow | null = null
 let serverPort = 3000
+let fileToOpen: string | null = null
+
+// Handle file open from OS (macOS)
+app.on("open-file", (event, path) => {
+  event.preventDefault()
+  if (mainWindow) {
+    mainWindow.webContents.send("open-file", path)
+  } else {
+    fileToOpen = path
+  }
+})
+
+// Handle file open from command line (Windows/Linux)
+if (process.platform !== "darwin" && process.argv.length >= 2) {
+  const filePath = process.argv[process.argv.length - 1]
+  if (filePath.endsWith(".agent")) {
+    fileToOpen = filePath
+  }
+}
 
 async function createWindow() {
   mainWindow = new BrowserWindow({
@@ -48,6 +67,11 @@ async function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow!.show()
+
+    if (fileToOpen) {
+      mainWindow!.webContents.send("open-file", fileToOpen)
+      fileToOpen = null
+    }
   })
 
   // Open external links in default browser
