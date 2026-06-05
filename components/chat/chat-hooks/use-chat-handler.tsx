@@ -466,7 +466,7 @@ export const useChatHandler = () => {
       const transitionEffects: any[] = []
       if (flowEngine) {
         if (flowIntentName === "offtopic") {
-          const fx = flowEngine.send_offtopic()
+          const fx = await flowEngine.send_offtopic()
           if (Array.isArray(fx)) {
             transitionEffects.push(...fx)
             const transitionEffect = fx.find(
@@ -503,7 +503,7 @@ export const useChatHandler = () => {
             }
           }
         } else if (flowIntentName) {
-          const fx = flowEngine.send_intent(flowIntentName)
+          const fx = await flowEngine.send_intent(flowIntentName)
           if (Array.isArray(fx)) {
             transitionEffects.push(...fx)
             const transitionEffect = fx.find(
@@ -540,7 +540,7 @@ export const useChatHandler = () => {
             }
           }
         }
-        const tickFx = flowEngine.tick_prompt()
+        const tickFx = await flowEngine.tick_prompt()
         if (Array.isArray(tickFx)) transitionEffects.push(...tickFx)
       }
 

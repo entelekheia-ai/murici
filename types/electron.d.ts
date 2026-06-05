@@ -1,0 +1,62 @@
+/*
+ * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+export interface AgentAboutme {
+  id: string
+  name: string
+  version: string
+  domain: string
+  description: string
+  persona: string
+  license: string
+}
+
+export interface UnpackPayload {
+  aboutme: AgentAboutme
+  behaviorText: string
+}
+
+export interface KernelState {
+  currentState: string
+  graph: any
+  validIntents: string[]
+  hasOfftopic: boolean
+  effects: import("./kernel-effect").Effect[]
+}
+
+declare global {
+  interface Window {
+    electronAPI?: {
+      platform: string
+      versions: {
+        electron: string
+        node: string
+        chrome: string
+      }
+      onOpenAgentFile?: (
+        cb: (payload: UnpackPayload) => void
+      ) => void
+      kernel?: {
+        load: (text: string) => Promise<KernelState>
+        sendIntent: (intent: string) => Promise<KernelState>
+        sendOfftopic: () => Promise<KernelState>
+        tick: () => Promise<{ effects: import("./kernel-effect").Effect[] }>
+      }
+    }
+  }
+}
+
+export {}

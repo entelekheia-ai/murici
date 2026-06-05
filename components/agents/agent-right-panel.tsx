@@ -19,6 +19,8 @@ import { Button } from "../ui/button"
 import { StateGraph } from "./state-graph"
 import { ChatbotUIContext } from "@/context/context"
 import { Effect } from "@/types/kernel-effect"
+import type { UnpackPayload, AgentAboutme } from "@/types/electron"
+import { KernelProxy } from "@/lib/kernel-proxy"
 
 export const AgentRightPanel: FC = () => {
   const { setFlowState, setFlowEngine } = useContext(ChatbotUIContext)
@@ -48,41 +50,25 @@ state end
   interact
   on intent "restart" transition to welcome`
   )
+  const [agentMeta, setAgentMeta] = useState<AgentAboutme | null>(null)
+  const [agentFileName, setAgentFileName] = useState<string | null>(null)
+  const [agentLoading, setAgentLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Refs to avoid stale closures inside the WASM observer callback
-  const goalRef = useRef<string | undefined>(undefined)
-  const guideRef = useRef<string | undefined>(undefined)
-  const teachRef = useRef<string | undefined>(undefined)
-  const currentStateRef = useRef<string>("")
   const engineRef = useRef<any>(null)
   const visitedRef = useRef<Set<string>>(new Set())
+  const loadAgentBundleRef = useRef<(payload: UnpackPayload) => Promise<void>>(
+    async () => {}
+  )
 
-  const updateFlowState = (eng: any) => {
-    const state = eng.get_current_state()
-    const hasOfftopic =
-      graphData?.transitions?.some(
-        (t: any) => t.from === state && t.label === "offtopic"
-      ) ?? false
-    setFlowState({
-      currentState: state,
-      goal: goalRef.current,
-      guide: guideRef.current,
-      teach: teachRef.current,
-      validIntents: Array.from(eng.get_valid_intents() || []) as string[],
-      hasOfftopic
-    })
-  }
-
-  const loadBehavior = (eng: any, text: string) => {
-    goalRef.current = undefined
-    guideRef.current = undefined
-    teachRef.current = undefined
+  const loadBehavior = async (eng: any, text: string) => {
     visitedRef.current = new Set()
     setParseError(null)
 
     try {
-      const effects = eng.load_behavior(text)
+      const effects = await eng.load_behavior(text)
       console.log("load_behavior effects:", effects)
+
       const parseErrorEffect = effects.find(
         (e: any) => e.type === "parse_error"
       )
@@ -90,144 +76,149 @@ state end
         setParseError(parseErrorEffect.message)
         return
       }
+
       const state = eng.get_current_state()
-      currentStateRef.current = state
       visitedRef.current.add(state)
       setCurrentState(state)
       setVisitedStates(new Set([state]))
+
       const graph = eng.get_graph()
       console.log("get_graph() returned:", graph)
       setGraphData(graph)
-      // Pass graph to updateFlowState so it can compute hasOfftopic
+
       const hasOfftopic =
         graph?.transitions?.some(
           (t: any) => t.from === state && t.label === "offtopic"
         ) ?? false
+
+      const goal = effects.find((e: any) => e.type === "goal")?.text
+      const guide = effects.find((e: any) => e.type === "guide")?.text
+
       setFlowState({
         currentState: state,
-        goal: goalRef.current,
-        guide: guideRef.current,
-        teach: teachRef.current,
+        goal,
+        guide,
+        teach: undefined,
         validIntents: Array.from(eng.get_valid_intents() || []) as string[],
         hasOfftopic
       })
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error loading flow:", e)
+      setParseError(e.message || "Failed to load behavior")
     }
   }
 
   useEffect(() => {
     let mounted = true
 
-    import("@dot-agent/kernel-dsl")
-      .then(async module => {
-        if (!mounted) return
+    loadAgentBundleRef.current = async (payload: UnpackPayload) => {
+      setAgentMeta(payload.aboutme)
+      setAgentFileName(null)
+      if (engineRef.current && mounted) {
+        await loadBehavior(engineRef.current, payload.behaviorText)
+      }
+      if (mounted) setActiveTab("flow")
+    }
 
-        // Initialize wasm module
-        await module.init()
+    ;(async () => {
+      try {
+        const proxy = new KernelProxy()
+        engineRef.current = proxy
+        setEngine(proxy)
+        setFlowEngine(proxy)
 
-        const behaviorEngine = new module.AgentDSLKernel()
+        if (mounted) {
+          await loadBehavior(proxy, behaviorText)
+        }
 
-        // Register observer — single subscriber, fires once per effect
-        behaviorEngine.observe((effect: Effect) => {
-          switch (effect.type) {
-            case "goal":
-              goalRef.current = effect.text
-              break
-            case "guide":
-              guideRef.current = effect.text
-              break
-            case "teach":
-              teachRef.current = effect.text
-              break
-            case "transition":
-              goalRef.current = undefined
-              guideRef.current = undefined
-              teachRef.current = undefined
-              visitedRef.current.add(effect.from)
-              visitedRef.current.add(effect.to)
-              currentStateRef.current = effect.to
-              setCurrentState(effect.to)
-              break
-            case "request_interact":
-              // All entry directives have fired — FSM is fully settled in the new state
-              if (engineRef.current) {
-                updateFlowState(engineRef.current)
-                setGraphData(engineRef.current.get_graph())
-                setVisitedStates(new Set(visitedRef.current))
-              }
-              break
-            case "parse_error":
-              console.error("Behavior parse error:", effect.message)
-              break
-            case "run_script":
-              console.log("Behavior: run_script", {
-                target: effect.target,
-                label: effect.label,
-                silent: effect.silent
-              })
-              break
-            case "run_subagent":
-              console.log("Behavior: run_subagent", {
-                target: effect.target,
-                label: effect.label,
-                background: effect.background
-              })
-              break
-            case "run_tool":
-              console.log("Behavior: run_tool", {
-                target: effect.target,
-                label: effect.label
-              })
-              break
-            case "set_memory":
-              console.log("Behavior: set_memory", {
-                domain: effect.domain,
-                key: effect.key,
-                value: effect.value
-              })
-              break
-            case "apply_css":
-              console.log("Behavior: apply_css", effect.value)
-              break
-            case "remove_css":
-              console.log("Behavior: remove_css", effect.value)
-              break
-            case "apply_html":
-              console.log("Behavior: apply_html", effect.value)
-              break
-            case "remove_html":
-              console.log("Behavior: remove_html", effect.value)
-              break
-            case "apply_video":
-              console.log("Behavior: apply_video", effect.value)
-              break
-            case "remove_video":
-              console.log("Behavior: remove_video", effect.value)
-              break
-          }
-        })
-
-        engineRef.current = behaviorEngine
-        setEngine(behaviorEngine)
-        setFlowEngine(behaviorEngine)
-        loadBehavior(behaviorEngine, behaviorText)
-      })
-      .catch(console.error)
+        if (
+          typeof window !== "undefined" &&
+          window.electronAPI?.onOpenAgentFile
+        ) {
+          window.electronAPI.onOpenAgentFile((payload: UnpackPayload) => {
+            loadAgentBundleRef.current(payload)
+          })
+        }
+      } catch (err) {
+        console.error("Failed to initialize kernel proxy:", err)
+      }
+    })()
 
     return () => {
       mounted = false
     }
   }, [])
 
-  const handleReload = () => {
-    if (engine) loadBehavior(engine, behaviorText)
+  const handleReload = async () => {
+    if (engine) await loadBehavior(engine, behaviorText)
   }
 
-  const handleSimulateIntent = (intent: string) => {
+  const handleSimulateIntent = async (intent: string) => {
     if (!engine) return
-    engine.send_intent(intent)
-    // Observer fires transition + entry effects → state updates reactively
+    try {
+      const effects = await engine.send_intent(intent)
+      const state = engine.get_current_state()
+      const graph = engine.get_graph()
+      const hasOfftopic =
+        graph?.transitions?.some(
+          (t: any) => t.from === state && t.label === "offtopic"
+        ) ?? false
+
+      visitedRef.current.add(state)
+      setCurrentState(state)
+      setVisitedStates(new Set(visitedRef.current))
+      setGraphData(graph)
+
+      const goal = effects.find((e: any) => e.type === "goal")?.text
+      const guide = effects.find((e: any) => e.type === "guide")?.text
+
+      setFlowState({
+        currentState: state,
+        goal,
+        guide,
+        teach: undefined,
+        validIntents: Array.from(engine.get_valid_intents() || []) as string[],
+        hasOfftopic
+      })
+    } catch (err) {
+      console.error("Error sending intent:", err)
+    }
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setAgentLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      const res = await fetch("/api/agent/unpack", {
+        method: "POST",
+        body: formData
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        setParseError(error.error || "Failed to unpack agent")
+        return
+      }
+
+      const payload: UnpackPayload = await res.json()
+      await loadAgentBundleRef.current(payload)
+    } catch (err: any) {
+      setParseError(err.message || "Failed to load agent")
+    } finally {
+      setAgentLoading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  const handleLoadAgentClick = () => {
+    console.log("handleLoadAgentClick called, fileInputRef:", fileInputRef.current)
+    fileInputRef.current?.click()
   }
 
   const validIntents = engine
@@ -334,8 +325,74 @@ state end
         )}
 
         {activeTab === "agent" && (
-          <div className="bg-muted text-muted-foreground flex h-48 items-center justify-center rounded border p-2">
-            .agent specs will appear here
+          <div className="flex flex-col space-y-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".agent"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleLoadAgentClick}
+              disabled={agentLoading}
+            >
+              {agentLoading ? "Loading..." : "Carregar .agent"}
+            </Button>
+
+            {agentMeta ? (
+              <div className="rounded border border-green-500 bg-green-500/10 p-4 space-y-3">
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                      Nome:
+                    </span>{" "}
+                    <span className="text-sm">{agentMeta.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                      Versão:
+                    </span>{" "}
+                    <span className="text-sm">{agentMeta.version}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                      Domínio:
+                    </span>{" "}
+                    <span className="text-sm">{agentMeta.domain}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                      Persona:
+                    </span>{" "}
+                    <span className="text-sm">{agentMeta.persona}</span>
+                  </div>
+                  <div className="pt-2">
+                    <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                      Descrição:
+                    </span>
+                    <p className="text-sm mt-1 text-green-900 dark:text-green-200">
+                      {agentMeta.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-muted text-muted-foreground flex h-48 items-center justify-center rounded border p-2">
+                Clique em "Carregar .agent" para importar
+              </div>
+            )}
+
+            {parseError && (
+              <div className="rounded border border-red-500 bg-red-500/10 p-3 text-sm text-red-500">
+                <div className="mb-1 font-bold">Erro</div>
+                <pre className="whitespace-pre-wrap font-mono text-xs">
+                  {parseError}
+                </pre>
+              </div>
+            )}
           </div>
         )}
       </div>

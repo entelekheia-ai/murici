@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-import { contextBridge } from "electron"
+import { contextBridge, ipcRenderer } from "electron"
+import type { UnpackPayload, KernelState } from "../types/electron"
+import type { Effect } from "../types/kernel-effect"
 
 contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
@@ -22,5 +24,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
     electron: process.versions.electron,
     node: process.versions.node,
     chrome: process.versions.chrome
+  },
+  onOpenAgentFile: (
+    cb: (payload: UnpackPayload) => void
+  ) => {
+    ipcRenderer.on("open-agent-file", (_e, payload) => cb(payload))
+  },
+  kernel: {
+    load: (text: string): Promise<KernelState> =>
+      ipcRenderer.invoke("kernel:load", text),
+    sendIntent: (intent: string): Promise<KernelState> =>
+      ipcRenderer.invoke("kernel:intent", intent),
+    sendOfftopic: (): Promise<KernelState> =>
+      ipcRenderer.invoke("kernel:offtopic"),
+    tick: (): Promise<{ effects: Effect[] }> =>
+      ipcRenderer.invoke("kernel:tick")
   }
 })

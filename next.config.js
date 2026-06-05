@@ -35,9 +35,14 @@ module.exports = withBundleAnalyzer(
       ]
     },
     experimental: {
-      serverComponentsExternalPackages: ["sharp", "onnxruntime-node"]
+      serverComponentsExternalPackages: [
+        "sharp",
+        "onnxruntime-node",
+        "@dot-agent/cli",
+        "@dot-agent/kernel-dsl"
+      ]
     },
-    webpack: (config, { isServer }) => {
+    webpack: (config) => {
       config.experiments = {
         ...config.experiments,
         asyncWebAssembly: true,

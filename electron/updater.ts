@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-import { autoUpdater } from "electron-updater"
+import updaterModule from "electron-updater"
 import { dialog } from "electron"
+
+const { autoUpdater } = updaterModule
 
 export function setupAutoUpdater() {
   autoUpdater.autoDownload = true
