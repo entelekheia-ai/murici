@@ -8,12 +8,7 @@
 import { ChatbotUIContext } from "@/context/context"
 import { updateChat } from "@/db/chats"
 import { deleteMessagesIncludingAndAfter } from "@/db/messages"
-import {
-  getAssistantCollectionsByAssistantId,
-  getAssistantFilesByAssistantId,
-  getAssistantToolsByAssistantId,
-  getCollectionFilesByCollectionId
-} from "@/lib/local-db/stubs"
+import { getAssistantFilesByAssistantId } from "@/lib/local-db/stubs"
 import { buildFinalMessages } from "@/lib/build-prompt"
 import { Tables } from "@/types/database"
 import {
@@ -55,7 +50,6 @@ export const useChatHandler = () => {
     selectedWorkspace,
     setSelectedChat,
     setChats,
-    setSelectedTools,
     availableLocalModels,
     availableOpenRouterModels,
     abortController,
@@ -72,13 +66,10 @@ export const useChatHandler = () => {
     newMessageFiles,
     chatFileItems,
     setChatFileItems,
-    setToolInUse,
     useRetrieval,
     sourceCount,
     setIsPromptPickerOpen,
     setIsFilePickerOpen,
-    selectedTools,
-    selectedPreset,
     setChatSettings,
     models,
     isPromptPickerOpen,
@@ -119,9 +110,6 @@ export const useChatHandler = () => {
     setIsPromptPickerOpen(false)
     setIsFilePickerOpen(false)
 
-    setSelectedTools([])
-    setToolInUse("none")
-
     if (selectedAssistant) {
       setChatSettings({
         model: selectedAssistant.model as LLMID,
@@ -136,26 +124,10 @@ export const useChatHandler = () => {
           | "local"
       })
 
-      let allFiles = []
-
-      const assistantFiles = (
+      const allFiles = (
         await getAssistantFilesByAssistantId(selectedAssistant.id)
       ).files
-      allFiles = [...assistantFiles]
-      const assistantCollections = (
-        await getAssistantCollectionsByAssistantId(selectedAssistant.id)
-      ).collections
-      for (const collection of assistantCollections) {
-        const collectionFiles = (
-          await getCollectionFilesByCollectionId(collection.id)
-        ).files
-        allFiles = [...allFiles, ...collectionFiles]
-      }
-      const assistantTools = (
-        await getAssistantToolsByAssistantId(selectedAssistant.id)
-      ).tools
 
-      setSelectedTools(assistantTools)
       setChatFiles(
         allFiles.map(file => ({
           id: file.id,
@@ -166,19 +138,6 @@ export const useChatHandler = () => {
       )
 
       if (allFiles.length > 0) setShowFilesDisplay(true)
-    } else if (selectedPreset) {
-      setChatSettings({
-        model: selectedPreset.model as LLMID,
-        prompt: selectedPreset.prompt,
-        temperature: selectedPreset.temperature,
-        contextLength: selectedPreset.context_length,
-        includeProfileContext: selectedPreset.include_profile_context,
-        includeWorkspaceInstructions:
-          selectedPreset.include_workspace_instructions,
-        embeddingsProvider: selectedPreset.embeddings_provider as
-          | "openai"
-          | "local"
-      })
     } else if (selectedWorkspace) {
       // setChatSettings({
       //   model: (selectedWorkspace.default_model ||
@@ -260,8 +219,6 @@ export const useChatHandler = () => {
         (newMessageFiles.length > 0 || chatFiles.length > 0) &&
         useRetrieval
       ) {
-        setToolInUse("retrieval")
-
         retrievedFileItems = await handleRetrieval(
           userInput,
           newMessageFiles,
@@ -331,60 +288,10 @@ export const useChatHandler = () => {
         })
       }
 
-      if (selectedTools.length > 0) {
-        setToolInUse("Tools")
-
-        const formattedMessages = await buildFinalMessages(
-          payload,
-          profile!,
-          chatImages,
-          msgs => {
-            sentMessages = msgs
-          }
-        )
-
-        const response = await fetch("/api/chat/tools", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            chatSettings: payload.chatSettings,
-            messages: formattedMessages,
-            selectedTools,
-            apiKeys: profile
-              ? {
-                  openai: profile.openai_api_key ?? undefined,
-                  anthropic: profile.anthropic_api_key ?? undefined,
-                  google: profile.google_gemini_api_key ?? undefined,
-                  mistral: profile.mistral_api_key ?? undefined,
-                  groq: profile.groq_api_key ?? undefined,
-                  perplexity: profile.perplexity_api_key ?? undefined,
-                  openrouter: profile.openrouter_api_key ?? undefined,
-                  openaiOrgId: profile.openai_organization_id ?? undefined,
-                  useAzure: profile.use_azure_openai
-                }
-              : undefined
-          })
-        })
-
-        setToolInUse("none")
-
-        generatedText = await processResponse(
-          response,
-          isRegeneration
-            ? payload.chatMessages[payload.chatMessages.length - 1]
-            : tempAssistantChatMessage,
-          true,
-          newAbortController,
-          setFirstTokenReceived,
-          setChatMessages,
-          setToolInUse
-        )
-      } else if (
+      if (
         flowEngine &&
         flowState &&
-        (flowState.validIntents.length > 0 || flowState.hasOfftopic) &&
+        flowState.validIntents.length > 0 &&
         modelData!.provider !== "ollama"
       ) {
         // Flow-controlled turn: non-streaming with tool calling
@@ -433,7 +340,7 @@ export const useChatHandler = () => {
             setIsGenerating,
             setFirstTokenReceived,
             setChatMessages,
-            setToolInUse,
+            () => {},
             thinking => {
               setThinkingLog(prev => ({ ...prev, [seqNum]: thinking }))
             }
@@ -451,7 +358,7 @@ export const useChatHandler = () => {
             setIsGenerating,
             setFirstTokenReceived,
             setChatMessages,
-            setToolInUse,
+            () => {},
             msgs => {
               sentMessages = msgs
             },
@@ -474,7 +381,6 @@ export const useChatHandler = () => {
             )
             if (transitionEffect) {
               const newState = flowEngine.get_current_state()
-              const hasOfftopic = flowState?.hasOfftopic
               setFlowState({
                 currentState: newState,
                 goal: fx.find((e: any) => e.type === "goal")?.text,
@@ -482,8 +388,7 @@ export const useChatHandler = () => {
                 teach: fx.find((e: any) => e.type === "teach")?.text,
                 validIntents: Array.from(
                   flowEngine.get_valid_intents() || []
-                ) as string[],
-                hasOfftopic
+                ) as string[]
               })
               addFlowEvent({
                 id: uuidv4(),
@@ -511,7 +416,6 @@ export const useChatHandler = () => {
             )
             if (transitionEffect) {
               const newState = flowEngine.get_current_state()
-              const hasOfftopic = flowState?.hasOfftopic
               setFlowState({
                 currentState: newState,
                 goal: fx.find((e: any) => e.type === "goal")?.text,
@@ -519,8 +423,7 @@ export const useChatHandler = () => {
                 teach: fx.find((e: any) => e.type === "teach")?.text,
                 validIntents: Array.from(
                   flowEngine.get_valid_intents() || []
-                ) as string[],
-                hasOfftopic
+                ) as string[]
               })
               addFlowEvent({
                 id: uuidv4(),

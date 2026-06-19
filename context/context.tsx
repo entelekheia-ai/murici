@@ -28,8 +28,6 @@ interface ChatbotUIContext {
   // ITEMS STORE
   assistants: Tables<"assistants">[]
   setAssistants: Dispatch<SetStateAction<Tables<"assistants">[]>>
-  collections: Tables<"collections">[]
-  setCollections: Dispatch<SetStateAction<Tables<"collections">[]>>
   chats: Tables<"chats">[]
   setChats: Dispatch<SetStateAction<Tables<"chats">[]>>
   files: Tables<"files">[]
@@ -38,12 +36,6 @@ interface ChatbotUIContext {
   setFolders: Dispatch<SetStateAction<Tables<"folders">[]>>
   models: Tables<"models">[]
   setModels: Dispatch<SetStateAction<Tables<"models">[]>>
-  presets: Tables<"presets">[]
-  setPresets: Dispatch<SetStateAction<Tables<"presets">[]>>
-  prompts: Tables<"prompts">[]
-  setPrompts: Dispatch<SetStateAction<Tables<"prompts">[]>>
-  tools: Tables<"tools">[]
-  setTools: Dispatch<SetStateAction<Tables<"tools">[]>>
   workspaces: Tables<"workspaces">[]
   setWorkspaces: Dispatch<SetStateAction<Tables<"workspaces">[]>>
 
@@ -62,10 +54,6 @@ interface ChatbotUIContext {
   setSelectedWorkspace: Dispatch<SetStateAction<Tables<"workspaces"> | null>>
   workspaceImages: WorkspaceImage[]
   setWorkspaceImages: Dispatch<SetStateAction<WorkspaceImage[]>>
-
-  // PRESET STORE
-  selectedPreset: Tables<"presets"> | null
-  setSelectedPreset: Dispatch<SetStateAction<Tables<"presets"> | null>>
 
   // ASSISTANT STORE
   selectedAssistant: Tables<"assistants"> | null
@@ -139,12 +127,6 @@ interface ChatbotUIContext {
   sourceCount: number
   setSourceCount: Dispatch<SetStateAction<number>>
 
-  // TOOL STORE
-  selectedTools: Tables<"tools">[]
-  setSelectedTools: Dispatch<SetStateAction<Tables<"tools">[]>>
-  toolInUse: string
-  setToolInUse: Dispatch<SetStateAction<string>>
-
   // FLOW ENGINE STORE
   flowEngine: any | null
   setFlowEngine: Dispatch<SetStateAction<any | null>>
@@ -154,7 +136,6 @@ interface ChatbotUIContext {
     guide?: string
     teach?: string
     validIntents: string[]
-    hasOfftopic?: boolean
   } | null
   setFlowState: Dispatch<
     SetStateAction<{
@@ -163,7 +144,6 @@ interface ChatbotUIContext {
       guide?: string
       teach?: string
       validIntents: string[]
-      hasOfftopic?: boolean
     } | null>
   >
   flowDebugLog: Record<number, FlowTurnDebug>
@@ -186,8 +166,6 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   // ITEMS STORE
   assistants: [],
   setAssistants: () => {},
-  collections: [],
-  setCollections: () => {},
   chats: [],
   setChats: () => {},
   files: [],
@@ -196,12 +174,6 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setFolders: () => {},
   models: [],
   setModels: () => {},
-  presets: [],
-  setPresets: () => {},
-  prompts: [],
-  setPrompts: () => {},
-  tools: [],
-  setTools: () => {},
   workspaces: [],
   setWorkspaces: () => {},
 
@@ -220,10 +192,6 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setSelectedWorkspace: () => {},
   workspaceImages: [],
   setWorkspaceImages: () => {},
-
-  // PRESET STORE
-  selectedPreset: null,
-  setSelectedPreset: () => {},
 
   // ASSISTANT STORE
   selectedAssistant: null,
@@ -296,12 +264,6 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setUseRetrieval: () => {},
   sourceCount: 4,
   setSourceCount: () => {},
-
-  // TOOL STORE
-  selectedTools: [],
-  setSelectedTools: () => {},
-  toolInUse: "none",
-  setToolInUse: () => {},
 
   // FLOW ENGINE STORE
   flowEngine: null,

@@ -12,11 +12,9 @@ import { cn } from "@/lib/utils"
 import { Tables } from "@/types/database"
 import { LLM, LLMID, MessageImage, ModelProvider } from "@/types"
 import {
-  IconBolt,
   IconCaretDownFilled,
   IconCaretRightFilled,
   IconCircleFilled,
-  IconFileText,
   IconMoodSmile,
   IconPencil
 } from "@tabler/icons-react"
@@ -65,7 +63,6 @@ export const Message: FC<MessageProps> = ({
     selectedAssistant,
     chatImages,
     assistantImages,
-    toolInUse,
     files,
     models,
     thinkingLog
@@ -286,30 +283,7 @@ export const Message: FC<MessageProps> = ({
           isLast &&
           message.role === "assistant" ? (
             <>
-              {(() => {
-                switch (toolInUse) {
-                  case "none":
-                    return (
-                      <IconCircleFilled className="animate-pulse" size={20} />
-                    )
-                  case "retrieval":
-                    return (
-                      <div className="flex animate-pulse items-center space-x-2">
-                        <IconFileText size={20} />
-
-                        <div>Searching files...</div>
-                      </div>
-                    )
-                  default:
-                    return (
-                      <div className="flex animate-pulse items-center space-x-2">
-                        <IconBolt size={20} />
-
-                        <div>Using {toolInUse}...</div>
-                      </div>
-                    )
-                }
-              })()}
+              <IconCircleFilled className="animate-pulse" size={20} />
             </>
           ) : isEditing ? (
             <TextareaAutosize

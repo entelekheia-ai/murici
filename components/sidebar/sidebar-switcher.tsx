@@ -5,27 +5,39 @@
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
+"use client"
+
 import { ContentType } from "@/types"
 import {
-  IconAdjustmentsHorizontal,
-  IconBolt,
-  IconBooks,
   IconFile,
+  IconLayoutGrid,
   IconMessage,
-  IconPencil,
   IconRobotFace,
-  IconSparkles,
-  IconSitemap
+  IconSparkles
 } from "@tabler/icons-react"
-import { FC } from "react"
+import Image from "next/image"
+import { FC, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { TabsList } from "../ui/tabs"
 import { WithTooltip } from "../ui/with-tooltip"
 import { ProfileSettings } from "../utility/profile-settings"
-import { SidebarSwitchItem } from "./sidebar-switch-item"
 import { Button } from "../ui/button"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "../ui/popover"
 
-export const SIDEBAR_ICON_SIZE = 28
+export const SIDEBAR_ICON_SIZE = 22
+
+const MENU_ITEMS: {
+  type: ContentType
+  icon: React.ElementType
+  label: string
+}[] = [
+  { type: "models", icon: IconSparkles, label: "Models" },
+  { type: "files", icon: IconFile, label: "Files" },
+  { type: "assistants", icon: IconRobotFace, label: "Assistants" }
+]
 
 interface SidebarSwitcherProps {
   onContentTypeChange: (contentType: ContentType) => void
@@ -38,6 +50,7 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const isAgentOpen = searchParams.get("agent") === "true"
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const toggleAgentPanel = () => {
     const params = new URLSearchParams(searchParams.toString())
@@ -50,82 +63,74 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
   }
 
   return (
-    <div className="flex flex-col justify-between border-r-2 pb-5">
-      <TabsList className="bg-background grid h-[440px] grid-rows-7">
-        <SidebarSwitchItem
-          icon={<IconMessage size={SIDEBAR_ICON_SIZE} />}
-          contentType="chats"
-          onContentTypeChange={onContentTypeChange}
-        />
+    <div className="flex items-center justify-between border-t px-3 py-2">
+      {/* Chats — acesso direto */}
+      <WithTooltip
+        display={<div>Chats</div>}
+        trigger={
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onContentTypeChange("chats")}
+          >
+            <IconMessage size={SIDEBAR_ICON_SIZE} />
+          </Button>
+        }
+      />
 
-        <SidebarSwitchItem
-          icon={<IconAdjustmentsHorizontal size={SIDEBAR_ICON_SIZE} />}
-          contentType="presets"
-          onContentTypeChange={onContentTypeChange}
-        />
+      {/* Agente — ícone dot-agent */}
+      <WithTooltip
+        display={<div>.agent / .flow Panel</div>}
+        trigger={
+          <Button
+            variant={isAgentOpen ? "default" : "ghost"}
+            size="icon"
+            onClick={toggleAgentPanel}
+          >
+            <Image
+              src="/dot-agent-icon.png"
+              alt="Agent"
+              width={SIDEBAR_ICON_SIZE}
+              height={SIDEBAR_ICON_SIZE}
+              className="opacity-80"
+            />
+          </Button>
+        }
+      />
 
-        <SidebarSwitchItem
-          icon={<IconPencil size={SIDEBAR_ICON_SIZE} />}
-          contentType="prompts"
-          onContentTypeChange={onContentTypeChange}
-        />
+      {/* Menu — abre lista de conteúdos + perfil */}
+      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <WithTooltip
+              display={<div>Menu</div>}
+              trigger={<IconLayoutGrid size={SIDEBAR_ICON_SIZE} />}
+            />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent side="top" align="end" className="w-52 p-2">
+          <div className="grid grid-cols-2 gap-1">
+            {MENU_ITEMS.map(({ type, icon: Icon, label }) => (
+              <Button
+                key={type}
+                variant="ghost"
+                className="justify-start text-sm"
+                onClick={() => {
+                  onContentTypeChange(type)
+                  setMenuOpen(false)
+                }}
+              >
+                <Icon size={16} className="mr-2 shrink-0" />
+                {label}
+              </Button>
+            ))}
+          </div>
 
-        <SidebarSwitchItem
-          icon={<IconSparkles size={SIDEBAR_ICON_SIZE} />}
-          contentType="models"
-          onContentTypeChange={onContentTypeChange}
-        />
-
-        <SidebarSwitchItem
-          icon={<IconFile size={SIDEBAR_ICON_SIZE} />}
-          contentType="files"
-          onContentTypeChange={onContentTypeChange}
-        />
-
-        <SidebarSwitchItem
-          icon={<IconBooks size={SIDEBAR_ICON_SIZE} />}
-          contentType="collections"
-          onContentTypeChange={onContentTypeChange}
-        />
-
-        <SidebarSwitchItem
-          icon={<IconRobotFace size={SIDEBAR_ICON_SIZE} />}
-          contentType="assistants"
-          onContentTypeChange={onContentTypeChange}
-        />
-
-        <SidebarSwitchItem
-          icon={<IconBolt size={SIDEBAR_ICON_SIZE} />}
-          contentType="tools"
-          onContentTypeChange={onContentTypeChange}
-        />
-      </TabsList>
-
-      <div className="flex flex-col items-center space-y-4">
-        {/* TODO */}
-        {/* <WithTooltip display={<div>Import</div>} trigger={<Import />} /> */}
-
-        {/* TODO */}
-        {/* <Alerts /> */}
-
-        <WithTooltip
-          display={<div>.agent / .flow Panel</div>}
-          trigger={
-            <Button
-              variant={isAgentOpen ? "default" : "ghost"}
-              size="icon"
-              onClick={toggleAgentPanel}
-            >
-              <IconSitemap size={SIDEBAR_ICON_SIZE} />
-            </Button>
-          }
-        />
-
-        <WithTooltip
-          display={<div>Profile Settings</div>}
-          trigger={<ProfileSettings />}
-        />
-      </div>
+          <div className="mt-1 border-t pt-1">
+            <ProfileSettings />
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }

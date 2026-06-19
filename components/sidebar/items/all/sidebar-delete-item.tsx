@@ -18,13 +18,9 @@ import {
 import { ChatbotUIContext } from "@/context/context"
 import { deleteAssistant } from "@/db/assistants"
 import { deleteChat } from "@/db/chats"
-import { deleteCollection } from "@/db/collections"
 import { deleteFile } from "@/db/files"
 import { deleteModel } from "@/db/models"
-import { deletePreset } from "@/db/presets"
-import { deletePrompt } from "@/db/prompts"
 import { deleteFileFromStorage } from "@/db/storage/files"
-import { deleteTool } from "@/db/tools"
 import { Tables } from "@/types/database"
 import { ContentType, DataItemType } from "@/types"
 import { FC, useContext, useRef, useState } from "react"
@@ -40,12 +36,8 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
 }) => {
   const {
     setChats,
-    setPresets,
-    setPrompts,
     setFiles,
-    setCollections,
     setAssistants,
-    setTools,
     setModels
   } = useContext(ChatbotUIContext)
 
@@ -57,27 +49,15 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
     chats: async (chat: Tables<"chats">) => {
       await deleteChat(chat.id)
     },
-    presets: async (preset: Tables<"presets">) => {
-      await deletePreset(preset.id)
-    },
-    prompts: async (prompt: Tables<"prompts">) => {
-      await deletePrompt(prompt.id)
-    },
     files: async (file: Tables<"files">) => {
       await deleteFileFromStorage(file.file_path)
       await deleteFile(file.id)
-    },
-    collections: async (collection: Tables<"collections">) => {
-      await deleteCollection(collection.id)
     },
     assistants: async (assistant: Tables<"assistants">) => {
       await deleteAssistant(assistant.id)
       setChats(prevState =>
         prevState.filter(chat => chat.assistant_id !== assistant.id)
       )
-    },
-    tools: async (tool: Tables<"tools">) => {
-      await deleteTool(tool.id)
     },
     models: async (model: Tables<"models">) => {
       await deleteModel(model.id)
@@ -86,12 +66,8 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
 
   const stateUpdateFunctions = {
     chats: setChats,
-    presets: setPresets,
-    prompts: setPrompts,
     files: setFiles,
-    collections: setCollections,
     assistants: setAssistants,
-    tools: setTools,
     models: setModels
   }
 

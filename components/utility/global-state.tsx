@@ -43,14 +43,10 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
   // ITEMS STORE
   const [assistants, setAssistants] = useState<Tables<"assistants">[]>([])
-  const [collections, setCollections] = useState<Tables<"collections">[]>([])
   const [chats, setChats] = useState<Tables<"chats">[]>([])
   const [files, setFiles] = useState<Tables<"files">[]>([])
   const [folders, setFolders] = useState<Tables<"folders">[]>([])
   const [models, setModels] = useState<Tables<"models">[]>([])
-  const [presets, setPresets] = useState<Tables<"presets">[]>([])
-  const [prompts, setPrompts] = useState<Tables<"prompts">[]>([])
-  const [tools, setTools] = useState<Tables<"tools">[]>([])
   const [workspaces, setWorkspaces] = useState<Tables<"workspaces">[]>([])
 
   // MODELS STORE
@@ -65,10 +61,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [selectedWorkspace, setSelectedWorkspace] =
     useState<Tables<"workspaces"> | null>(null)
   const [workspaceImages, setWorkspaceImages] = useState<WorkspaceImage[]>([])
-
-  // PRESET STORE
-  const [selectedPreset, setSelectedPreset] =
-    useState<Tables<"presets"> | null>(null)
 
   // ASSISTANT STORE
   const [selectedAssistant, setSelectedAssistant] =
@@ -121,10 +113,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   // RETIEVAL STORE
   const [useRetrieval, setUseRetrieval] = useState<boolean>(true)
   const [sourceCount, setSourceCount] = useState<number>(4)
-
-  // TOOL STORE
-  const [selectedTools, setSelectedTools] = useState<Tables<"tools">[]>([])
-  const [toolInUse, setToolInUse] = useState<string>("none")
 
   // FLOW ENGINE STORE
   const [flowEngine, setFlowEngine] = useState<any | null>(null)
@@ -198,8 +186,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         // ITEMS STORE
         assistants,
         setAssistants,
-        collections,
-        setCollections,
         chats,
         setChats,
         files,
@@ -208,12 +194,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setFolders,
         models,
         setModels,
-        presets,
-        setPresets,
-        prompts,
-        setPrompts,
-        tools,
-        setTools,
         workspaces,
         setWorkspaces,
 
@@ -232,10 +212,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setSelectedWorkspace,
         workspaceImages,
         setWorkspaceImages,
-
-        // PRESET STORE
-        selectedPreset,
-        setSelectedPreset,
 
         // ASSISTANT STORE
         selectedAssistant,
@@ -308,12 +284,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setUseRetrieval,
         sourceCount,
         setSourceCount,
-
-        // TOOL STORE
-        selectedTools,
-        setSelectedTools,
-        toolInUse,
-        setToolInUse,
 
         // FLOW ENGINE STORE
         flowEngine,

@@ -8,7 +8,6 @@ import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
 import {
-  IconBolt,
   IconCirclePlus,
   IconPlayerStopFilled,
   IconSend
@@ -44,7 +43,6 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
     userInput,
     chatMessages,
     isGenerating,
-    selectedPreset,
     selectedAssistant,
     focusPrompt,
     setFocusPrompt,
@@ -57,8 +55,6 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
     isFilePickerOpen,
     setFocusFile,
     chatSettings,
-    selectedTools,
-    setSelectedTools,
     assistantImages
   } = useContext(ChatbotUIContext)
 
@@ -84,7 +80,7 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
     setTimeout(() => {
       handleFocusChatInput()
     }, 200) // FIX: hacky
-  }, [selectedPreset, selectedAssistant])
+  }, [selectedAssistant])
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (!isTyping && event.key === "Enter" && !event.shiftKey) {
@@ -171,27 +167,6 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
     <>
       <div className="flex flex-col flex-wrap justify-center gap-2">
         <ChatFilesDisplay />
-
-        {selectedTools &&
-          selectedTools.map((tool, index) => (
-            <div
-              key={index}
-              className="flex justify-center"
-              onClick={() =>
-                setSelectedTools(
-                  selectedTools.filter(
-                    selectedTool => selectedTool.id !== tool.id
-                  )
-                )
-              }
-            >
-              <div className="flex cursor-pointer items-center justify-center space-x-1 rounded-lg bg-purple-600 px-3 py-1 hover:opacity-50">
-                <IconBolt size={20} />
-
-                <div>{tool.name}</div>
-              </div>
-            </div>
-          ))}
 
         {selectedAssistant && (
           <div className="border-primary mx-auto flex w-fit items-center space-x-2 rounded-lg border p-1.5">

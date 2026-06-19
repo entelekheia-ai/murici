@@ -11,13 +11,9 @@ import { Dashboard } from "@/components/ui/dashboard"
 import { ChatbotUIContext } from "@/context/context"
 import { getAssistantWorkspacesByWorkspaceId } from "@/db/assistants"
 import { getChatsByWorkspaceId } from "@/db/chats"
-import { getCollectionWorkspacesByWorkspaceId } from "@/db/collections"
 import { getFileWorkspacesByWorkspaceId } from "@/db/files"
 import { getFoldersByWorkspaceId } from "@/db/folders"
 import { getModelWorkspacesByWorkspaceId } from "@/db/models"
-import { getPresetWorkspacesByWorkspaceId } from "@/db/presets"
-import { getPromptWorkspacesByWorkspaceId } from "@/db/prompts"
-import { getToolWorkspacesByWorkspaceId } from "@/db/tools"
 import { getWorkspaceById } from "@/db/workspaces"
 import { LLMID } from "@/types"
 import { useParams, useSearchParams } from "next/navigation"
@@ -38,12 +34,8 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     setAssistants,
     setAssistantImages,
     setChats,
-    setCollections,
     setFolders,
     setFiles,
-    setPresets,
-    setPrompts,
-    setTools,
     setModels,
     setSelectedWorkspace,
     setSelectedChat,
@@ -88,24 +80,11 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     const chats = await getChatsByWorkspaceId(workspaceId)
     setChats(chats)
 
-    const collectionData =
-      await getCollectionWorkspacesByWorkspaceId(workspaceId)
-    setCollections(collectionData.collections)
-
     const folders = await getFoldersByWorkspaceId(workspaceId)
     setFolders(folders)
 
     const fileData = await getFileWorkspacesByWorkspaceId(workspaceId)
     setFiles(fileData.files)
-
-    const presetData = await getPresetWorkspacesByWorkspaceId(workspaceId)
-    setPresets(presetData.presets)
-
-    const promptData = await getPromptWorkspacesByWorkspaceId(workspaceId)
-    setPrompts(promptData.prompts)
-
-    const toolData = await getToolWorkspacesByWorkspaceId(workspaceId)
-    setTools(toolData.tools)
 
     const modelData = await getModelWorkspacesByWorkspaceId(workspaceId)
     setModels(modelData.models)

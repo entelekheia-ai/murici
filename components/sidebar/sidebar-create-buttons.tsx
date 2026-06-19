@@ -6,6 +6,7 @@
  */
 
 // @ts-nocheck
+import { useTranslation } from "react-i18next"
 import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { createFolder } from "@/db/folders"
@@ -14,12 +15,8 @@ import { IconFolderPlus, IconPlus } from "@tabler/icons-react"
 import { FC, useContext, useState } from "react"
 import { Button } from "../ui/button"
 import { CreateAssistant } from "./items/assistants/create-assistant"
-import { CreateCollection } from "./items/collections/create-collection"
 import { CreateFile } from "./items/files/create-file"
 import { CreateModel } from "./items/models/create-model"
-import { CreatePreset } from "./items/presets/create-preset"
-import { CreatePrompt } from "./items/prompts/create-prompt"
-import { CreateTool } from "./items/tools/create-tool"
 
 interface SidebarCreateButtonsProps {
   contentType: ContentType
@@ -30,16 +27,13 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
   contentType,
   hasData
 }) => {
+  const { t } = useTranslation()
   const { profile, selectedWorkspace, folders, setFolders } =
     useContext(ChatbotUIContext)
   const { handleNewChat } = useChatHandler()
 
-  const [isCreatingPrompt, setIsCreatingPrompt] = useState(false)
-  const [isCreatingPreset, setIsCreatingPreset] = useState(false)
   const [isCreatingFile, setIsCreatingFile] = useState(false)
-  const [isCreatingCollection, setIsCreatingCollection] = useState(false)
   const [isCreatingAssistant, setIsCreatingAssistant] = useState(false)
-  const [isCreatingTool, setIsCreatingTool] = useState(false)
   const [isCreatingModel, setIsCreatingModel] = useState(false)
 
   const handleCreateFolder = async () => {
@@ -63,34 +57,14 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
           handleNewChat()
         }
 
-      case "presets":
-        return async () => {
-          setIsCreatingPreset(true)
-        }
-
-      case "prompts":
-        return async () => {
-          setIsCreatingPrompt(true)
-        }
-
       case "files":
         return async () => {
           setIsCreatingFile(true)
         }
 
-      case "collections":
-        return async () => {
-          setIsCreatingCollection(true)
-        }
-
       case "assistants":
         return async () => {
           setIsCreatingAssistant(true)
-        }
-
-      case "tools":
-        return async () => {
-          setIsCreatingTool(true)
         }
 
       case "models":
@@ -107,9 +81,11 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
     <div className="flex w-full space-x-2">
       <Button className="flex h-[36px] grow" onClick={getCreateFunction()}>
         <IconPlus className="mr-1" size={20} />
-        New{" "}
-        {contentType.charAt(0).toUpperCase() +
-          contentType.slice(1, contentType.length - 1)}
+        {t(
+          "New " +
+            contentType.charAt(0).toUpperCase() +
+            contentType.slice(1, contentType.length - 1)
+        )}
       </Button>
 
       {hasData && (
@@ -118,29 +94,8 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
         </Button>
       )}
 
-      {isCreatingPrompt && (
-        <CreatePrompt
-          isOpen={isCreatingPrompt}
-          onOpenChange={setIsCreatingPrompt}
-        />
-      )}
-
-      {isCreatingPreset && (
-        <CreatePreset
-          isOpen={isCreatingPreset}
-          onOpenChange={setIsCreatingPreset}
-        />
-      )}
-
       {isCreatingFile && (
         <CreateFile isOpen={isCreatingFile} onOpenChange={setIsCreatingFile} />
-      )}
-
-      {isCreatingCollection && (
-        <CreateCollection
-          isOpen={isCreatingCollection}
-          onOpenChange={setIsCreatingCollection}
-        />
       )}
 
       {isCreatingAssistant && (
@@ -148,10 +103,6 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
           isOpen={isCreatingAssistant}
           onOpenChange={setIsCreatingAssistant}
         />
-      )}
-
-      {isCreatingTool && (
-        <CreateTool isOpen={isCreatingTool} onOpenChange={setIsCreatingTool} />
       )}
 
       {isCreatingModel && (
