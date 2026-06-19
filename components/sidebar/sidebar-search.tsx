@@ -5,6 +5,7 @@
 
 import { ContentType } from "@/types"
 import { FC } from "react"
+import { useTranslation } from "react-i18next"
 import { Input } from "../ui/input"
 
 interface SidebarSearchProps {
@@ -18,9 +19,11 @@ export const SidebarSearch: FC<SidebarSearchProps> = ({
   searchTerm,
   setSearchTerm
 }) => {
+  const { t } = useTranslation()
+
   return (
     <Input
-      placeholder={`Search ${contentType}...`}
+      placeholder={t(`Search ${contentType}...`)}
       value={searchTerm}
       onChange={e => setSearchTerm(e.target.value)}
     />

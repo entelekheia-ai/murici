@@ -18,17 +18,16 @@ import { FC, useState, useEffect, useRef, useContext } from "react"
 import { Button } from "../ui/button"
 import { StateGraph } from "./state-graph"
 import { ChatbotUIContext } from "@/context/context"
-import { Effect } from "@/types/kernel-effect"
 import type { UnpackPayload, AgentAboutme } from "@/types/electron"
 import { KernelProxy } from "@/lib/kernel-proxy"
 
 export const AgentRightPanel: FC = () => {
-  const { setFlowState, setFlowEngine } = useContext(ChatbotUIContext)
+  const { setFlowState, setFlowEngine, flowState } = useContext(ChatbotUIContext)
 
-  const [activeTab, setActiveTab] = useState<"flow" | "agent">("flow")
+  const [activeTab, setActiveTab] = useState<"behavior" | "agent">("agent")
   const [engine, setEngine] = useState<any>(null)
   const [currentState, setCurrentState] = useState<string>("")
-  const [graphData, setGraphData] = useState<any>(null)
+  const [graphData, setGraphData] = useState<string | null>(null)
   const [visitedStates, setVisitedStates] = useState<Set<string>>(new Set())
   const [parseError, setParseError] = useState<string | null>(null)
   const [behaviorText, setBehaviorText] = useState(
@@ -41,25 +40,46 @@ export const AgentRightPanel: FC = () => {
 
 state setup
   goal "Collect user preferences"
+  guide "Ask clarifying questions"
   interact
+  on intent "skip" transition to preferences
   on intent "done" transition to end
   on offtopic transition to setup
 
+state preferences
+  goal "Confirm collected information"
+  interact
+  on intent "confirm" transition to end
+  on intent "restart" transition to welcome
+  on offtopic transition to preferences
+
 state end
   goal "Session complete"
+  guide "Thank you for using this agent"
   interact
   on intent "restart" transition to welcome`
   )
   const [agentMeta, setAgentMeta] = useState<AgentAboutme | null>(null)
-  const [agentFileName, setAgentFileName] = useState<string | null>(null)
   const [agentLoading, setAgentLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!flowState?.currentState || !engineRef.current) return
+    const newState = flowState.currentState
+    if (newState === currentState) return
+    visitedRef.current.add(newState)
+    setCurrentState(newState)
+    setVisitedStates(new Set(visitedRef.current))
+    const freshGraph = engineRef.current.get_graph()
+    if (freshGraph) setGraphData(freshGraph)
+  }, [flowState?.currentState])
 
   const engineRef = useRef<any>(null)
   const visitedRef = useRef<Set<string>>(new Set())
   const loadAgentBundleRef = useRef<(payload: UnpackPayload) => Promise<void>>(
     async () => {}
   )
+  const handleAgentFileRef = useRef<(file: File) => Promise<void>>(async () => {})
 
   const loadBehavior = async (eng: any, text: string) => {
     visitedRef.current = new Set()
@@ -86,11 +106,6 @@ state end
       console.log("get_graph() returned:", graph)
       setGraphData(graph)
 
-      const hasOfftopic =
-        graph?.transitions?.some(
-          (t: any) => t.from === state && t.label === "offtopic"
-        ) ?? false
-
       const goal = effects.find((e: any) => e.type === "goal")?.text
       const guide = effects.find((e: any) => e.type === "guide")?.text
 
@@ -99,8 +114,7 @@ state end
         goal,
         guide,
         teach: undefined,
-        validIntents: Array.from(eng.get_valid_intents() || []) as string[],
-        hasOfftopic
+        validIntents: Array.from(eng.get_valid_intents() || []) as string[]
       })
     } catch (e: any) {
       console.error("Error loading flow:", e)
@@ -113,11 +127,11 @@ state end
 
     loadAgentBundleRef.current = async (payload: UnpackPayload) => {
       setAgentMeta(payload.aboutme)
-      setAgentFileName(null)
+      if (mounted) setBehaviorText(payload.behaviorText)
       if (engineRef.current && mounted) {
         await loadBehavior(engineRef.current, payload.behaviorText)
       }
-      if (mounted) setActiveTab("flow")
+      if (mounted) setActiveTab("behavior")
     }
 
     ;(async () => {
@@ -144,8 +158,15 @@ state end
       }
     })()
 
+    const onAgentDrop = (e: Event) => {
+      const file = (e as CustomEvent<{ file: File }>).detail.file
+      handleAgentFileRef.current(file)
+    }
+    window.addEventListener("agent:drop", onAgentDrop)
+
     return () => {
       mounted = false
+      window.removeEventListener("agent:drop", onAgentDrop)
     }
   }, [])
 
@@ -159,11 +180,6 @@ state end
       const effects = await engine.send_intent(intent)
       const state = engine.get_current_state()
       const graph = engine.get_graph()
-      const hasOfftopic =
-        graph?.transitions?.some(
-          (t: any) => t.from === state && t.label === "offtopic"
-        ) ?? false
-
       visitedRef.current.add(state)
       setCurrentState(state)
       setVisitedStates(new Set(visitedRef.current))
@@ -177,8 +193,7 @@ state end
         goal,
         guide,
         teach: undefined,
-        validIntents: Array.from(engine.get_valid_intents() || []) as string[],
-        hasOfftopic
+        validIntents: Array.from(engine.get_valid_intents() || []) as string[]
       })
     } catch (err) {
       console.error("Error sending intent:", err)
@@ -188,7 +203,16 @@ state end
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    await handleAgentFile(file)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
 
+  const handleLoadAgentClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAgentFile = async (file: File) => {
+    if (!file.name.endsWith(".agent")) return
     setAgentLoading(true)
     try {
       const formData = new FormData()
@@ -197,28 +221,27 @@ state end
         method: "POST",
         body: formData
       })
-
       if (!res.ok) {
         const error = await res.json()
         setParseError(error.error || "Failed to unpack agent")
         return
       }
-
       const payload: UnpackPayload = await res.json()
       await loadAgentBundleRef.current(payload)
     } catch (err: any) {
       setParseError(err.message || "Failed to load agent")
     } finally {
       setAgentLoading(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
     }
   }
 
-  const handleLoadAgentClick = () => {
-    console.log("handleLoadAgentClick called, fileInputRef:", fileInputRef.current)
-    fileInputRef.current?.click()
+  handleAgentFileRef.current = handleAgentFile
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleAgentFile(file)
   }
 
   const validIntents = engine
@@ -226,28 +249,32 @@ state end
     : []
 
   return (
-    <div className="bg-background flex h-full w-[400px] flex-col border-l-2">
-      <div className="flex items-center justify-between border-b-2 p-4">
-        <h2 className="text-lg font-bold">.agent / .flow Viewer</h2>
+    <div
+      className="bg-background flex h-full w-[400px] flex-col border-l-2"
+      onDragOver={e => e.preventDefault()}
+      onDrop={handleDrop}
+    >
+      <div className="drag-region flex items-center justify-between border-b-2 p-4">
+        <h2 className="select-none text-lg font-bold">.agent / .behavior Viewer</h2>
       </div>
 
       <div className="flex-1 overflow-auto p-4">
         <div className="mb-4 flex space-x-2 border-b">
           <Button
-            variant={activeTab === "flow" ? "default" : "ghost"}
-            onClick={() => setActiveTab("flow")}
-          >
-            .flow
-          </Button>
-          <Button
             variant={activeTab === "agent" ? "default" : "ghost"}
             onClick={() => setActiveTab("agent")}
           >
-            .agent
+            Descrição
+          </Button>
+          <Button
+            variant={activeTab === "behavior" ? "default" : "ghost"}
+            onClick={() => setActiveTab("behavior")}
+          >
+            Comportamento
           </Button>
         </div>
 
-        {activeTab === "flow" && (
+        {activeTab === "behavior" && (
           <div className="flex flex-col space-y-4">
             <textarea
               className="bg-muted h-48 w-full rounded border p-2 font-mono text-sm"
@@ -257,7 +284,7 @@ state end
             />
 
             <Button size="sm" variant="outline" onClick={handleReload}>
-              Load / Reload Flow
+              Load / Reload Behavior
             </Button>
 
             {parseError && (
@@ -274,8 +301,7 @@ state end
                 <h3 className="mb-2 font-semibold">State Graph</h3>
                 <div className="border-primary/50 bg-background flex-1 overflow-auto rounded border border-dashed p-2">
                   <StateGraph
-                    graph={graphData}
-                    activeState={currentState}
+                    scxml={graphData}
                     visitedStates={visitedStates}
                   />
                 </div>
@@ -288,13 +314,10 @@ state end
                 {currentState || "—"}
               </div>
 
-              {(validIntents.length > 0 ||
-                graphData?.transitions?.some(
-                  (t: any) => t.from === currentState && t.label === "offtopic"
-                )) && (
+              {validIntents.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   <span className="mr-1 font-bold">Simulate:</span>
-                  {validIntents.map(intent => (
+                  {validIntents.filter(i => i !== "offtopic").map(intent => (
                     <Button
                       key={intent}
                       size="sm"
@@ -305,10 +328,7 @@ state end
                       {intent}
                     </Button>
                   ))}
-                  {graphData?.transitions?.some(
-                    (t: any) =>
-                      t.from === currentState && t.label === "offtopic"
-                  ) && (
+                  {validIntents.includes("offtopic") && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -380,8 +400,26 @@ state end
                 </div>
               </div>
             ) : (
-              <div className="bg-muted text-muted-foreground flex h-48 items-center justify-center rounded border p-2">
-                Clique em "Carregar .agent" para importar
+              <div className="bg-muted text-muted-foreground flex flex-col rounded border p-4 space-y-3">
+                <div className="text-sm">
+                  <p className="mb-3 text-center font-semibold">Estrutura de um .agent</p>
+                  <pre className="bg-background text-foreground overflow-auto rounded border p-2 text-xs font-mono mb-3">
+{`agent ExampleAgent
+  domain example.com
+  license MIT
+
+description
+  This agent helps users complete
+  a task step by step. It guides
+  through collection, confirmation
+  and completion.
+
+behavior agent.behavior`}
+                  </pre>
+                </div>
+                <div className="text-center pt-2">
+                  <p className="text-xs mb-2">Clique em "Carregar .agent" para importar um arquivo</p>
+                </div>
               </div>
             )}
 

@@ -16,10 +16,10 @@ import { ReactNode } from "react"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
-const APP_NAME = "Chatbot UI"
-const APP_DEFAULT_TITLE = "Chatbot UI"
-const APP_TITLE_TEMPLATE = "%s - Chatbot UI"
-const APP_DESCRIPTION = "Chatbot UI"
+const APP_NAME = "Murici"
+const APP_DEFAULT_TITLE = "Murici"
+const APP_TITLE_TEMPLATE = "%s - Murici"
+const APP_DESCRIPTION = "Murici"
 
 interface RootLayoutProps {
   children: ReactNode
@@ -78,7 +78,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers attribute="class" defaultTheme="dark">
+        <Providers attribute="class" defaultTheme="light" enableSystem>
           <TranslationsProvider
             namespaces={i18nNamespaces}
             locale={locale}

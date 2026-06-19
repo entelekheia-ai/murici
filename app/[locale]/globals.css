@@ -30,36 +30,36 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --background: 38 60% 97%;
+    --foreground: 24 15% 10%;
 
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 38 30% 93%;
+    --muted-foreground: 24 10% 45%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover: 38 60% 97%;
+    --popover-foreground: 24 15% 10%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card: 38 60% 97%;
+    --card-foreground: 24 15% 10%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
+    --border: 38 25% 85%;
+    --input: 38 25% 85%;
 
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 38 90% 48%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 38 30% 93%;
+    --secondary-foreground: 24 15% 10%;
 
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 38 30% 91%;
+    --accent-foreground: 24 15% 10%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --ring: 0 0% 63.9%;
+    --ring: 38 90% 48%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
@@ -101,4 +101,11 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
 }
