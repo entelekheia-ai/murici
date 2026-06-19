@@ -1,7 +1,16 @@
 {
   "name": "murici",
   "version": "2.0.0",
+  "description": "Murici is a lightweight, responsive desktop and web Chat UI designed for running deterministic state-machine agent behaviors.",
   "private": true,
+  "author": "Danilo Borges <contato@daniloborg.es>",
+  "homepage": "https://entelekheia.ai/",
+  "contributors": [
+    {
+      "name": "Danilo Borges",
+      "email": "contato@daniloborg.es"
+    }
+  ],
   "main": "electron-dist/main.js",
   "scripts": {
     "dev": "next dev",
@@ -24,6 +33,7 @@
     "@anthropic-ai/sdk": "^0.18.0",
     "@apidevtools/json-schema-ref-parser": "^11.1.0",
     "@azure/openai": "^1.0.0-beta.8",
+    "@dagrejs/dagre": "^3.0.0",
     "@dot-agent/compiler": "file:../dot-agent-spec/packages/compiler",
     "@dot-agent/kernel-dsl": "file:../dot-agent-spec/packages/kernel-dsl",
     "@dot-agent/sdk": "file:../dot-agent-spec/packages/sdk",
@@ -60,6 +70,7 @@
     "@tabler/icons-react": "^2.40.0",
     "@vercel/analytics": "^1.1.1",
     "@vercel/edge-config": "^0.4.1",
+    "@xyflow/react": "^12.11.0",
     "ai": "^2.2.31",
     "class-variance-authority": "^0.7.0",
     "cmdk": "^0.2.0",

@@ -33,6 +33,17 @@ const AgentRightPanel = dynamic(
   }
 )
 
+const KnowledgeRightPanel = dynamic(
+  () =>
+    import("../knowledge/knowledge-right-panel").then(mod => ({
+      default: mod.KnowledgeRightPanel
+    })),
+  {
+    ssr: false,
+    loading: () => <div className="bg-muted h-full w-[400px] animate-pulse" />
+  }
+)
+
 export const SIDEBAR_WIDTH = 280
 
 interface DashboardProps {
@@ -47,6 +58,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const searchParams = useSearchParams()
   const tabValue = searchParams.get("tab") || "chats"
   const isAgentOpen = searchParams.get("agent") === "true"
+  const isKnowledgeOpen = searchParams.get("knowledge") === "true"
 
   const { handleSelectDeviceFile } = useSelectFileHandler()
 
@@ -68,6 +80,16 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
     window.addEventListener("murici:sidebar-navigate", handler)
     return () => window.removeEventListener("murici:sidebar-navigate", handler)
   }, [pathname, router])
+
+  useEffect(() => {
+    const handler = () => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set("knowledge", "true")
+      router.replace(`${pathname}?${params.toString()}`)
+    }
+    window.addEventListener("murici:knowledge-panel-open", handler)
+    return () => window.removeEventListener("murici:knowledge-panel-open", handler)
+  }, [pathname, router, searchParams])
   const [isDragging, setIsDragging] = useState(false)
 
   const onFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -149,6 +171,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
           <div className="flex size-full overflow-hidden">
             <div className="flex-1 overflow-hidden">{children}</div>
             {isAgentOpen && <AgentRightPanel />}
+            {isKnowledgeOpen && <KnowledgeRightPanel />}
           </div>
         )}
 

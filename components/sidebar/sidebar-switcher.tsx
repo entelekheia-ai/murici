@@ -12,10 +12,11 @@ import {
   IconFile,
   IconLayoutGrid,
   IconMessage,
-  IconRobotFace
+  IconRobotFace,
+  IconBrain
 } from "@tabler/icons-react"
 import Image from "next/image"
-import { FC, useState } from "react"
+import { FC, useState, useContext } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { WithTooltip } from "../ui/with-tooltip"
 import { ProfileSettings } from "../utility/profile-settings"
@@ -25,6 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "../ui/popover"
+import { ChatbotUIContext } from "@/context/context"
 
 export const SIDEBAR_ICON_SIZE = 22
 
@@ -44,10 +46,12 @@ interface SidebarSwitcherProps {
 export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
   onContentTypeChange
 }) => {
+  const { knowledge } = useContext(ChatbotUIContext)
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const isAgentOpen = searchParams.get("agent") === "true"
+  const isKnowledgeOpen = searchParams.get("knowledge") === "true"
   const [menuOpen, setMenuOpen] = useState(false)
 
   const toggleAgentPanel = () => {
@@ -56,6 +60,16 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
       params.delete("agent")
     } else {
       params.set("agent", "true")
+    }
+    router.replace(`${pathname}?${params.toString()}`)
+  }
+
+  const toggleKnowledgePanel = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (isKnowledgeOpen) {
+      params.delete("knowledge")
+    } else {
+      params.set("knowledge", "true")
     }
     router.replace(`${pathname}?${params.toString()}`)
   }
@@ -93,6 +107,27 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
               className="opacity-80"
             />
           </Button>
+        }
+      />
+
+      {/* Artefatos — painel de knowledge */}
+      <WithTooltip
+        display={<div>Artefatos da conversa</div>}
+        trigger={
+          <div className="relative">
+            <Button
+              variant={isKnowledgeOpen ? "default" : "ghost"}
+              size="icon"
+              onClick={toggleKnowledgePanel}
+            >
+              <IconBrain size={SIDEBAR_ICON_SIZE} />
+            </Button>
+            {!isKnowledgeOpen && knowledge.length > 0 && (
+              <span className="bg-primary text-primary-foreground pointer-events-none absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full text-[10px] font-bold leading-none">
+                {knowledge.length > 9 ? "9+" : knowledge.length}
+              </span>
+            )}
+          </div>
         }
       />
 

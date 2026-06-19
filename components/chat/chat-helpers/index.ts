@@ -832,7 +832,12 @@ export const handleCreateMessages = async (
           for (const record of records) {
             await createKnowledgeRecord(record)
           }
-          setKnowledge(prev => [...prev, ...records])
+          setKnowledge(prev => {
+            if (prev.length === 0) {
+              window.dispatchEvent(new CustomEvent("murici:knowledge-panel-open"))
+            }
+            return [...prev, ...records]
+          })
           triggerEnrichment(records, modelData, setKnowledge)
         }
       } catch (err) {

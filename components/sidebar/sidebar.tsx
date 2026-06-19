@@ -13,6 +13,7 @@ import { FC, useContext } from "react"
 import { TabsContent } from "../ui/tabs"
 import { WorkspaceSettings } from "../workspace/workspace-settings"
 import { SidebarContent } from "./sidebar-content"
+import { KnowledgeSidebarSection } from "../knowledge/knowledge-sidebar-section"
 
 interface SidebarProps {
   contentType: ContentType
@@ -62,7 +63,12 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
         {(() => {
           switch (contentType) {
             case "chats":
-              return renderSidebarContent("chats", chats, chatFolders)
+              return (
+                <>
+                  <KnowledgeSidebarSection />
+                  {renderSidebarContent("chats", chats, chatFolders)}
+                </>
+              )
 
             case "files":
               return renderSidebarContent("files", files, filesFolders)
