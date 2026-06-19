@@ -9,7 +9,7 @@ import { Tables } from "@/types/database"
 import { ChatMessage, LLMID } from "."
 
 export interface ChatSettings {
-  model: LLMID
+  model: LLMID | string
   prompt: string
   temperature: number
   contextLength: number

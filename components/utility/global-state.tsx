@@ -14,7 +14,7 @@ import { getProfileByUserId } from "@/db/profile"
 import { getWorkspacesByUserId } from "@/db/workspaces"
 import {
   fetchHostedModels,
-  fetchOllamaModels,
+  fetchLocalModels,
   fetchOpenRouterModels
 } from "@/lib/models/fetch-models"
 import { Tables } from "@/types/database"
@@ -80,6 +80,18 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
     includeWorkspaceInstructions: true,
     embeddingsProvider: "openai"
   })
+  useEffect(() => {
+    const savedModel = localStorage.getItem("murici_selected_model")
+    const savedPrompt = localStorage.getItem("murici_system_prompt")
+    if (savedModel || savedPrompt) {
+      setChatSettings(prev => ({
+        ...prev,
+        ...(savedModel && { model: savedModel }),
+        ...(savedPrompt && { prompt: savedPrompt })
+      }))
+    }
+  }, [])
+
   const [selectedChat, setSelectedChat] = useState<Tables<"chats"> | null>(null)
   const [chatFileItems, setChatFileItems] = useState<Tables<"file_items">[]>([])
 
@@ -158,11 +170,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         }
       }
 
-      if (process.env.NEXT_PUBLIC_OLLAMA_URL) {
-        const localModels = await fetchOllamaModels()
-        if (!localModels) return
-        setAvailableLocalModels(localModels)
-      }
+      const localModels = await fetchLocalModels()
+      setAvailableLocalModels(localModels)
     })()
   }, [])
 

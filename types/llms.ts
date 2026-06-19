@@ -67,12 +67,14 @@ export type PerplexityLLMID =
   | "sonar-medium-online" // Sonar Medium Online
 
 export interface LLM {
-  modelId: LLMID
+  modelId: LLMID | string
   modelName: string
   provider: ModelProvider
   hostedId: string
   platformLink: string
   imageInput: boolean
+  baseUrl?: string
+  apiKey?: string
   pricing?: {
     currency: string
     unit: string

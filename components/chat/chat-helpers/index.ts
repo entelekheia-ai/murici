@@ -190,6 +190,7 @@ export const handleLocalChat = async (
   payload: ChatPayload,
   profile: Tables<"profiles">,
   chatSettings: ChatSettings,
+  modelData: LLM,
   tempAssistantMessage: ChatMessage,
   isRegeneration: boolean,
   newAbortController: AbortController,
@@ -201,20 +202,27 @@ export const handleLocalChat = async (
 ) => {
   const formattedMessages = await buildFinalMessages(payload, profile, [])
 
-  // Ollama API: https://github.com/jmorganca/ollama/blob/main/docs/api.md
+  const baseUrl =
+    modelData.baseUrl ??
+    process.env.NEXT_PUBLIC_OLLAMA_URL ??
+    "http://localhost:11434"
+
+  const headers: Record<string, string> = {}
+  if (modelData.apiKey) headers["Authorization"] = `Bearer ${modelData.apiKey}`
+
   const response = await fetchChatResponse(
-    process.env.NEXT_PUBLIC_OLLAMA_URL + "/api/chat",
+    `${baseUrl}/v1/chat/completions`,
     {
       model: chatSettings.model,
       messages: formattedMessages,
-      options: {
-        temperature: payload.chatSettings.temperature
-      }
+      temperature: payload.chatSettings.temperature,
+      stream: true
     },
     false,
     newAbortController,
     setIsGenerating,
-    setChatMessages
+    setChatMessages,
+    headers
   )
 
   return await processResponse(
@@ -257,7 +265,7 @@ export const handleFlowChat = async (
     onFinalMessages
   )
   const tools = [
-    buildTriggerIntentTool(flowState.validIntents, flowState.hasOfftopic)
+    buildTriggerIntentTool(flowState.validIntents)
   ]
 
   const provider =
@@ -500,12 +508,14 @@ export const fetchChatResponse = async (
   isHosted: boolean,
   controller: AbortController,
   setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>,
-  setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
+  setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
+  extraHeaders?: Record<string, string>
 ) => {
   const response = await fetch(url, {
     method: "POST",
     body: JSON.stringify(body),
-    signal: controller.signal
+    signal: controller.signal,
+    headers: { "Content-Type": "application/json", ...extraHeaders }
   })
 
   if (!response.ok) {
@@ -582,17 +592,22 @@ export const processResponse = async (
         try {
           contentToAdd = isHosted
             ? chunk
-            : // Ollama's streaming endpoint returns new-line separated JSON
-              // objects. A chunk may have more than one of these objects, so we
-              // need to split the chunk by new-lines and handle each one
-              // separately.
+            : // OpenAI-compatible SSE: each chunk may contain multiple
+              // "data: {...}" lines. Extract delta.content from each.
               chunk
-                .trimEnd()
                 .split("\n")
-                .reduce(
-                  (acc, line) => acc + JSON.parse(line).message.content,
-                  ""
+                .filter(
+                  line =>
+                    line.startsWith("data: ") && line !== "data: [DONE]"
                 )
+                .reduce((acc, line) => {
+                  try {
+                    const json = JSON.parse(line.slice(6))
+                    return acc + (json.choices?.[0]?.delta?.content ?? "")
+                  } catch {
+                    return acc
+                  }
+                }, "")
           rawAccum += contentToAdd
         } catch (error) {
           console.error("Error parsing JSON:", error)

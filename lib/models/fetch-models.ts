@@ -6,7 +6,7 @@
  */
 
 import { Tables } from "@/types/database"
-import { LLM, LLMID, OpenRouterLLM } from "@/types"
+import { LLM, OpenRouterLLM } from "@/types"
 import { toast } from "sonner"
 import { LLM_LIST_MAP } from "./llm/llm-list"
 
@@ -63,30 +63,13 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
   }
 }
 
-export const fetchOllamaModels = async () => {
+export const fetchLocalModels = async (): Promise<LLM[]> => {
   try {
-    const response = await fetch(
-      process.env.NEXT_PUBLIC_OLLAMA_URL + "/api/tags"
-    )
-
-    if (!response.ok) {
-      throw new Error(`Ollama server is not responding.`)
-    }
-
-    const data = await response.json()
-
-    const localModels: LLM[] = data.models.map((model: any) => ({
-      modelId: model.name as LLMID,
-      modelName: model.name,
-      provider: "ollama",
-      hostedId: model.name,
-      platformLink: "https://ollama.ai/library",
-      imageInput: false
-    }))
-
-    return localModels
-  } catch (error) {
-    console.warn("Error fetching Ollama models: " + error)
+    const response = await fetch("/api/models/discover")
+    if (!response.ok) return []
+    return await response.json()
+  } catch {
+    return []
   }
 }
 
@@ -106,7 +89,7 @@ export const fetchOpenRouterModels = async () => {
         name: string
         context_length: number
       }): OpenRouterLLM => ({
-        modelId: model.id as LLMID,
+        modelId: model.id,
         modelName: model.id,
         provider: "openrouter",
         hostedId: model.name,

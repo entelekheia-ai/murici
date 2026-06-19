@@ -8,7 +8,7 @@ import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLMID, ModelProvider } from "@/types"
 import { IconAdjustmentsHorizontal } from "@tabler/icons-react"
-import { FC, useContext, useEffect, useRef } from "react"
+import { FC, useContext, useEffect, useRef, useState } from "react"
 import { Button } from "../ui/button"
 import { ChatSettingsForm } from "../ui/chat-settings-form"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
@@ -28,26 +28,26 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   } = useContext(ChatbotUIContext)
 
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(false)
 
   const handleClick = () => {
-    if (buttonRef.current) {
-      buttonRef.current.click()
-    }
+    setOpen(prev => !prev)
   }
 
   useEffect(() => {
-    if (!chatSettings) return
-
-    setChatSettings({
-      ...chatSettings,
-      temperature: Math.min(
-        chatSettings.temperature,
-        CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_TEMPERATURE || 1
-      ),
-      contextLength: Math.min(
-        chatSettings.contextLength,
-        CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_CONTEXT_LENGTH || 4096
-      )
+    setChatSettings(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        temperature: Math.min(
+          prev.temperature,
+          CHAT_SETTING_LIMITS[prev.model]?.MAX_TEMPERATURE || 1
+        ),
+        contextLength: Math.min(
+          prev.contextLength,
+          CHAT_SETTING_LIMITS[prev.model]?.MAX_CONTEXT_LENGTH || 4096
+        )
+      }
     })
   }, [chatSettings?.model])
 
@@ -70,12 +70,13 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   const fullModel = allModels.find(llm => llm.modelId === chatSettings.model)
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger>
         <Button
           ref={buttonRef}
           className="flex items-center space-x-2"
           variant="ghost"
+          onClick={() => setOpen(prev => !prev)}
         >
           <div className="max-w-[120px] truncate text-lg sm:max-w-[300px] lg:max-w-[500px]">
             {fullModel?.modelName || chatSettings.model}
@@ -92,6 +93,7 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
         <ChatSettingsForm
           chatSettings={chatSettings}
           onChangeChatSettings={setChatSettings}
+          onModelSelected={() => setOpen(false)}
         />
       </PopoverContent>
     </Popover>

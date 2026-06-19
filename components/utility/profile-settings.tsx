@@ -36,6 +36,35 @@ import { TextareaAutosize } from "../ui/textarea-autosize"
 import { WithTooltip } from "../ui/with-tooltip"
 import { ThemeSwitcher } from "./theme-switcher"
 
+const LOCALE_PROMPTS: Record<string, string> = {
+  en: "You are a helpful AI assistant.",
+  "pt-BR": "Você é um assistente de IA útil.",
+  pt: "Você é um assistente de IA útil.",
+  es: "Eres un asistente de IA útil.",
+  fr: "Tu es un assistant IA utile.",
+  de: "Du bist ein hilfreicher KI-Assistent.",
+  it: "Sei un assistente IA utile.",
+  ja: "あなたは役立つAIアシスタントです。",
+  ko: "당신은 도움이 되는 AI 어시스턴트입니다.",
+  zh: "你是一个有用的AI助手。",
+  ru: "Вы полезный ИИ-помощник.",
+  ar: "أنت مساعد ذكاء اصطناعي مفيد.",
+  sv: "Du är en hjälpsam AI-assistent.",
+  id: "Anda adalah asisten AI yang membantu.",
+  vi: "Bạn là trợ lý AI hữu ích.",
+  he: "אתה עוזר AI מועיל."
+}
+
+function defaultLocalePrompt(): string {
+  if (typeof navigator === "undefined") return LOCALE_PROMPTS.en
+  const lang = navigator.language
+  return (
+    LOCALE_PROMPTS[lang] ??
+    LOCALE_PROMPTS[lang.split("-")[0]] ??
+    LOCALE_PROMPTS.en
+  )
+}
+
 interface ProfileSettingsProps {}
 
 export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
@@ -45,7 +74,9 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     envKeyMap,
     setAvailableHostedModels,
     setAvailableOpenRouterModels,
-    availableOpenRouterModels
+    availableOpenRouterModels,
+    chatSettings,
+    setChatSettings
   } = useContext(ChatbotUIContext)
 
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -60,6 +91,15 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
   const [profileInstructions, setProfileInstructions] = useState(
     profile?.profile_context || ""
   )
+
+  const [systemPrompt, setSystemPrompt] = useState(() => {
+    if (chatSettings?.prompt) return chatSettings.prompt
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("murici_system_prompt")
+      if (saved) return saved
+    }
+    return defaultLocalePrompt()
+  })
 
   const [useAzureOpenai, setUseAzureOpenai] = useState(
     profile?.use_azure_openai
@@ -142,6 +182,8 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     })
 
     setProfile(updatedProfile)
+    if (chatSettings) setChatSettings({ ...chatSettings, prompt: systemPrompt })
+    localStorage.setItem("murici_system_prompt", systemPrompt)
 
     toast.success("Profile updated!")
 
@@ -292,6 +334,19 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
                 <LimitDisplay
                   used={profileInstructions.length}
                   limit={PROFILE_CONTEXT_MAX}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">System Prompt</Label>
+
+                <TextareaAutosize
+                  value={systemPrompt}
+                  onValueChange={setSystemPrompt}
+                  placeholder={defaultLocalePrompt()}
+                  minRows={3}
+                  maxRows={6}
+                  className="bg-background border-input border-2"
                 />
               </div>
             </TabsContent>
@@ -598,7 +653,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
             <WithTooltip
               display={
                 <div>
-                  Download Chatbot UI 1.0 data as JSON. Import coming soon!
+                  Download Murici data as JSON. Import coming soon!
                 </div>
               }
               trigger={

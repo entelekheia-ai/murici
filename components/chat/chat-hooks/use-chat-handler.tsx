@@ -292,7 +292,7 @@ export const useChatHandler = () => {
         flowEngine &&
         flowState &&
         flowState.validIntents.length > 0 &&
-        modelData!.provider !== "ollama"
+        modelData!.provider !== "local"
       ) {
         // Flow-controlled turn: non-streaming with tool calling
         const result = await handleFlowChat(
@@ -329,11 +329,12 @@ export const useChatHandler = () => {
         flowIntentName = result.intentName
         flowToolExchange = result.toolExchange
       } else {
-        if (modelData!.provider === "ollama") {
+        if (modelData!.provider === "local") {
           generatedText = await handleLocalChat(
             payload,
             profile!,
             chatSettings!,
+            modelData!,
             tempAssistantChatMessage,
             isRegeneration,
             newAbortController,

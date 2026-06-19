@@ -12,8 +12,7 @@ import {
   IconFile,
   IconLayoutGrid,
   IconMessage,
-  IconRobotFace,
-  IconSparkles
+  IconRobotFace
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { FC, useState } from "react"
@@ -34,7 +33,6 @@ const MENU_ITEMS: {
   icon: React.ElementType
   label: string
 }[] = [
-  { type: "models", icon: IconSparkles, label: "Models" },
   { type: "files", icon: IconFile, label: "Files" },
   { type: "assistants", icon: IconRobotFace, label: "Assistants" }
 ]

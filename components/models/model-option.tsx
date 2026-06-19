@@ -19,7 +19,7 @@ export const ModelOption: FC<ModelOptionProps> = ({ model, onSelect }) => {
     <WithTooltip
       display={
         <div>
-          {model.provider !== "ollama" && model.pricing && (
+          {model.provider !== "local" && model.pricing && (
             <div className="space-y-1 text-sm">
               <div>
                 <span className="font-semibold">Input Cost:</span>{" "}

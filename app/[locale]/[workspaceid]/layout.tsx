@@ -91,6 +91,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
 
     const defaultModel =
       searchParams.get("model") ||
+      localStorage.getItem("murici_selected_model") ||
       workspace?.default_model ||
       modelData.models[0]?.model_id ||
       ""

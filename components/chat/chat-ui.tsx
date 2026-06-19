@@ -106,8 +106,9 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     }
 
     setSelectedChat(chat)
+    const savedModel = localStorage.getItem("murici_selected_model")
     setChatSettings({
-      model: chat.model as LLMID,
+      model: (savedModel || chat.model) as LLMID | string,
       prompt: chat.prompt,
       temperature: chat.temperature,
       contextLength: chat.context_length,

@@ -30,13 +30,15 @@ interface ChatSettingsFormProps {
   onChangeChatSettings: (value: ChatSettings) => void
   useAdvancedDropdown?: boolean
   showTooltip?: boolean
+  onModelSelected?: () => void
 }
 
 export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
   chatSettings,
   onChangeChatSettings,
   useAdvancedDropdown = true,
-  showTooltip = true
+  showTooltip = true,
+  onModelSelected
 }) => {
   const { profile, models } = useContext(ChatbotUIContext)
 
@@ -52,21 +54,7 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
           onSelectModel={model => {
             onChangeChatSettings({ ...chatSettings, model })
           }}
-        />
-      </div>
-
-      <div className="space-y-1">
-        <Label>Prompt</Label>
-
-        <TextareaAutosize
-          className="bg-background border-input border-2"
-          placeholder="You are a helpful AI assistant."
-          onValueChange={prompt => {
-            onChangeChatSettings({ ...chatSettings, prompt })
-          }}
-          value={chatSettings.prompt}
-          minRows={3}
-          maxRows={6}
+          onClose={onModelSelected}
         />
       </div>
 

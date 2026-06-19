@@ -17,7 +17,7 @@ import { ContentType } from "@/types"
 import { IconChevronCompactRight } from "@tabler/icons-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import dynamic from "next/dynamic"
-import { FC, useState } from "react"
+import { FC, useEffect, useState } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { CommandK } from "../utility/command-k"
 
@@ -33,7 +33,7 @@ const AgentRightPanel = dynamic(
   }
 )
 
-export const SIDEBAR_WIDTH = 350
+export const SIDEBAR_WIDTH = 280
 
 interface DashboardProps {
   children: React.ReactNode
@@ -56,15 +56,29 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const [showSidebar, setShowSidebar] = useState(
     localStorage.getItem("showSidebar") === "true"
   )
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent<string>).detail as ContentType
+      setContentType(tab)
+      setShowSidebar(true)
+      localStorage.setItem("showSidebar", "true")
+      router.replace(`${pathname}?tab=${tab}`)
+    }
+    window.addEventListener("murici:sidebar-navigate", handler)
+    return () => window.removeEventListener("murici:sidebar-navigate", handler)
+  }, [pathname, router])
   const [isDragging, setIsDragging] = useState(false)
 
   const onFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
 
-    const files = event.dataTransfer.files
-    const file = files[0]
-
-    handleSelectDeviceFile(file)
+    const file = event.dataTransfer.files[0]
+    if (file?.name.endsWith(".agent")) {
+      window.dispatchEvent(new CustomEvent("agent:drop", { detail: { file } }))
+    } else {
+      handleSelectDeviceFile(file)
+    }
 
     setIsDragging(false)
   }
@@ -112,9 +126,10 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
               router.replace(`${pathname}?tab=${tabValue}`)
             }}
           >
-            <SidebarSwitcher onContentTypeChange={setContentType} />
-
-            <Sidebar contentType={contentType} showSidebar={showSidebar} />
+            <div className="flex h-full w-full flex-col">
+              <Sidebar contentType={contentType} showSidebar={showSidebar} />
+              <SidebarSwitcher onContentTypeChange={setContentType} />
+            </div>
           </Tabs>
         )}
       </div>
