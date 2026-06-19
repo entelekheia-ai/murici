@@ -16,6 +16,7 @@ import {
   WorkspaceImage
 } from "@/types"
 import { FlowEvent, FlowTurnDebug } from "@/types"
+import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { Dispatch, SetStateAction, createContext } from "react"
@@ -156,6 +157,10 @@ interface ChatbotUIContext {
   // FLOW EVENT LOG
   flowEvents: FlowEvent[]
   addFlowEvent: (event: FlowEvent) => void
+
+  // KNOWLEDGE STORE
+  knowledge: KnowledgeRecord[]
+  setKnowledge: Dispatch<SetStateAction<KnowledgeRecord[]>>
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({
@@ -279,5 +284,9 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
 
   // FLOW EVENT LOG
   flowEvents: [],
-  addFlowEvent: () => {}
+  addFlowEvent: () => {},
+
+  // KNOWLEDGE STORE
+  knowledge: [],
+  setKnowledge: () => {}
 })

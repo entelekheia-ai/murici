@@ -34,6 +34,10 @@ import {
   LLM,
   MessageImage
 } from "@/types"
+import { KnowledgeRecord } from "@/types/knowledge"
+import { createKnowledgeRecord } from "@/lib/local-db/knowledge"
+import { buildKnowledgeRecords } from "@/lib/knowledge/extract"
+import { triggerEnrichment } from "@/lib/knowledge/enrich"
 import React from "react"
 import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
@@ -703,7 +707,8 @@ export const handleCreateMessages = async (
     React.SetStateAction<Tables<"file_items">[]>
   >,
   setChatImages: React.Dispatch<React.SetStateAction<MessageImage[]>>,
-  selectedAssistant: Tables<"assistants"> | null
+  selectedAssistant: Tables<"assistants"> | null,
+  setKnowledge?: React.Dispatch<React.SetStateAction<KnowledgeRecord[]>>
 ) => {
   const finalUserMessage: TablesInsert<"messages"> = {
     chat_id: currentChat.id,
@@ -811,5 +816,28 @@ export const handleCreateMessages = async (
     })
 
     setChatMessages(finalChatMessages)
+
+    if (setKnowledge) {
+      try {
+        const records = buildKnowledgeRecords(
+          {
+            id: createdMessages[1].id,
+            content: generatedText,
+            chat_id: currentChat.id
+          },
+          currentChat.id,
+          createdMessages[0].id
+        )
+        if (records.length > 0) {
+          for (const record of records) {
+            await createKnowledgeRecord(record)
+          }
+          setKnowledge(prev => [...prev, ...records])
+          triggerEnrichment(records, modelData, setKnowledge)
+        }
+      } catch (err) {
+        console.error("[knowledge] extraction/save failed:", err)
+      }
+    }
   }
 }

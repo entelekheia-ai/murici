@@ -10,6 +10,7 @@ import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { getChatById } from "@/db/chats"
 import { getMessagesByChatId } from "@/db/messages"
+import { getKnowledgeByConversationId } from "@/lib/local-db/knowledge"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLMID } from "@/types"
 import { useParams } from "next/navigation"
@@ -39,7 +40,8 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     setChatFileItems,
     setChatFiles,
     setShowFilesDisplay,
-    setUseRetrieval
+    setUseRetrieval,
+    setKnowledge
   } = useContext(ChatbotUIContext)
 
   const { handleNewChat, handleFocusChatInput } = useChatHandler()
@@ -78,7 +80,8 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
   }, [])
 
   const fetchMessages = async () => {
-    const fetchedMessages = await getMessagesByChatId(params.chatid as string)
+    const chatId = params.chatid as string
+    const fetchedMessages = await getMessagesByChatId(chatId)
     setChatImages([])
     setChatFileItems([])
     setChatFiles([])
@@ -89,6 +92,9 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     }))
 
     setChatMessages(fetchedChatMessages)
+
+    const knowledgeNodes = await getKnowledgeByConversationId(chatId)
+    setKnowledge(knowledgeNodes)
   }
 
   const fetchChat = async () => {

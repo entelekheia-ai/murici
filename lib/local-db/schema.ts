@@ -15,6 +15,9 @@
  */
 
 import { openDB, DBSchema, IDBPDatabase } from "idb"
+import { KnowledgeRecord } from "@/types/knowledge"
+
+export type { KnowledgeRecord }
 
 export interface ConversationRecord {
   id: string
@@ -71,6 +74,15 @@ interface LocalDB extends DBSchema {
     key: string
     value: SettingRecord
   }
+  knowledge: {
+    key: string
+    value: KnowledgeRecord
+    indexes: {
+      by_conversation: string
+      by_created: string
+      by_type: string
+    }
+  }
 }
 
 let dbPromise: Promise<IDBPDatabase<LocalDB>> | null = null
@@ -80,17 +92,27 @@ export function getDB(): Promise<IDBPDatabase<LocalDB>> {
     throw new Error("IndexedDB is only available in the browser")
   }
   if (!dbPromise) {
-    dbPromise = openDB<LocalDB>("entelekheia", 1, {
-      upgrade(db) {
-        const conv = db.createObjectStore("conversations", { keyPath: "id" })
-        conv.createIndex("by_created", "createdAt")
+    dbPromise = openDB<LocalDB>("entelekheia", 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const conv = db.createObjectStore("conversations", { keyPath: "id" })
+          conv.createIndex("by_created", "createdAt")
 
-        const msg = db.createObjectStore("messages", { keyPath: "id" })
-        msg.createIndex("by_conversation", "conversationId")
-        msg.createIndex("by_sequence", ["conversationId", "sequenceNumber"])
+          const msg = db.createObjectStore("messages", { keyPath: "id" })
+          msg.createIndex("by_conversation", "conversationId")
+          msg.createIndex("by_sequence", ["conversationId", "sequenceNumber"])
 
-        db.createObjectStore("customModels", { keyPath: "id" })
-        db.createObjectStore("settings", { keyPath: "key" })
+          db.createObjectStore("customModels", { keyPath: "id" })
+          db.createObjectStore("settings", { keyPath: "key" })
+        }
+        if (oldVersion < 2) {
+          const knowledge = db.createObjectStore("knowledge", {
+            keyPath: "id"
+          })
+          knowledge.createIndex("by_conversation", "originConversationId")
+          knowledge.createIndex("by_created", "createdAt")
+          knowledge.createIndex("by_type", "nodeType")
+        }
       }
     })
   }

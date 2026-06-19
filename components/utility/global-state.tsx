@@ -29,6 +29,7 @@ import {
   OpenRouterLLM,
   WorkspaceImage
 } from "@/types"
+import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { FC, useCallback, useEffect, useState } from "react"
@@ -141,6 +142,9 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
   // THINKING LOG STORE
   const [thinkingLog, setThinkingLog] = useState<Record<number, string>>({})
+
+  // KNOWLEDGE STORE
+  const [knowledge, setKnowledge] = useState<KnowledgeRecord[]>([])
 
   // FLOW EVENT LOG
   const [flowEvents, setFlowEvents] = useState<FlowEvent[]>([])
@@ -308,7 +312,11 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
         // FLOW EVENT LOG
         flowEvents,
-        addFlowEvent
+        addFlowEvent,
+
+        // KNOWLEDGE STORE
+        knowledge,
+        setKnowledge
       }}
     >
       {children}
