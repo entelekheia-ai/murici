@@ -25,10 +25,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     node: process.versions.node,
     chrome: process.versions.chrome
   },
-  onOpenAgentFile: (
-    cb: (payload: UnpackPayload) => void
-  ) => {
-    ipcRenderer.on("open-agent-file", (_e, payload) => cb(payload))
+  onOpenAgentFile: (cb: (payload: UnpackPayload) => void) => {
+    ipcRenderer.on("open-agent-file", (_event, payload) => cb(payload))
   },
   kernel: {
     load: (text: string): Promise<KernelState> =>

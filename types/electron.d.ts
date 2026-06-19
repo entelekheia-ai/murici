@@ -31,9 +31,8 @@ export interface UnpackPayload {
 
 export interface KernelState {
   currentState: string
-  graph: any
+  graph: string | null
   validIntents: string[]
-  hasOfftopic: boolean
   effects: import("./kernel-effect").Effect[]
 }
 

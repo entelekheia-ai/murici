@@ -16,18 +16,12 @@
 
 import { app, BrowserWindow, shell, ipcMain } from "electron"
 import * as path from "path"
-import { fileURLToPath } from "url"
-import { startNextServer, stopNextServer } from "./next-server.js"
-import { setupAutoUpdater } from "./updater.js"
-import { unpack } from "@dot-agent/cli"
-import { readFile, rm, mkdtemp } from "fs/promises"
-import { tmpdir } from "os"
-import { join } from "path"
+import { startNextServer, stopNextServer } from "./next-server"
+import { setupAutoUpdater } from "./updater"
+import { readFile } from "fs/promises"
+import type { AgentSession, AgentBundle } from "@dot-agent/sdk"
 import type { UnpackPayload, KernelState } from "../types/electron"
 import type { Effect } from "../types/kernel-effect"
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 const isDev =
   process.env.NODE_ENV === "development" ||
@@ -38,71 +32,68 @@ let mainWindow: BrowserWindow | null = null
 let serverPort = 3000
 let fileToOpen: string | null = null
 
-let kernel: any = null
-let kernelInitialized = false
-
-async function getKernel(): Promise<any> {
-  if (!kernelInitialized) {
-    const kernelModule = await import("@dot-agent/kernel-dsl") as any
-    await kernelModule.init()
-    kernelInitialized = true
-  }
-  if (!kernel) {
-    const kernelModule = await import("@dot-agent/kernel-dsl") as any
-    kernel = new kernelModule.AgentDSLKernel()
-  }
-  return kernel
+// SDK is ESM-only; use new Function to force a real ESM import() at runtime,
+// bypassing TypeScript's compilation of dynamic import() to require() in CJS output.
+let sdk: typeof import("@dot-agent/sdk") | null = null
+async function getSDK() {
+  if (!sdk) sdk = await (new Function("s", "return import(s)") as (s: string) => Promise<typeof import("@dot-agent/sdk")>)("@dot-agent/sdk")
+  return sdk
 }
 
-function buildKernelState(eng: any, effects: Effect[]): KernelState {
-  const state = eng.get_current_state()
-  const graph = eng.get_graph()
-  const validIntents = Array.from(eng.get_valid_intents() || []) as string[]
-  const hasOfftopic =
-    graph?.transitions?.some(
-      (t: any) => t.from === state && t.label === "offtopic"
-    ) ?? false
+const EFFECT_TYPES = [
+  "goal", "guide", "teach", "request_interact", "transition",
+  "run_tool", "run_script", "run_subagent", "set_memory",
+  "apply_css", "remove_css", "apply_html", "remove_html",
+  "apply_video", "remove_video", "parse_error"
+]
 
-  return {
-    currentState: state,
-    graph,
-    validIntents,
-    hasOfftopic,
-    effects
-  }
+interface AgentEntry {
+  session: AgentSession
+  sink: { current: Effect[] }
 }
 
-async function resolveMerges(
+let agentEntry: AgentEntry | null = null
+
+function wireHandlers(session: AgentSession): { current: Effect[] } {
+  const sink: { current: Effect[] } = { current: [] }
+  for (const type of EFFECT_TYPES) {
+    if (type === "set_memory") {
+      session.registerHandler(type, (e: any) => {
+        sink.current.push(e as Effect)
+        session.injectMemory(e.domain, e.key, String(e.value ?? ""))
+      })
+    } else {
+      session.registerHandler(type, (e) => { sink.current.push(e as Effect) })
+    }
+  }
+  return sink
+}
+
+function buildKernelState(session: AgentSession, effects: Effect[]): KernelState {
+  const state = session.getState()
+  const scxml = session.getGraph()
+  const graph = scxml && scxml.length > 0 ? scxml : null
+  const validIntents = Array.from(session.getValidIntents() || []) as string[]
+  return { currentState: state, graph, validIntents, effects }
+}
+
+function resolveMerges(
   behaviorContent: string,
-  outDir: string
-): Promise<string> {
+  behaviors: Array<{ path: string; content: string }>
+): string {
+  if (behaviors.length === 0) return behaviorContent
+  const behaviorMap = new Map(behaviors.map(b => [b.path, b.content]))
   const lines = behaviorContent.split("\n")
   const result: string[] = []
   let inPreamble = true
-
   for (const line of lines) {
     const trimmed = line.trim()
-
-    // Stop preamble when we hit first state declaration
-    if (trimmed.startsWith("state ")) {
-      inPreamble = false
-    }
-
+    if (trimmed.startsWith("state ")) inPreamble = false
     if (inPreamble && trimmed.startsWith('merge "')) {
-      // Extract merge path: merge "behaviors/planning.flow" -> behaviors/planning.flow
       const match = trimmed.match(/^merge\s+"([^"]+)"/)
       if (match) {
-        const mergePath = match[1]
-        const fullPath = join(outDir, mergePath)
-
-        try {
-          const mergedContent = await readFile(fullPath, "utf-8")
-          // Inline the merged content
-          result.push(mergedContent)
-        } catch (e) {
-          console.error(`Failed to read merge file: ${mergePath}`, e)
-          result.push(line)
-        }
+        const merged = behaviorMap.get(match[1])
+        result.push(merged ?? line)
       } else {
         result.push(line)
       }
@@ -110,51 +101,26 @@ async function resolveMerges(
       result.push(line)
     }
   }
-
   return result.join("\n")
 }
 
 async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
-  const tmpDir = await mkdtemp(join(tmpdir(), "agent-"))
-
-  try {
-    const unpackResult = await unpack({
-      file: filePath,
-      out: join(tmpDir, "unpacked"),
-      force: true
-    })
-
-    // Read agent.behavior
-    const behaviorPath = join(tmpDir, "unpacked", "agent.behavior")
-    let behaviorContent = await readFile(behaviorPath, "utf-8")
-
-    // Resolve merge directives
-    behaviorContent = await resolveMerges(
-      behaviorContent,
-      join(tmpDir, "unpacked")
-    )
-
-    // Extract aboutme from unpack result
-    const aboutme = unpackResult.aboutme
-    return {
-      aboutme: {
-        id: aboutme.id,
-        name: aboutme.name,
-        version: aboutme.version,
-        domain: aboutme.domain,
-        description: aboutme.description,
-        persona: aboutme.persona,
-        license: aboutme.license
-      },
-      behaviorText: behaviorContent
-    }
-  } finally {
-    // Clean up temp files
-    try {
-      await rm(tmpDir, { recursive: true, force: true })
-    } catch (e) {
-      console.error("Failed to clean up temp files:", e)
-    }
+  const { loadAgent } = await getSDK()
+  const bytes = await readFile(filePath)
+  const bundle = await loadAgent(bytes)
+  const behaviorText = resolveMerges(bundle.files.behavior, bundle.files.behaviors)
+  const am = bundle.aboutme
+  return {
+    aboutme: {
+      id: am.id,
+      name: am.name,
+      version: am.version,
+      domain: am.domain,
+      description: am.description,
+      persona: am.persona,
+      license: am.license
+    },
+    behaviorText
   }
 }
 
@@ -164,12 +130,8 @@ app.on("open-file", (event, filePath) => {
   if (filePath.endsWith(".agent")) {
     if (mainWindow) {
       resolveAgentFile(filePath)
-        .then(payload => {
-          mainWindow!.webContents.send("open-agent-file", payload)
-        })
-        .catch(err => {
-          console.error("Failed to resolve agent file:", err)
-        })
+        .then(payload => { mainWindow!.webContents.send("open-agent-file", payload) })
+        .catch(err => { console.error("Failed to resolve agent file:", err) })
     } else {
       fileToOpen = filePath
     }
@@ -179,9 +141,7 @@ app.on("open-file", (event, filePath) => {
 // Handle file open from command line (Windows/Linux)
 if (process.platform !== "darwin" && process.argv.length >= 2) {
   const filePath = process.argv[process.argv.length - 1]
-  if (filePath.endsWith(".agent")) {
-    fileToOpen = filePath
-  }
+  if (filePath.endsWith(".agent")) fileToOpen = filePath
 }
 
 async function createWindow() {
@@ -190,7 +150,10 @@ async function createWindow() {
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    titleBarStyle: "default",
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
+    ...(process.platform === "darwin" && {
+      trafficLightPosition: { x: 12, y: 18 }
+    }),
     show: false,
     icon: path.join(__dirname, "../icon/Murici@2x.png"),
     webPreferences: {
@@ -205,38 +168,41 @@ async function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow!.show()
-
     if (fileToOpen) {
       resolveAgentFile(fileToOpen)
-        .then(payload => {
-          mainWindow!.webContents.send("open-agent-file", payload)
-        })
-        .catch(err => {
-          console.error("Failed to resolve agent file:", err)
-        })
+        .then(payload => { mainWindow!.webContents.send("open-agent-file", payload) })
+        .catch(err => { console.error("Failed to resolve agent file:", err) })
       fileToOpen = null
     }
   })
 
-  // Open external links in default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: "deny" }
   })
 
-  mainWindow.on("closed", () => {
-    mainWindow = null
-  })
+  mainWindow.on("closed", () => { mainWindow = null })
 }
 
 app.whenReady().then(async () => {
-  // Setup IPC handlers for kernel
   ipcMain.handle("kernel:load", async (_, text: string) => {
     try {
-      kernel = null
-      const k = await getKernel()
-      const effects = k.load_behavior(text)
-      return buildKernelState(k, effects)
+      agentEntry?.session.dispose()
+      agentEntry = null
+
+      const { AgentSession } = await getSDK()
+      const bundle = {
+        id: "electron-session",
+        aboutme: {} as any,
+        files: { description: "", behavior: text, guides: [], knowledge: [], behaviors: [] }
+      } as AgentBundle
+
+      const session = await AgentSession.create(bundle)
+      const sink = wireHandlers(session)
+      sink.current = []
+      session.start()
+      agentEntry = { session, sink }
+      return buildKernelState(session, sink.current)
     } catch (err: any) {
       throw new Error(err?.message || "Failed to load behavior")
     }
@@ -244,9 +210,10 @@ app.whenReady().then(async () => {
 
   ipcMain.handle("kernel:intent", async (_, intent: string) => {
     try {
-      const k = await getKernel()
-      const effects = k.send_intent(intent)
-      return buildKernelState(k, effects)
+      if (!agentEntry) throw new Error("No active agent session")
+      agentEntry.sink.current = []
+      agentEntry.session.sendIntent(intent)
+      return buildKernelState(agentEntry.session, agentEntry.sink.current)
     } catch (err: any) {
       throw new Error(err?.message || "Failed to send intent")
     }
@@ -254,9 +221,10 @@ app.whenReady().then(async () => {
 
   ipcMain.handle("kernel:offtopic", async () => {
     try {
-      const k = await getKernel()
-      const effects = k.send_offtopic()
-      return buildKernelState(k, effects)
+      if (!agentEntry) throw new Error("No active agent session")
+      agentEntry.sink.current = []
+      agentEntry.session.sendOfftopic()
+      return buildKernelState(agentEntry.session, agentEntry.sink.current)
     } catch (err: any) {
       throw new Error(err?.message || "Failed to send offtopic")
     }
@@ -264,28 +232,21 @@ app.whenReady().then(async () => {
 
   ipcMain.handle("kernel:tick", async () => {
     try {
-      const k = await getKernel()
-      const effects = k.tick_prompt()
-      return { effects }
+      if (!agentEntry) throw new Error("No active agent session")
+      agentEntry.sink.current = []
+      agentEntry.session.tickPrompt()
+      return { effects: agentEntry.sink.current }
     } catch (err: any) {
       throw new Error(err?.message || "Failed to tick prompt")
     }
   })
 
-  if (!isDev) {
-    serverPort = await startNextServer()
-  }
-
+  if (!isDev) serverPort = await startNextServer()
   await createWindow()
-
-  if (!isDev) {
-    setupAutoUpdater()
-  }
+  if (!isDev) setupAutoUpdater()
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
@@ -296,6 +257,4 @@ app.on("window-all-closed", () => {
   }
 })
 
-app.on("before-quit", () => {
-  stopNextServer()
-})
+app.on("before-quit", () => { stopNextServer() })

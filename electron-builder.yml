@@ -6,10 +6,7 @@ fileAssociations:
   - ext: agent
     name: Agent File
     role: Editor
-    icon:
-      win: dot-agent-icon.ico
-      mac: dot-agent-icon.icns
-      linux: dot-agent-icon.png
+    icon: dot-agent-icon
 
 directories:
   output: dist-electron
@@ -19,6 +16,10 @@ directories:
 files:
   - electron-dist/**
   - "!node_modules/**"
+  - node_modules/@dot-agent/**
+  - node_modules/jszip/**
+  - node_modules/electron-updater/**
+  - node_modules/builder-util-runtime/**
 
 # Next.js standalone server packed into resources/server
 extraResources:

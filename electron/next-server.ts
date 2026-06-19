@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import { spawn, ChildProcess } from "child_process"
+import { utilityProcess } from "electron"
 import * as net from "net"
 import * as path from "path"
 
-let serverProcess: ChildProcess | null = null
+let serverProcess: Electron.UtilityProcess | null = null
 
 function findFreePort(start = 3000): Promise<number> {
   return new Promise(resolve => {
@@ -53,7 +53,9 @@ export async function startNextServer(): Promise<number> {
   // Standalone server.js is unpacked to resources/server/ by electron-builder
   const serverPath = path.join(process.resourcesPath, "server", "server.js")
 
-  serverProcess = spawn("node", [serverPath], {
+  // utilityProcess.fork() uses Electron's built-in Node.js — no external
+  // "node" binary needed, works on all platforms regardless of PATH.
+  serverProcess = utilityProcess.fork(serverPath, [], {
     env: {
       ...process.env,
       PORT: String(port),

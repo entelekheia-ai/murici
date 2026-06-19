@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-import updaterModule from "electron-updater"
 import { dialog } from "electron"
 
-const { autoUpdater } = updaterModule
-
 export function setupAutoUpdater() {
+  let autoUpdater: any
+  try {
+    autoUpdater = require("electron-updater").autoUpdater
+  } catch {
+    console.warn("[updater] electron-updater not available, skipping auto-update")
+    return
+  }
+
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
 
-  autoUpdater.on("error", err => {
+  autoUpdater.on("error", (err: Error) => {
     console.error("[updater] error:", err.message)
   })
 
-  autoUpdater.on("update-downloaded", info => {
+  autoUpdater.on("update-downloaded", (info: any) => {
     dialog
       .showMessageBox({
         type: "info",
@@ -35,12 +40,12 @@ export function setupAutoUpdater() {
         message: `Versão ${info.version} baixada. Reiniciar para aplicar?`,
         buttons: ["Reiniciar agora", "Depois"]
       })
-      .then(({ response }) => {
+      .then(({ response }: { response: number }) => {
         if (response === 0) autoUpdater.quitAndInstall()
       })
   })
 
-  autoUpdater.checkForUpdatesAndNotify().catch(err => {
+  autoUpdater.checkForUpdatesAndNotify().catch((err: Error) => {
     console.warn("[updater] checkForUpdates failed:", err.message)
   })
 }
