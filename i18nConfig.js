@@ -18,6 +18,7 @@ const i18nConfig = {
     "ja",
     "ko",
     "pt",
+    "pt-BR",
     "ru",
     "si",
     "sv",
