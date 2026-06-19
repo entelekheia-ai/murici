@@ -1,3 +1,4 @@
+"use strict";
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  *
@@ -13,4 +14,4 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export {};
+Object.defineProperty(exports, "__esModule", { value: true });

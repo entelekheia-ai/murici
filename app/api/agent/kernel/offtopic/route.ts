@@ -15,17 +15,25 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { getKernel, buildKernelState } from "../_kernel"
+import { getSession, buildKernelState } from "../_kernel"
 
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const kernel = await getKernel()
-    const effects = kernel.send_offtopic()
+    const { sessionId = "default" } = await request.json()
 
-    const state = buildKernelState(kernel, effects)
-    return NextResponse.json(state)
+    const entry = getSession(sessionId)
+    if (!entry) {
+      return NextResponse.json(
+        { error: "Session not found" },
+        { status: 404 }
+      )
+    }
+
+    entry.sink.current = []
+    entry.session.sendOfftopic()
+    return NextResponse.json(buildKernelState(entry.session, entry.sink.current))
   } catch (error: any) {
     console.error("Kernel offtopic error:", error)
     return NextResponse.json(

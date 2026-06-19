@@ -15,13 +15,13 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { getKernel, resetKernel, buildKernelState } from "../_kernel"
+import { loadSession } from "../_kernel"
 
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { behaviorText } = await request.json()
+    const { behaviorText, sessionId = "default" } = await request.json()
 
     if (!behaviorText || typeof behaviorText !== "string") {
       return NextResponse.json(
@@ -30,40 +30,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    resetKernel()
-    const kernel = await getKernel()
-
-    let effects: any[] = []
-    try {
-      effects = kernel.load_behavior(behaviorText)
-      if (!Array.isArray(effects)) {
-        effects = [effects]
-      }
-    } catch (e: any) {
-      console.error("Kernel load_behavior failed:", e)
-      return NextResponse.json(
-        { error: "Kernel failed to load behavior", details: e?.message },
-        { status: 500 }
-      )
-    }
-
-    const parseError = effects.find((e: any) => e?.type === "parse_error")
-
-    if (parseError) {
-      return NextResponse.json(
-        {
-          error: "Parse error",
-          message: parseError.message,
-          effects
-        },
-        { status: 400 }
-      )
-    }
-
-    const state = buildKernelState(kernel, effects)
+    const state = await loadSession(sessionId, behaviorText)
     return NextResponse.json(state)
   } catch (error: any) {
-    console.error("Kernel load endpoint error:", error)
+    console.error("Kernel load error:", error?.message)
     return NextResponse.json(
       { error: error?.message || "Failed to load behavior" },
       { status: 500 }

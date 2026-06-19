@@ -15,56 +15,31 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { unpack } from "@dot-agent/cli"
-import { readFile, rm, mkdtemp } from "fs/promises"
-import { tmpdir } from "os"
-import { join } from "path"
-import { writeFileSync } from "fs"
+import { loadAgent } from "@dot-agent/sdk"
 
-interface AgentAboutme {
-  id: string
-  name: string
-  version: string
-  domain: string
-  description: string
-  persona: string
-  license: string
-}
-
-interface UnpackResponse {
-  aboutme: AgentAboutme
-  behaviorText: string
-}
-
-async function resolveMerges(
+function resolveMerges(
   behaviorContent: string,
-  outDir: string
-): Promise<string> {
+  behaviors: Array<{ path: string; content: string }>
+): string {
+  if (behaviors.length === 0) return behaviorContent
+
+  const behaviorMap = new Map(behaviors.map(b => [b.path, b.content]))
   const lines = behaviorContent.split("\n")
   const result: string[] = []
   let inPreamble = true
 
   for (const line of lines) {
     const trimmed = line.trim()
-
-    // Stop preamble when we hit first state declaration
-    if (trimmed.startsWith("state ")) {
-      inPreamble = false
-    }
+    if (trimmed.startsWith("state ")) inPreamble = false
 
     if (inPreamble && trimmed.startsWith('merge "')) {
-      // Extract merge path: merge "behaviors/planning.flow" -> behaviors/planning.flow
       const match = trimmed.match(/^merge\s+"([^"]+)"/)
       if (match) {
-        const mergePath = match[1]
-        const fullPath = join(outDir, mergePath)
-
-        try {
-          const mergedContent = await readFile(fullPath, "utf-8")
-          // Inline the merged content
-          result.push(mergedContent)
-        } catch (e) {
-          console.error(`Failed to read merge file: ${mergePath}`, e)
+        const merged = behaviorMap.get(match[1])
+        if (merged) {
+          result.push(merged)
+        } else {
+          console.error(`merge target not found in bundle: ${match[1]}`)
           result.push(line)
         }
       } else {
@@ -79,8 +54,6 @@ async function resolveMerges(
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const tmpDir = await mkdtemp(join(tmpdir(), "agent-"))
-
   try {
     const formData = await request.formData()
     const file = formData.get("file") as File
@@ -99,56 +72,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    // Write uploaded file to disk
     const buffer = await file.arrayBuffer()
-    const tmpFile = join(tmpDir, "temp.agent")
-    writeFileSync(tmpFile, Buffer.from(buffer))
+    const bundle = await loadAgent(buffer)
 
-    // Unpack using @dot-agent/cli
-    const unpackResult = await unpack({
-      file: tmpFile,
-      out: join(tmpDir, "unpacked"),
-      force: true
-    })
-
-    // Read agent.behavior
-    const behaviorPath = join(tmpDir, "unpacked", "agent.behavior")
-    let behaviorContent = await readFile(behaviorPath, "utf-8")
-
-    // Resolve merge directives
-    behaviorContent = await resolveMerges(
-      behaviorContent,
-      join(tmpDir, "unpacked")
+    const behaviorText = resolveMerges(
+      bundle.files.behavior,
+      bundle.files.behaviors
     )
 
-    // Extract aboutme from unpack result
-    const aboutme = unpackResult.aboutme
-    const unpackResponse: UnpackResponse = {
+    const am = bundle.aboutme
+    return NextResponse.json({
       aboutme: {
-        id: aboutme.id,
-        name: aboutme.name,
-        version: aboutme.version,
-        domain: aboutme.domain,
-        description: aboutme.description,
-        persona: aboutme.persona,
-        license: aboutme.license
+        id: am.id,
+        name: am.name,
+        version: am.version,
+        domain: am.domain,
+        description: am.description,
+        persona: am.persona,
+        license: am.license
       },
-      behaviorText: behaviorContent
-    }
-
-    return NextResponse.json(unpackResponse)
+      behaviorText
+    })
   } catch (error: any) {
     console.error("Agent unpack error:", error)
     return NextResponse.json(
       { error: error?.message || "Failed to unpack agent" },
       { status: 500 }
     )
-  } finally {
-    // Clean up temp files
-    try {
-      await rm(tmpDir, { recursive: true, force: true })
-    } catch (e) {
-      console.error("Failed to clean up temp files:", e)
-    }
   }
 }

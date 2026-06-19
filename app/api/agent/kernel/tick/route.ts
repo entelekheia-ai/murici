@@ -15,17 +15,25 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { getKernel } from "../_kernel"
-import { Effect } from "@/types/kernel-effect"
+import { getSession } from "../_kernel"
 
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const kernel = await getKernel()
-    const effects = kernel.tick_prompt() as Effect[]
+    const { sessionId = "default" } = await request.json()
 
-    return NextResponse.json({ effects })
+    const entry = getSession(sessionId)
+    if (!entry) {
+      return NextResponse.json(
+        { error: "Session not found" },
+        { status: 404 }
+      )
+    }
+
+    entry.sink.current = []
+    entry.session.tickPrompt()
+    return NextResponse.json({ effects: entry.sink.current })
   } catch (error: any) {
     console.error("Kernel tick error:", error)
     return NextResponse.json(

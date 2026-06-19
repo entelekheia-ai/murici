@@ -20,7 +20,6 @@ export interface FlowStateInfo {
   guide?: string
   teach?: string
   validIntents: string[]
-  hasOfftopic?: boolean
 }
 
 export function injectFlowContext(
@@ -39,18 +38,15 @@ export function injectFlowContext(
   let flowBlock = `[FLOW_CONTEXT]\nCurrent State: "${flowState.currentState}"\n`
   if (flowState.goal) flowBlock += `Goal: "${flowState.goal}"\n`
   if (flowState.teach) flowBlock += `\nKnowledge:\n${flowState.teach}\n`
-  if (flowState.validIntents.length > 0 || flowState.hasOfftopic) {
-    const allIntents = flowState.hasOfftopic
-      ? [...flowState.validIntents, "offtopic"]
-      : flowState.validIntents
-    const allIntentsList = allIntents.map(i => `"${i}"`).join(", ")
+  if (flowState.validIntents.length > 0) {
+    const allIntentsList = flowState.validIntents.map(i => `"${i}"`).join(", ")
     flowBlock += `Available intents: [${allIntentsList}]\n`
     if (flowState.goal) {
       flowBlock += `When the goal of this state is achieved, call the "trigger_intent" tool with the appropriate intent name. Do not mention the tool call to the user.\n`
     } else {
       flowBlock += `Classify the user's message into one of the available intents and immediately call the "trigger_intent" tool with the matching intent name. Do not mention the tool call to the user.\n`
     }
-    if (flowState.hasOfftopic) {
+    if (flowState.validIntents.includes("offtopic")) {
       flowBlock += `If the user's message is off-topic or unrelated to the current goal, call "trigger_intent" with intent_name="offtopic".\n`
     }
   }
@@ -84,11 +80,7 @@ export function injectFlowContext(
   return clean
 }
 
-export function buildTriggerIntentTool(
-  validIntents: string[],
-  hasOfftopic?: boolean
-) {
-  const allIntents = hasOfftopic ? [...validIntents, "offtopic"] : validIntents
+export function buildTriggerIntentTool(validIntents: string[]) {
   return {
     type: "function",
     function: {
@@ -100,7 +92,7 @@ export function buildTriggerIntentTool(
         properties: {
           intent_name: {
             type: "string",
-            enum: allIntents,
+            enum: validIntents,
             description: "The exact intent name to trigger."
           }
         },

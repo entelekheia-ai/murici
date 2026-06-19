@@ -15,13 +15,13 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { getKernel, buildKernelState } from "../_kernel"
+import { getSession, buildKernelState } from "../_kernel"
 
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { intent } = await request.json()
+    const { intent, sessionId = "default" } = await request.json()
 
     if (!intent || typeof intent !== "string") {
       return NextResponse.json(
@@ -30,11 +30,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    const kernel = await getKernel()
-    const effects = kernel.send_intent(intent)
+    const entry = getSession(sessionId)
+    if (!entry) {
+      return NextResponse.json(
+        { error: "Session not found" },
+        { status: 404 }
+      )
+    }
 
-    const state = buildKernelState(kernel, effects)
-    return NextResponse.json(state)
+    entry.sink.current = []
+    entry.session.sendIntent(intent)
+    return NextResponse.json(buildKernelState(entry.session, entry.sink.current))
   } catch (error: any) {
     console.error("Kernel intent error:", error)
     return NextResponse.json(

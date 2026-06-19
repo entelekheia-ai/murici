@@ -19,9 +19,10 @@ import { KernelState } from "@/types/electron"
 
 export class KernelProxy {
   private _currentState = ""
-  private _graph: any = null
+  private _graph: string | null = null
   private _validIntents: string[] = []
   private _isElectron = false
+  private _sessionId = Math.random().toString(36).slice(2)
 
   constructor() {
     this._isElectron =
@@ -32,7 +33,7 @@ export class KernelProxy {
     return this._currentState
   }
 
-  get_graph(): any {
+  get_graph(): string | null {
     return this._graph
   }
 
@@ -63,7 +64,11 @@ export class KernelProxy {
     if (this._isElectron) {
       return (await window.electronAPI?.kernel?.tick()) as any
     }
-    const res = await fetch("/api/agent/kernel/tick", { method: "POST" })
+    const res = await fetch("/api/agent/kernel/tick", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: this._sessionId })
+    })
     const { effects } = await res.json()
     return effects
   }
@@ -81,11 +86,14 @@ export class KernelProxy {
       throw new Error(`Unknown method: ${method}`)
     }
 
-    const endpoint = `/api/agent/kernel/${method === "sendIntent" ? "intent" : method}`
+    let endpoint = `/api/agent/kernel/${method}`
+    if (method === "sendIntent") endpoint = "/api/agent/kernel/intent"
+    if (method === "sendOfftopic") endpoint = "/api/agent/kernel/offtopic"
+    const payloadWithSession = { ...payload, sessionId: this._sessionId }
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payloadWithSession)
     })
 
     if (!res.ok) {
