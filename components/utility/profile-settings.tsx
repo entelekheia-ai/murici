@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 import { OpenRouterLLM } from "@/types"
 import { IconFileDownload, IconUser } from "@tabler/icons-react"
 import Image from "next/image"
-import { FC, useContext, useRef, useState } from "react"
+import { FC, useContext, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { SIDEBAR_ICON_SIZE } from "../sidebar/sidebar-switcher"
 import { Button } from "../ui/button"
@@ -24,6 +24,13 @@ import ImagePicker from "../ui/image-picker"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import { LimitDisplay } from "../ui/limit-display"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "../ui/select"
 import {
   Sheet,
   SheetContent,
@@ -75,6 +82,10 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     setAvailableHostedModels,
     setAvailableOpenRouterModels,
     availableOpenRouterModels,
+    availableLocalModels,
+    backgroundModelMissing,
+    setBackgroundModelMissing,
+    setBackgroundModel,
     chatSettings,
     setChatSettings
   } = useContext(ChatbotUIContext)
@@ -82,6 +93,12 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setIsOpen(true)
+    window.addEventListener("murici:profile-open", handler)
+    return () => window.removeEventListener("murici:profile-open", handler)
+  }, [])
 
   const [displayName, setDisplayName] = useState(profile?.display_name || "")
   const [profileImageSrc, setProfileImageSrc] = useState(
@@ -146,6 +163,10 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     profile?.openrouter_api_key || ""
   )
 
+  const [backgroundModelId, setBackgroundModelId] = useState(
+    profile?.background_model_id ?? ""
+  )
+
   const handleSave = async () => {
     if (!profile) return
     let profileImageUrl = profile.image_url
@@ -178,8 +199,15 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
       azure_openai_45_turbo_id: azureOpenai45TurboID,
       azure_openai_45_vision_id: azureOpenai45VisionID,
       azure_openai_embeddings_id: azureEmbeddingsID,
-      openrouter_api_key: openrouterAPIKey
+      openrouter_api_key: openrouterAPIKey,
+      background_model_id: backgroundModelId || null
     })
+
+    const resolvedBgModel = backgroundModelId
+      ? availableLocalModels.find(m => m.modelId === backgroundModelId) ?? null
+      : null
+    setBackgroundModel(resolvedBgModel)
+    setBackgroundModelMissing(false)
 
     setProfile(updatedProfile)
     if (chatSettings) setChatSettings({ ...chatSettings, prompt: systemPrompt })
@@ -348,6 +376,35 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
                   maxRows={6}
                   className="bg-background border-input border-2"
                 />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">
+                  Modelo local para tarefas automáticas
+                </Label>
+
+                {backgroundModelMissing && (
+                  <p className="text-destructive bg-destructive/10 rounded-md px-3 py-2 text-xs">
+                    O modelo local configurado não foi encontrado. Selecione outro.
+                  </p>
+                )}
+
+                <Select
+                  value={backgroundModelId || "__none__"}
+                  onValueChange={v => setBackgroundModelId(v === "__none__" ? "" : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Usar o modelo do chat</SelectItem>
+                    {availableLocalModels.map(m => (
+                      <SelectItem key={m.modelId} value={m.modelId}>
+                        {m.modelName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </TabsContent>
 

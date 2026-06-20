@@ -81,7 +81,8 @@ export const useChatHandler = () => {
     setFlowDebugLog,
     setThinkingLog,
     addFlowEvent,
-    setKnowledge
+    setKnowledge,
+    backgroundModel
   } = useContext(ChatbotUIContext)
 
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -506,7 +507,8 @@ export const useChatHandler = () => {
         setChatFileItems,
         setChatImages,
         selectedAssistant,
-        setKnowledge
+        setKnowledge,
+        backgroundModel
       )
 
       setIsGenerating(false)

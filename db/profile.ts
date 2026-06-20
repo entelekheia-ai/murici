@@ -24,7 +24,8 @@ const PROFILE_KEYS = [
   "azure_openai_embeddings_id",
   "use_azure_openai",
   "profile_context",
-  "display_name"
+  "display_name",
+  "background_model_id"
 ]
 
 function defaultProfile() {
@@ -53,6 +54,7 @@ function defaultProfile() {
     azure_openai_45_vision_id: null,
     azure_openai_45_turbo_id: null,
     azure_openai_embeddings_id: null,
+    background_model_id: null,
     created_at: new Date().toISOString(),
     updated_at: null
   }

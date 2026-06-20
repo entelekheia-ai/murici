@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button"
 import { IconX } from "@tabler/icons-react"
 
 export const KnowledgeRightPanel: FC = () => {
-  const { knowledge, setKnowledge, chatSettings, availableLocalModels, selectedChat } =
+  const { knowledge, setKnowledge, chatSettings, availableLocalModels, backgroundModel, selectedChat } =
     useContext(ChatbotUIContext)
 
   const pathname = usePathname()
@@ -60,7 +60,7 @@ export const KnowledgeRightPanel: FC = () => {
               <KnowledgeChip
                 key={record.id}
                 record={record}
-                modelData={modelData}
+                modelData={backgroundModel ?? modelData}
                 chatName={selectedChat?.name ?? "Conversa"}
                 onUpdate={handleUpdate}
               />

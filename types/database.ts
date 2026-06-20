@@ -110,6 +110,7 @@ export interface Profile {
   azure_openai_embeddings_id: string | null
   use_azure_openai: boolean
   has_onboarded: boolean
+  background_model_id: string | null
   created_at: string
   updated_at: string | null
 }

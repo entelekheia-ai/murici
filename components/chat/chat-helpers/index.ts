@@ -708,7 +708,8 @@ export const handleCreateMessages = async (
   >,
   setChatImages: React.Dispatch<React.SetStateAction<MessageImage[]>>,
   selectedAssistant: Tables<"assistants"> | null,
-  setKnowledge?: React.Dispatch<React.SetStateAction<KnowledgeRecord[]>>
+  setKnowledge?: React.Dispatch<React.SetStateAction<KnowledgeRecord[]>>,
+  backgroundModel?: LLM | null
 ) => {
   const finalUserMessage: TablesInsert<"messages"> = {
     chat_id: currentChat.id,
@@ -838,7 +839,7 @@ export const handleCreateMessages = async (
             }
             return [...prev, ...records]
           })
-          triggerEnrichment(records, modelData, setKnowledge)
+          triggerEnrichment(records, backgroundModel ?? modelData, setKnowledge)
         }
       } catch (err) {
         console.error("[knowledge] extraction/save failed:", err)

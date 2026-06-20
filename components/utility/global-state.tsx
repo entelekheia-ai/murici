@@ -57,6 +57,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [availableOpenRouterModels, setAvailableOpenRouterModels] = useState<
     OpenRouterLLM[]
   >([])
+  const [backgroundModel, setBackgroundModel] = useState<LLM | null>(null)
+  const [backgroundModelMissing, setBackgroundModelMissing] = useState(false)
 
   // WORKSPACE STORE
   const [selectedWorkspace, setSelectedWorkspace] =
@@ -176,6 +178,17 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
       const localModels = await fetchLocalModels()
       setAvailableLocalModels(localModels)
+
+      const savedId = profile?.background_model_id
+      if (savedId) {
+        const found = localModels.find(m => m.modelId === savedId)
+        if (found) {
+          setBackgroundModel(found)
+        } else {
+          setBackgroundModelMissing(true)
+          window.dispatchEvent(new CustomEvent("murici:profile-open"))
+        }
+      }
     })()
   }, [])
 
@@ -219,6 +232,10 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setAvailableLocalModels,
         availableOpenRouterModels,
         setAvailableOpenRouterModels,
+        backgroundModel,
+        setBackgroundModel,
+        backgroundModelMissing,
+        setBackgroundModelMissing,
 
         // WORKSPACE STORE
         selectedWorkspace,

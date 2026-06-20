@@ -49,6 +49,10 @@ interface ChatbotUIContext {
   setAvailableLocalModels: Dispatch<SetStateAction<LLM[]>>
   availableOpenRouterModels: OpenRouterLLM[]
   setAvailableOpenRouterModels: Dispatch<SetStateAction<OpenRouterLLM[]>>
+  backgroundModel: LLM | null
+  setBackgroundModel: Dispatch<SetStateAction<LLM | null>>
+  backgroundModelMissing: boolean
+  setBackgroundModelMissing: Dispatch<SetStateAction<boolean>>
 
   // WORKSPACE STORE
   selectedWorkspace: Tables<"workspaces"> | null
@@ -191,6 +195,10 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setAvailableLocalModels: () => {},
   availableOpenRouterModels: [],
   setAvailableOpenRouterModels: () => {},
+  backgroundModel: null,
+  setBackgroundModel: () => {},
+  backgroundModelMissing: false,
+  setBackgroundModelMissing: () => {},
 
   // WORKSPACE STORE
   selectedWorkspace: null,
