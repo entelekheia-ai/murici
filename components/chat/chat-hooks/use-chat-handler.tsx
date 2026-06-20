@@ -273,6 +273,7 @@ export const useChatHandler = () => {
             .sequence_number
         : tempAssistantChatMessage.message.sequence_number
 
+
       // Dispatch flow_context event at turn start
       if (preTransitionFlowState) {
         addFlowEvent({

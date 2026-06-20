@@ -586,6 +586,8 @@ export const processResponse = async (
   let lastDisplayText = ""
   let contentToAdd = ""
 
+  let reasoningAccum = ""
+
   if (response.body) {
     await consumeReadableStream(
       response.body,
@@ -594,25 +596,30 @@ export const processResponse = async (
         setToolInUse("none")
 
         try {
-          contentToAdd = isHosted
-            ? chunk
-            : // OpenAI-compatible SSE: each chunk may contain multiple
-              // "data: {...}" lines. Extract delta.content from each.
-              chunk
-                .split("\n")
-                .filter(
-                  line =>
-                    line.startsWith("data: ") && line !== "data: [DONE]"
-                )
-                .reduce((acc, line) => {
-                  try {
-                    const json = JSON.parse(line.slice(6))
-                    return acc + (json.choices?.[0]?.delta?.content ?? "")
-                  } catch {
-                    return acc
-                  }
-                }, "")
+          if (isHosted) {
+            contentToAdd = chunk
+          } else {
+            // OpenAI-compatible SSE: chunks may have multiple "data: {...}" lines.
+            // Some models (e.g. Qwen3, DeepSeek) send reasoning via delta.reasoning_content
+            // instead of wrapping it in <think> tags inside delta.content.
+            for (const line of chunk.split("\n")) {
+              if (!line.startsWith("data: ") || line === "data: [DONE]") continue
+              try {
+                const json = JSON.parse(line.slice(6))
+                const delta = json.choices?.[0]?.delta
+                if (!delta) continue
+                contentToAdd += delta.content ?? ""
+                if (delta.reasoning_content) {
+                  reasoningAccum += delta.reasoning_content
+                  onThinkingUpdate?.(reasoningAccum)
+                }
+              } catch {
+                // malformed line, skip
+              }
+            }
+          }
           rawAccum += contentToAdd
+          contentToAdd = ""
         } catch (error) {
           console.error("Error parsing JSON:", error)
         }
