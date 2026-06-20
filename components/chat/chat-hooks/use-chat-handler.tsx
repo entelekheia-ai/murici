@@ -189,6 +189,7 @@ export const useChatHandler = () => {
       setAbortController(newAbortController)
 
       const modelData = [
+        ...availableLocalModels,
         ...models.map(model => ({
           modelId: model.model_id as LLMID,
           modelName: model.name,
@@ -198,7 +199,6 @@ export const useChatHandler = () => {
           imageInput: false
         })),
         ...LLM_LIST,
-        ...availableLocalModels,
         ...availableOpenRouterModels
       ].find(llm => llm.modelId === chatSettings?.model)
 

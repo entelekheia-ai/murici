@@ -1,67 +1,79 @@
 # Murici
 
-> Chat UI with deterministic FSM-based routing via [dot-agent-kernel](../dot-agent-spec/).
+> A premium Chat UI with deterministic state-machine behavior routing powered by `@dot-agent/sdk`.
 
-Fork of [`mckaywrigley/chatbot-ui`](https://github.com/mckaywrigley/chatbot-ui) relicensed under Apache 2.0.
-Original MIT license and attribution preserved — see [`NOTICE`](./NOTICE).
-
----
-
-## What's different from upstream
-
-| Upstream (`mckaywrigley/chatbot-ui`) | Murici |
-|--------------------------------------|---------|
-| Supabase (Postgres + Auth) | IndexedDB — no external backend |
-| Vercel deployment | Electron desktop (`.dmg` / `.exe` / `.AppImage`) |
-| MIT License | Apache 2.0 (dual attribution, see `NOTICE`) |
-| No FSM routing | dot-agent-kernel (Rust/WASM) |
+Murici is a lightweight, responsive desktop and web Chat UI designed for running deterministic state-machine agent behaviors. By integrating LLM chat interactions with structured finite state machine (FSM) controls, Murici allows developers to design predictable, goal-driven conversational flows.
 
 ---
 
-## Quick start
+## Key Features
 
-**Requirements:** Node.js ≥ 18.
+- **Deterministic Behavior Routing**: Manage chat sessions, goals, styles, and instructions using `@dot-agent/sdk` and `AgentSession` runtimes.
+- **Local Model Auto-Discovery**: Automatically scan and connect to local LLM servers (e.g., Ollama or custom local API endpoints) alongside standard hosted APIs.
+- **Drag-and-Drop Agent Bundles**: Instantly load and compile behaviors by dragging and dropping `.agent` bundles or `.flow` DSL files directly into the agent panel.
+- **SCXML State Graph**: Visually monitor conversation state, visited steps, and active transitions in real time using a custom SVG-rendered state graph parsed from SCXML.
+- **IndexedDB Persistence**: Save chat history, settings, and custom models directly in the client database (`idb`), requiring no external database or authentication setup.
+- **Electron Desktop packaging**: Easily build standalone binaries (`.dmg`, `.exe`, `.AppImage`) using `electron-builder` for local-first desktop usage.
+- **Warm & Modern Aesthetic**: A clean, premium, and unified dark/warm-themed user interface optimized for readability and developer productivity.
 
+---
+
+## Quick Start
+
+### Prerequisites
+- Node.js ≥ 18
+
+### Running in Web Dev Mode
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the Next.js development server:
+   ```bash
+   npm run dev
+   ```
+3. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Running in Electron Desktop Mode
+For desktop development with hot reloading:
 ```bash
-npm install
-npm run dev       # http://localhost:3000
+npm run electron:dev
 ```
 
-### Electron desktop
-
+To compile production-ready distributable installers:
 ```bash
-npm run electron:dev     # dev with hot reload
-npm run electron:build   # production build
+npm run electron:build
 ```
-
-Distributable artifacts land in `dist/` (`.dmg` on macOS, `.exe` on Windows, `.AppImage` on Linux).
+The installers will land in the `dist-electron/` directory.
 
 ---
 
 ## Persistence
 
-All data is stored in **IndexedDB** via the [`idb`](https://github.com/jakearchibald/idb) library, in a database named `"entelekheia"`. There is no external database, no auth, no network dependency for storage.
+All data is stored locally in the user's browser or Electron renderer process via **IndexedDB** using the [`idb`](https://github.com/jakearchibald/idb) library in a database named `"entelekheia"`.
 
-Schema: `conversations`, `messages`, `customModels`, `settings`.  
-Code: `lib/local-db/` (schema + CRUD) — `db/` re-exports for backwards-compatible import paths.
+- **Schema**: `conversations`, `messages`, `customModels`, `settings`.
+- **Location**: Implementation is located in [lib/local-db/](lib/local-db/) (with backwards-compatible shims in [db/](db/)).
 
 ---
 
-## dot-agent integration
+## Behavior Integration
 
-Murici validates deterministic FSM-based chat routing using the `dot-agent-kernel` WASM module compiled from [`dot-agent-spec/`](../dot-agent-spec/).
+Murici runs deterministic state-machine execution via the `@dot-agent/sdk` monorepo packages.
 
-- Paste a `.flow` DSL file into the Agent right panel to load a flow.
-- The kernel manages state; the UI reflects transitions in real time via a Mermaid graph.
-- Intent signaling uses structured tool calling (`trigger_intent`) — no text parsing.
+- Drag-and-drop or copy-paste `.flow` DSL files into the Behavior Panel.
+- The state machine directs the conversation via structured instructions (`goal`, `guide`, `teach` effects).
+- Intent signaling uses structured tool calling (`trigger_intent`) instead of brittle regex parsing on raw LLM output, preventing control token leakage.
+- Detailed transition event timelines and collapsible thinking blocks (`<think>`) are rendered natively in the message thread.
 
-Full architecture: [`dot-agent.md`](./dot-agent.md).  
-Agent coding guidelines: [`AGENTS.md`](./AGENTS.md).
+For in-depth architecture details, see [dot-agent.md](./dot-agent.md).  
+For developer and agent guidelines, see [AGENTS.md](./AGENTS.md).
 
 ---
 
 ## License
 
-Copyright (c) 2026 Danilo Borges — **Apache License 2.0**.  
-Portions Copyright (c) 2023 McKay Wrigley — MIT License.  
-See [`license`](./license) and [`NOTICE`](./NOTICE).
+- Copyright (c) 2026 Danilo Borges — **Apache License 2.0**.
+- Portions Copyright (c) 2023 McKay Wrigley — **MIT License**.
+- See [`license`](./license) and [`NOTICE`](./NOTICE) for full terms and attributions.
+

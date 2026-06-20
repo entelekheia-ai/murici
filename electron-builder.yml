@@ -17,6 +17,13 @@ files:
   - electron-dist/**
   - "!node_modules/**"
   - node_modules/@dot-agent/**
+  - "!node_modules/@dot-agent/**/target/**"
+  - "!node_modules/@dot-agent/**/src/**"
+  - "!node_modules/@dot-agent/**/tests/**"
+  - "!node_modules/@dot-agent/**/node_modules/**"
+  - "!node_modules/@dot-agent/**/*.rs"
+  - "!node_modules/@dot-agent/**/Cargo.*"
+  - "!node_modules/@dot-agent/**/build.rs"
   - node_modules/jszip/**
   - node_modules/electron-updater/**
   - node_modules/builder-util-runtime/**

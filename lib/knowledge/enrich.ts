@@ -75,8 +75,9 @@ async function callEnrichment(
     const raw: string =
       data?.choices?.[0]?.message?.content ?? data?.message?.content ?? ""
 
-    // Extract JSON from the response (model may wrap it in prose)
-    const jsonMatch = raw.match(/\{[\s\S]*?\}/)
+    // Extract JSON from the response (model may wrap it in prose).
+    // Greedy match to capture the full outermost object (summaries can contain braces).
+    const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (!jsonMatch) return null
 
     const parsed = JSON.parse(jsonMatch[0])
@@ -111,7 +112,7 @@ export function triggerEnrichment(
 
   for (const record of records) {
     enrichKnowledgeRecord(record, modelData)
-      .then(async result => {
+      .then(result => {
         if (!result) return
         const update: Partial<KnowledgeRecord> = { summary: result.summary }
         // Only override title when it was a placeholder — preserve deterministic titles
@@ -119,13 +120,17 @@ export function triggerEnrichment(
         if (PLACEHOLDER_TITLE_RE.test(record.title)) {
           update.title = result.title
         }
-        await updateKnowledgeRecord(record.id, update)
+        // Context update always runs when enrichment succeeds, regardless of DB outcome
         setKnowledge(prev =>
           prev.map(k => (k.id === record.id ? { ...k, ...update } : k))
         )
+        // DB update is best-effort; failure should not block context update
+        updateKnowledgeRecord(record.id, update).catch(err => {
+          console.error("[knowledge] DB update failed for enriched record:", err)
+        })
       })
-      .catch(() => {
-        // Enrichment is best-effort — failure is silent
+      .catch(err => {
+        console.error("[knowledge] enrichment failed:", err)
       })
   }
 }

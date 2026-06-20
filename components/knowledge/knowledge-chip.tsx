@@ -12,6 +12,7 @@ import { updateKnowledgeRecord } from "@/lib/local-db/knowledge"
 import { enrichKnowledgeRecord } from "@/lib/knowledge/enrich"
 import { Button } from "@/components/ui/button"
 import { IconCopy, IconCheck, IconPencil } from "@tabler/icons-react"
+import { KnowledgePreviewModal } from "./knowledge-preview-modal"
 
 const PLACEHOLDER_TITLE_RE = /^.+ · \d{2}:\d{2}$/
 
@@ -34,6 +35,7 @@ interface KnowledgeChipProps {
   record: KnowledgeRecord
   modelData?: LLM
   compact?: boolean
+  chatName?: string
   onUpdate: (id: string, updates: Partial<KnowledgeRecord>) => void
 }
 
@@ -41,9 +43,10 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
   record,
   modelData,
   compact = false,
+  chatName,
   onUpdate
 }) => {
-  const [expanded, setExpanded] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(record.title)
   const [copied, setCopied] = useState(false)
@@ -51,20 +54,12 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const isPlaceholder = PLACEHOLDER_TITLE_RE.test(record.title)
-  const isCloud = modelData
-    ? modelData.provider !== "local" && !modelData.baseUrl
-    : false
-  const showNamingButton = isPlaceholder && isCloud && !record.summary
+  const showNamingButton = (isPlaceholder || !record.summary) && !compact
 
   const createdAt = new Date(record.createdAt)
   const timeLabel = `${String(createdAt.getHours()).padStart(2, "0")}:${String(createdAt.getMinutes()).padStart(2, "0")}`
 
   const lang = record.payload.language || "text"
-  const previewLines = record.payload.content
-    .split("\n")
-    .filter(l => l.trim())
-    .slice(0, 5)
-    .join("\n")
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -108,7 +103,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
   return (
     <div
       className="bg-muted/50 hover:bg-muted group cursor-pointer rounded-lg border px-3 py-2 transition-colors"
-      onClick={() => !compact && setExpanded(v => !v)}
+      onClick={() => !compact && setPreviewOpen(true)}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -148,7 +143,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="flex shrink-0 items-center gap-1">
           {showNamingButton && (
             <Button
               size="sm"
@@ -160,40 +155,39 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
               {naming ? "..." : "✦ nomear"}
             </Button>
           )}
-          {!compact && (
-            <>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-6"
-                onClick={handleTitleClick}
-                title="Editar título"
-              >
-                <IconPencil size={12} />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-6"
-                onClick={handleCopy}
-                title="Copiar conteúdo"
-              >
-                {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
-              </Button>
-            </>
-          )}
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            {!compact && (
+              <>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-6"
+                  onClick={handleTitleClick}
+                  title="Editar título"
+                >
+                  <IconPencil size={12} />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-6"
+                  onClick={handleCopy}
+                  title="Copiar conteúdo"
+                >
+                  {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {expanded && !compact && (
-        <pre className="bg-background mt-2 overflow-auto rounded border p-2 font-mono text-xs leading-relaxed">
-          {previewLines}
-          {record.payload.content.split("\n").filter(l => l.trim()).length > 5 && (
-            <span className="text-muted-foreground">
-              {"\n"}… {record.payload.content.split("\n").filter(l => l.trim()).length - 5} linhas a mais
-            </span>
-          )}
-        </pre>
+      {previewOpen && (
+        <KnowledgePreviewModal
+          record={record}
+          chatName={chatName ?? "Conversa"}
+          onClose={() => setPreviewOpen(false)}
+        />
       )}
     </div>
   )

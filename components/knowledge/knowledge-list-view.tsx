@@ -7,11 +7,10 @@
 
 import { FC, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-react"
+import { KnowledgePreviewModal } from "./knowledge-preview-modal"
 
 type SortField = "createdAt" | "title" | "language"
 type SortDir = "asc" | "desc"
@@ -176,48 +175,11 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
       </div>
 
       {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setPreview(null)}
-        >
-          <div
-            className="bg-background flex max-h-[80vh] w-[80vw] max-w-[1200px] flex-col overflow-hidden rounded-xl border shadow-xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex shrink-0 items-start justify-between gap-4 border-b px-6 py-4">
-              <div>
-                <h2 className="text-base font-semibold leading-snug">{preview.record.title}</h2>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {preview.record.payload.language || "text"} · {preview.chatName}
-                </p>
-              </div>
-              <button
-                className="text-muted-foreground hover:text-foreground shrink-0 text-lg leading-none"
-                onClick={() => setPreview(null)}
-              >
-                ✕
-              </button>
-            </div>
-            {preview.record.summary && (
-              <p className="text-muted-foreground shrink-0 border-b px-6 py-2 text-sm italic">
-                {preview.record.summary}
-              </p>
-            )}
-            <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
-              {["md", "markdown"].includes((preview.record.payload.language ?? "").toLowerCase()) ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {preview.record.payload.content}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                <pre className="bg-muted overflow-auto rounded-lg p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap">
-                  {preview.record.payload.content}
-                </pre>
-              )}
-            </div>
-          </div>
-        </div>
+        <KnowledgePreviewModal
+          record={preview.record}
+          chatName={preview.chatName}
+          onClose={() => setPreview(null)}
+        />
       )}
     </div>
   )
