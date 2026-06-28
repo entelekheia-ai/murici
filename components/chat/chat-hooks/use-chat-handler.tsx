@@ -82,8 +82,17 @@ export const useChatHandler = () => {
     setThinkingLog,
     addFlowEvent,
     setKnowledge,
-    backgroundModel
+    backgroundModel,
+    agentKnowledgeFiles
   } = useContext(ChatbotUIContext)
+
+  const resolveTeach = (name: string | undefined): string | undefined => {
+    if (!name) return undefined
+    const entry = agentKnowledgeFiles.find(
+      k => k.path === name || k.path === `knowledge/${name}` || k.path.endsWith(`/${name}`)
+    )
+    return entry ? entry.content : name
+  }
 
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -294,8 +303,7 @@ export const useChatHandler = () => {
       if (
         flowEngine &&
         flowState &&
-        flowState.validIntents.length > 0 &&
-        modelData!.provider !== "local"
+        flowState.validIntents.length > 0
       ) {
         // Flow-controlled turn: non-streaming with tool calling
         const result = await handleFlowChat(
@@ -389,7 +397,7 @@ export const useChatHandler = () => {
                 currentState: newState,
                 goal: fx.find((e: any) => e.type === "goal")?.text,
                 guide: fx.find((e: any) => e.type === "guide")?.text,
-                teach: fx.find((e: any) => e.type === "teach")?.text,
+                teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
                 validIntents: Array.from(
                   flowEngine.get_valid_intents() || []
                 ) as string[]
@@ -424,7 +432,7 @@ export const useChatHandler = () => {
                 currentState: newState,
                 goal: fx.find((e: any) => e.type === "goal")?.text,
                 guide: fx.find((e: any) => e.type === "guide")?.text,
-                teach: fx.find((e: any) => e.type === "teach")?.text,
+                teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
                 validIntents: Array.from(
                   flowEngine.get_valid_intents() || []
                 ) as string[]

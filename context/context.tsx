@@ -133,6 +133,8 @@ interface ChatbotUIContext {
   setSourceCount: Dispatch<SetStateAction<number>>
 
   // FLOW ENGINE STORE
+  agentKnowledgeFiles: Array<{ path: string; content: string }>
+  setAgentKnowledgeFiles: Dispatch<SetStateAction<Array<{ path: string; content: string }>>>
   flowEngine: any | null
   setFlowEngine: Dispatch<SetStateAction<any | null>>
   flowState: {
@@ -279,6 +281,8 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setSourceCount: () => {},
 
   // FLOW ENGINE STORE
+  agentKnowledgeFiles: [],
+  setAgentKnowledgeFiles: () => {},
   flowEngine: null,
   setFlowEngine: () => {},
   flowState: null,

@@ -45,8 +45,13 @@ export class KernelProxy {
     // no-op: effects return directly in KernelState
   }
 
-  async load_behavior(text: string): Promise<Effect[]> {
-    const state = await this._call("load", { behaviorText: text })
+  async load_behavior(
+    text: string,
+    knowledge: Array<{ path: string; content: string }> = [],
+    guides: Array<{ path: string; content: string }> = [],
+    behaviors: Array<{ path: string; content: string }> = []
+  ): Promise<Effect[]> {
+    const state = await this._call("load", { behaviorText: text, knowledge, guides, behaviors })
     return this._updateCache(state)
   }
 
@@ -80,7 +85,7 @@ export class KernelProxy {
     if (this._isElectron) {
       const kernel = window.electronAPI?.kernel
       if (method === "load")
-        return await kernel!.load(payload.behaviorText)
+        return await kernel!.load(payload.behaviorText, payload.behaviors)
       if (method === "sendIntent") return await kernel!.sendIntent(payload.intent)
       if (method === "sendOfftopic") return await kernel!.sendOfftopic()
       throw new Error(`Unknown method: ${method}`)

@@ -22,7 +22,7 @@ import type { UnpackPayload, AgentAboutme } from "@/types/electron"
 import { KernelProxy } from "@/lib/kernel-proxy"
 
 export const AgentRightPanel: FC = () => {
-  const { setFlowState, setFlowEngine, flowState } = useContext(ChatbotUIContext)
+  const { setFlowState, setFlowEngine, flowState, setAgentKnowledgeFiles } = useContext(ChatbotUIContext)
 
   const [activeTab, setActiveTab] = useState<"behavior" | "agent">("agent")
   const [engine, setEngine] = useState<any>(null)
@@ -76,17 +76,40 @@ state end
 
   const engineRef = useRef<any>(null)
   const visitedRef = useRef<Set<string>>(new Set())
+  const knowledgeRef = useRef<Array<{ path: string; content: string }>>([])
+  const guidesRef = useRef<Array<{ path: string; content: string }>>([])
+  const behaviorsRef = useRef<Array<{ path: string; content: string }>>([])
   const loadAgentBundleRef = useRef<(payload: UnpackPayload) => Promise<void>>(
     async () => {}
   )
   const handleAgentFileRef = useRef<(file: File) => Promise<void>>(async () => {})
 
-  const loadBehavior = async (eng: any, text: string) => {
+  // The kernel emits teach effects with just the filename ("recipes.txt").
+  // The app is responsible for resolving it to the actual file content.
+  const resolveTeach = (name: string | undefined): string | undefined => {
+    if (!name) return undefined
+    const entry = knowledgeRef.current.find(
+      k => k.path === name || k.path === `knowledge/${name}` || k.path.endsWith(`/${name}`)
+    )
+    return entry ? entry.content : name
+  }
+
+  const loadBehavior = async (
+    eng: any,
+    text: string,
+    knowledge: Array<{ path: string; content: string }> = knowledgeRef.current,
+    guides: Array<{ path: string; content: string }> = guidesRef.current,
+    behaviors: Array<{ path: string; content: string }> = behaviorsRef.current
+  ) => {
+    knowledgeRef.current = knowledge
+    guidesRef.current = guides
+    behaviorsRef.current = behaviors
+    setAgentKnowledgeFiles(knowledge)
     visitedRef.current = new Set()
     setParseError(null)
 
     try {
-      const effects = await eng.load_behavior(text)
+      const effects = await eng.load_behavior(text, knowledge, guides, behaviors)
       console.log("load_behavior effects:", effects)
 
       const parseErrorEffect = effects.find(
@@ -108,12 +131,13 @@ state end
 
       const goal = effects.find((e: any) => e.type === "goal")?.text
       const guide = effects.find((e: any) => e.type === "guide")?.text
+      const teach = resolveTeach(effects.find((e: any) => e.type === "teach")?.text)
 
       setFlowState({
         currentState: state,
         goal,
         guide,
-        teach: undefined,
+        teach,
         validIntents: Array.from(eng.get_valid_intents() || []) as string[]
       })
     } catch (e: any) {
@@ -129,7 +153,7 @@ state end
       setAgentMeta(payload.aboutme)
       if (mounted) setBehaviorText(payload.behaviorText)
       if (engineRef.current && mounted) {
-        await loadBehavior(engineRef.current, payload.behaviorText)
+        await loadBehavior(engineRef.current, payload.behaviorText, payload.knowledge, payload.guides, payload.behaviors)
       }
       if (mounted) setActiveTab("behavior")
     }
@@ -187,12 +211,13 @@ state end
 
       const goal = effects.find((e: any) => e.type === "goal")?.text
       const guide = effects.find((e: any) => e.type === "guide")?.text
+      const teach = resolveTeach(effects.find((e: any) => e.type === "teach")?.text)
 
       setFlowState({
         currentState: state,
         goal,
         guide,
-        teach: undefined,
+        teach,
         validIntents: Array.from(engine.get_valid_intents() || []) as string[]
       })
     } catch (err) {

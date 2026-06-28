@@ -35,10 +35,6 @@ const EFFECT_TYPES = [
   "set_memory",
   "apply_css",
   "remove_css",
-  "apply_html",
-  "remove_html",
-  "apply_video",
-  "remove_video",
   "parse_error"
 ]
 
@@ -73,7 +69,10 @@ function wireHandlers(session: AgentSession): { current: Effect[] } {
 
 export async function loadSession(
   sessionId: string,
-  behaviorText: string
+  behaviorText: string,
+  knowledge: Array<{ path: string; content: string }> = [],
+  guides: Array<{ path: string; content: string }> = [],
+  behaviors: Array<{ path: string; content: string }> = []
 ): Promise<KernelState> {
   const sessions = getSessionsMap()
   const old = sessions.get(sessionId)
@@ -86,9 +85,9 @@ export async function loadSession(
     files: {
       description: "",
       behavior: behaviorText,
-      guides: [],
-      knowledge: [],
-      behaviors: []
+      guides,
+      knowledge,
+      behaviors
     }
   } as AgentBundle
 

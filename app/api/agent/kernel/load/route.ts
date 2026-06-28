@@ -21,7 +21,7 @@ export const runtime = "nodejs"
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { behaviorText, sessionId = "default" } = await request.json()
+    const { behaviorText, sessionId = "default", knowledge = [], guides = [], behaviors = [] } = await request.json()
 
     if (!behaviorText || typeof behaviorText !== "string") {
       return NextResponse.json(
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    const state = await loadSession(sessionId, behaviorText)
+    const state = await loadSession(sessionId, behaviorText, knowledge, guides, behaviors)
     return NextResponse.json(state)
   } catch (error: any) {
     console.error("Kernel load error:", error?.message)

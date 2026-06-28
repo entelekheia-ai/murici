@@ -77,38 +77,10 @@ function buildKernelState(session: AgentSession, effects: Effect[]): KernelState
   return { currentState: state, graph, validIntents, effects }
 }
 
-function resolveMerges(
-  behaviorContent: string,
-  behaviors: Array<{ path: string; content: string }>
-): string {
-  if (behaviors.length === 0) return behaviorContent
-  const behaviorMap = new Map(behaviors.map(b => [b.path, b.content]))
-  const lines = behaviorContent.split("\n")
-  const result: string[] = []
-  let inPreamble = true
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (trimmed.startsWith("state ")) inPreamble = false
-    if (inPreamble && trimmed.startsWith('merge "')) {
-      const match = trimmed.match(/^merge\s+"([^"]+)"/)
-      if (match) {
-        const merged = behaviorMap.get(match[1])
-        result.push(merged ?? line)
-      } else {
-        result.push(line)
-      }
-    } else {
-      result.push(line)
-    }
-  }
-  return result.join("\n")
-}
-
 async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
   const { loadAgent } = await getSDK()
   const bytes = await readFile(filePath)
   const bundle = await loadAgent(bytes)
-  const behaviorText = resolveMerges(bundle.files.behavior, bundle.files.behaviors)
   const am = bundle.aboutme
   return {
     aboutme: {
@@ -120,7 +92,8 @@ async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
       persona: am.persona,
       license: am.license
     },
-    behaviorText
+    behaviorText: bundle.files.behavior,
+    behaviors: bundle.files.behaviors ?? []
   }
 }
 
@@ -185,7 +158,7 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  ipcMain.handle("kernel:load", async (_, text: string) => {
+  ipcMain.handle("kernel:load", async (_, text: string, behaviors: Array<{ path: string; content: string }> = []) => {
     try {
       agentEntry?.session.dispose()
       agentEntry = null
@@ -194,7 +167,7 @@ app.whenReady().then(async () => {
       const bundle = {
         id: "electron-session",
         aboutme: {} as any,
-        files: { description: "", behavior: text, guides: [], knowledge: [], behaviors: [] }
+        files: { description: "", behavior: text, guides: [], knowledge: [], behaviors }
       } as AgentBundle
 
       const session = await AgentSession.create(bundle)

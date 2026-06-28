@@ -49,3 +49,6 @@ workbox-*.js.map
 /electron-dist/
 /dist-electron/
 public/kernel-dsl.wasm
+
+# Graphify
+graphify-out/

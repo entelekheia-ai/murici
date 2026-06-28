@@ -29,16 +29,16 @@ export type Effect =
   | {
       type: "run_script"
       target: string
-      label: string | null
+      parameters: string | null
       silent: boolean
     }
   | {
       type: "run_subagent"
       target: string
-      label: string | null
+      parameters: string | null
       background: boolean
     }
-  | { type: "run_tool"; target: string; label: string | null }
+  | { type: "run_tool"; target: string; parameters: string | null }
   | {
       type: "set_memory"
       domain: string
@@ -47,8 +47,4 @@ export type Effect =
     }
   | { type: "apply_css"; value: string }
   | { type: "remove_css"; value: string }
-  | { type: "apply_html"; value: string }
-  | { type: "remove_html"; value: string }
-  | { type: "apply_video"; value: string }
-  | { type: "remove_video"; value: string }
   | { type: "parse_error"; message: string }

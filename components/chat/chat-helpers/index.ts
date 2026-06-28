@@ -272,6 +272,16 @@ export const handleFlowChat = async (
     buildTriggerIntentTool(flowState.validIntents)
   ]
 
+  const isLocal = modelData.provider === "local"
+  const localBaseUrl =
+    modelData.baseUrl ??
+    process.env.NEXT_PUBLIC_OLLAMA_URL ??
+    "http://localhost:11434"
+  const localHeaders: Record<string, string> = {
+    "Content-Type": "application/json"
+  }
+  if (modelData.apiKey) localHeaders["Authorization"] = `Bearer ${modelData.apiKey}`
+
   const provider =
     modelData.provider === "openai" && profile.use_azure_openai
       ? "azure"
@@ -284,17 +294,31 @@ export const handleFlowChat = async (
       ? await resolveCustomModel(modelData.hostedId)
       : undefined
 
-  const res = await fetch(apiEndpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chatSettings: payload.chatSettings,
-      messages,
-      tools,
-      customModel,
-      apiKeys: buildApiKeys(profile)
-    })
-  })
+  // First turn: non-streaming call with tools to detect intent.
+  // Local models call their OpenAI-compat endpoint directly; hosted models go through API routes.
+  const res = isLocal
+    ? await fetch(`${localBaseUrl}/v1/chat/completions`, {
+        method: "POST",
+        headers: localHeaders,
+        body: JSON.stringify({
+          model: payload.chatSettings.model,
+          messages,
+          tools,
+          temperature: payload.chatSettings.temperature,
+          stream: false
+        })
+      })
+    : await fetch(apiEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chatSettings: payload.chatSettings,
+          messages,
+          tools,
+          customModel,
+          apiKeys: buildApiKeys(profile)
+        })
+      })
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: "Request failed" }))
@@ -327,28 +351,60 @@ export const handleFlowChat = async (
       )
     )
     onEvent?.({ type: "second_turn", data: {} })
-    // Second turn: stream conversational response with think-block extraction
-    const res2 = await fetch(apiEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chatSettings: payload.chatSettings,
-        messages: [...messages, ...exchangeMessages.map(m => ({ ...m }))],
-        customModel,
-        apiKeys: buildApiKeys(profile)
-      })
-    })
+
+    // Second turn: streaming conversational response.
+    const res2 = isLocal
+      ? await fetch(`${localBaseUrl}/v1/chat/completions`, {
+          method: "POST",
+          headers: localHeaders,
+          body: JSON.stringify({
+            model: payload.chatSettings.model,
+            messages: [...messages, ...exchangeMessages],
+            temperature: payload.chatSettings.temperature,
+            stream: true
+          })
+        })
+      : await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chatSettings: payload.chatSettings,
+            messages: [...messages, ...exchangeMessages.map(m => ({ ...m }))],
+            customModel,
+            apiKeys: buildApiKeys(profile)
+          })
+        })
+
     if (res2.ok && res2.body) {
       let rawAccum = ""
+      let reasoningAccum = ""
       await consumeReadableStream(
         res2.body,
         chunk => {
-          rawAccum += chunk
-          const { displayText, thinkingText } = extractThinkBlocks(rawAccum)
-          content = indicatorText + displayText
-          if (thinkingText) {
-            thinking = thinkingText
-            onThinkingUpdate?.(thinkingText)
+          if (isLocal) {
+            // Parse OpenAI SSE format for local models
+            for (const line of chunk.split("\n")) {
+              if (!line.startsWith("data: ") || line === "data: [DONE]") continue
+              try {
+                const json = JSON.parse(line.slice(6))
+                const delta = json.choices?.[0]?.delta
+                if (!delta) continue
+                rawAccum += delta.content ?? ""
+                if (delta.reasoning_content) {
+                  reasoningAccum += delta.reasoning_content
+                  onThinkingUpdate?.(reasoningAccum)
+                }
+              } catch {}
+            }
+            content = indicatorText + rawAccum
+          } else {
+            rawAccum += chunk
+            const { displayText, thinkingText } = extractThinkBlocks(rawAccum)
+            content = indicatorText + displayText
+            if (thinkingText) {
+              thinking = thinkingText
+              onThinkingUpdate?.(thinkingText)
+            }
           }
           setChatMessages(prev =>
             prev.map(m =>

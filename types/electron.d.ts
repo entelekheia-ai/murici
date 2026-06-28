@@ -27,6 +27,9 @@ export interface AgentAboutme {
 export interface UnpackPayload {
   aboutme: AgentAboutme
   behaviorText: string
+  knowledge?: Array<{ path: string; content: string }>
+  guides?: Array<{ path: string; content: string }>
+  behaviors?: Array<{ path: string; content: string }>
 }
 
 export interface KernelState {
@@ -49,7 +52,7 @@ declare global {
         cb: (payload: UnpackPayload) => void
       ) => void
       kernel?: {
-        load: (text: string) => Promise<KernelState>
+        load: (text: string, behaviors?: Array<{ path: string; content: string }>) => Promise<KernelState>
         sendIntent: (intent: string) => Promise<KernelState>
         sendOfftopic: () => Promise<KernelState>
         tick: () => Promise<{ effects: import("./kernel-effect").Effect[] }>

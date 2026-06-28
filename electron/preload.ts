@@ -29,8 +29,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("open-agent-file", (_event, payload) => cb(payload))
   },
   kernel: {
-    load: (text: string): Promise<KernelState> =>
-      ipcRenderer.invoke("kernel:load", text),
+    load: (text: string, behaviors: Array<{ path: string; content: string }> = []): Promise<KernelState> =>
+      ipcRenderer.invoke("kernel:load", text, behaviors),
     sendIntent: (intent: string): Promise<KernelState> =>
       ipcRenderer.invoke("kernel:intent", intent),
     sendOfftopic: (): Promise<KernelState> =>

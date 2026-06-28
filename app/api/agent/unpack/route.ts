@@ -17,42 +17,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { loadAgent } from "@dot-agent/sdk"
 
-function resolveMerges(
-  behaviorContent: string,
-  behaviors: Array<{ path: string; content: string }>
-): string {
-  if (behaviors.length === 0) return behaviorContent
-
-  const behaviorMap = new Map(behaviors.map(b => [b.path, b.content]))
-  const lines = behaviorContent.split("\n")
-  const result: string[] = []
-  let inPreamble = true
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (trimmed.startsWith("state ")) inPreamble = false
-
-    if (inPreamble && trimmed.startsWith('merge "')) {
-      const match = trimmed.match(/^merge\s+"([^"]+)"/)
-      if (match) {
-        const merged = behaviorMap.get(match[1])
-        if (merged) {
-          result.push(merged)
-        } else {
-          console.error(`merge target not found in bundle: ${match[1]}`)
-          result.push(line)
-        }
-      } else {
-        result.push(line)
-      }
-    } else {
-      result.push(line)
-    }
-  }
-
-  return result.join("\n")
-}
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const formData = await request.formData()
@@ -75,11 +39,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const buffer = await file.arrayBuffer()
     const bundle = await loadAgent(buffer)
 
-    const behaviorText = resolveMerges(
-      bundle.files.behavior,
-      bundle.files.behaviors
-    )
-
     const am = bundle.aboutme
     return NextResponse.json({
       aboutme: {
@@ -91,7 +50,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         persona: am.persona,
         license: am.license
       },
-      behaviorText
+      behaviorText: bundle.files.behavior,
+      knowledge: bundle.files.knowledge ?? [],
+      guides: bundle.files.guides ?? [],
+      behaviors: bundle.files.behaviors ?? []
     })
   } catch (error: any) {
     console.error("Agent unpack error:", error)
