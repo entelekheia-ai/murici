@@ -54,6 +54,16 @@ interface AgentEntry {
 
 let agentEntry: AgentEntry | null = null
 
+// Serializes all kernel IPC operations to prevent concurrent WASM access.
+// React StrictMode (dev) mounts effects twice, which would otherwise fire
+// two kernel:load calls simultaneously and corrupt the wasm-bindgen object heap.
+let kernelMutex = Promise.resolve<void>(undefined)
+function withKernelLock<T>(fn: () => Promise<T>): Promise<T> {
+  const result = kernelMutex.then(() => fn())
+  kernelMutex = result.then(() => {}, () => {})
+  return result
+}
+
 function wireHandlers(session: AgentSession): { current: Effect[] } {
   const sink: { current: Effect[] } = { current: [] }
   for (const type of EFFECT_TYPES) {
@@ -82,6 +92,7 @@ async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
   const bytes = await readFile(filePath)
   const bundle = await loadAgent(bytes)
   const am = bundle.aboutme
+  const files = bundle.files
   return {
     aboutme: {
       id: am.id,
@@ -89,11 +100,11 @@ async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
       version: am.version,
       domain: am.domain,
       description: am.description,
-      persona: am.persona,
+      persona: files.soul ?? am.persona,
       license: am.license
     },
-    behaviorText: bundle.files.behavior,
-    behaviors: bundle.files.behaviors ?? []
+    behaviorText: files.behavior,
+    behaviors: files.behaviors ?? []
   }
 }
 
@@ -158,61 +169,69 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  ipcMain.handle("kernel:load", async (_, text: string, behaviors: Array<{ path: string; content: string }> = []) => {
-    try {
-      agentEntry?.session.dispose()
-      agentEntry = null
+  ipcMain.handle("kernel:load", (_, text: string, behaviors: Array<{ path: string; content: string }> = []) =>
+    withKernelLock(async () => {
+      try {
+        agentEntry?.session.dispose()
+        agentEntry = null
 
-      const { AgentSession } = await getSDK()
-      const bundle = {
-        id: "electron-session",
-        aboutme: {} as any,
-        files: { description: "", behavior: text, guides: [], knowledge: [], behaviors }
-      } as AgentBundle
+        const { AgentSession } = await getSDK()
+        const bundle = {
+          id: "electron-session",
+          aboutme: {} as any,
+          files: { description: "", behavior: text, guides: [], knowledge: [], behaviors }
+        } as AgentBundle
 
-      const session = await AgentSession.create(bundle)
-      const sink = wireHandlers(session)
-      sink.current = []
-      session.start()
-      agentEntry = { session, sink }
-      return buildKernelState(session, sink.current)
-    } catch (err: any) {
-      throw new Error(err?.message || "Failed to load behavior")
-    }
-  })
+        const session = await AgentSession.create(bundle)
+        const sink = wireHandlers(session)
+        sink.current = []
+        session.start()
+        agentEntry = { session, sink }
+        return buildKernelState(session, sink.current)
+      } catch (err: any) {
+        throw new Error(err?.message || "Failed to load behavior")
+      }
+    })
+  )
 
-  ipcMain.handle("kernel:intent", async (_, intent: string) => {
-    try {
-      if (!agentEntry) throw new Error("No active agent session")
-      agentEntry.sink.current = []
-      agentEntry.session.sendIntent(intent)
-      return buildKernelState(agentEntry.session, agentEntry.sink.current)
-    } catch (err: any) {
-      throw new Error(err?.message || "Failed to send intent")
-    }
-  })
+  ipcMain.handle("kernel:intent", (_, intent: string) =>
+    withKernelLock(async () => {
+      try {
+        if (!agentEntry) throw new Error("No active agent session")
+        agentEntry.sink.current = []
+        agentEntry.session.sendIntent(intent)
+        return buildKernelState(agentEntry.session, agentEntry.sink.current)
+      } catch (err: any) {
+        throw new Error(err?.message || "Failed to send intent")
+      }
+    })
+  )
 
-  ipcMain.handle("kernel:offtopic", async () => {
-    try {
-      if (!agentEntry) throw new Error("No active agent session")
-      agentEntry.sink.current = []
-      agentEntry.session.sendOfftopic()
-      return buildKernelState(agentEntry.session, agentEntry.sink.current)
-    } catch (err: any) {
-      throw new Error(err?.message || "Failed to send offtopic")
-    }
-  })
+  ipcMain.handle("kernel:offtopic", () =>
+    withKernelLock(async () => {
+      try {
+        if (!agentEntry) throw new Error("No active agent session")
+        agentEntry.sink.current = []
+        agentEntry.session.sendOfftopic()
+        return buildKernelState(agentEntry.session, agentEntry.sink.current)
+      } catch (err: any) {
+        throw new Error(err?.message || "Failed to send offtopic")
+      }
+    })
+  )
 
-  ipcMain.handle("kernel:tick", async () => {
-    try {
-      if (!agentEntry) throw new Error("No active agent session")
-      agentEntry.sink.current = []
-      agentEntry.session.tickPrompt()
-      return { effects: agentEntry.sink.current }
-    } catch (err: any) {
-      throw new Error(err?.message || "Failed to tick prompt")
-    }
-  })
+  ipcMain.handle("kernel:tick", () =>
+    withKernelLock(async () => {
+      try {
+        if (!agentEntry) throw new Error("No active agent session")
+        agentEntry.sink.current = []
+        agentEntry.session.tickPrompt()
+        return { effects: agentEntry.sink.current }
+      } catch (err: any) {
+        throw new Error(err?.message || "Failed to tick prompt")
+      }
+    })
+  )
 
   if (!isDev) serverPort = await startNextServer()
   await createWindow()

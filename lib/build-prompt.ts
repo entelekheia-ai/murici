@@ -15,12 +15,17 @@ const buildBasePrompt = (
   prompt: string,
   profileContext: string,
   workspaceInstructions: string,
-  assistant: Tables<"assistants"> | null
+  assistant: Tables<"assistants"> | null,
+  agentPersona?: string
 ) => {
   let fullPrompt = ""
 
   if (assistant) {
     fullPrompt += `<INJECT ROLE>\nYou are not an AI. You are ${assistant.name}.\n</INJECT ROLE>\n\n`
+  }
+
+  if (agentPersona) {
+    fullPrompt += `<PERSONA>\n${agentPersona}\n</PERSONA>\n\n`
   }
 
   fullPrompt += `Today is ${new Date().toLocaleDateString()}.\n\n`
@@ -50,14 +55,16 @@ export async function buildFinalMessages(
     chatMessages,
     assistant,
     messageFileItems,
-    chatFileItems
+    chatFileItems,
+    agentPersona
   } = payload
 
   const BUILT_PROMPT = buildBasePrompt(
     chatSettings.prompt,
     chatSettings.includeProfileContext ? profile.profile_context || "" : "",
     chatSettings.includeWorkspaceInstructions ? workspaceInstructions : "",
-    assistant
+    assistant,
+    agentPersona
   )
 
   const CHUNK_SIZE = chatSettings.contextLength

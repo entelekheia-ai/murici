@@ -47,7 +47,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         version: am.version,
         domain: am.domain,
         description: am.description,
-        persona: am.persona,
+        persona: bundle.files.soul ?? am.persona,
         license: am.license
       },
       behaviorText: bundle.files.behavior,

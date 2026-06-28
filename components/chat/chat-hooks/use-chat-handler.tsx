@@ -83,7 +83,8 @@ export const useChatHandler = () => {
     addFlowEvent,
     setKnowledge,
     backgroundModel,
-    agentKnowledgeFiles
+    agentKnowledgeFiles,
+    agentPersona
   } = useContext(ChatbotUIContext)
 
   const resolveTeach = (name: string | undefined): string | undefined => {
@@ -259,6 +260,7 @@ export const useChatHandler = () => {
         assistant: selectedChat?.assistant_id ? selectedAssistant : null,
         messageFileItems: retrievedFileItems,
         chatFileItems: chatFileItems,
+        agentPersona: agentPersona || undefined,
         flowState: flowState || undefined
       }
 

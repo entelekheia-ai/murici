@@ -131,6 +131,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
   // FLOW ENGINE STORE
   const [agentKnowledgeFiles, setAgentKnowledgeFiles] = useState<Array<{ path: string; content: string }>>([])
+  const [agentPersona, setAgentPersona] = useState<string | null>(null)
   const [flowEngine, setFlowEngine] = useState<any | null>(null)
   const [flowState, setFlowState] = useState<{
     currentState: string
@@ -319,6 +320,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         // FLOW ENGINE STORE
         agentKnowledgeFiles,
         setAgentKnowledgeFiles,
+        agentPersona,
+        setAgentPersona,
         flowEngine,
         setFlowEngine,
         flowState,

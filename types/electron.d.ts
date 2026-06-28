@@ -20,7 +20,7 @@ export interface AgentAboutme {
   version: string
   domain: string
   description: string
-  persona: string
+  persona?: string
   license: string
 }
 

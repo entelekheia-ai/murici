@@ -22,7 +22,7 @@ import type { UnpackPayload, AgentAboutme } from "@/types/electron"
 import { KernelProxy } from "@/lib/kernel-proxy"
 
 export const AgentRightPanel: FC = () => {
-  const { setFlowState, setFlowEngine, flowState, setAgentKnowledgeFiles } = useContext(ChatbotUIContext)
+  const { setFlowState, setFlowEngine, flowState, setAgentKnowledgeFiles, setAgentPersona } = useContext(ChatbotUIContext)
 
   const [activeTab, setActiveTab] = useState<"behavior" | "agent">("agent")
   const [engine, setEngine] = useState<any>(null)
@@ -151,6 +151,7 @@ state end
 
     loadAgentBundleRef.current = async (payload: UnpackPayload) => {
       setAgentMeta(payload.aboutme)
+      setAgentPersona(payload.aboutme.persona || null)
       if (mounted) setBehaviorText(payload.behaviorText)
       if (engineRef.current && mounted) {
         await loadBehavior(engineRef.current, payload.behaviorText, payload.knowledge, payload.guides, payload.behaviors)
