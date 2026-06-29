@@ -17,13 +17,42 @@
 import { Effect } from "@/types/kernel-effect"
 import { KernelState } from "@/types/electron"
 
+let sharedWorker: Worker | null = null
+let pendingCalls = new Map<string, { resolve: (val: any) => void, reject: (err: any) => void }>()
+
+function getSharedWorker() {
+  if (typeof window === "undefined") return null
+  if (!sharedWorker) {
+    sharedWorker = new Worker(new URL('../worker/fsm.worker.ts', import.meta.url))
+    sharedWorker.onmessage = (e) => {
+      const { id, state, error } = e.data
+      const pending = pendingCalls.get(id)
+      if (pending) {
+        pendingCalls.delete(id)
+        if (error) pending.reject(new Error(error))
+        else pending.resolve(state)
+      }
+    }
+  }
+  return sharedWorker
+}
+
 export class KernelProxy {
   private _currentState = ""
   private _graph: string | null = null
   private _validIntents: string[] = []
   private _sessionId = Math.random().toString(36).slice(2)
 
-  constructor() {}
+  constructor() {
+    getSharedWorker()
+  }
+
+  destroy() {
+    const worker = getSharedWorker()
+    if (worker) {
+      worker.postMessage({ id: "destroy", method: "DESTROY", payload: { sessionId: this._sessionId } })
+    }
+  }
 
   get_current_state(): string {
     return this._currentState
@@ -67,36 +96,19 @@ export class KernelProxy {
   }
 
   async tick_prompt(): Promise<Effect[]> {
-    const res = await fetch("/api/agent/kernel/tick", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId: this._sessionId })
-    })
-    const { effects } = await res.json()
-    return effects
+    const state = await this._call("tick", {})
+    return this._updateCache(state)
   }
 
-  private async _call(
-    method: string,
-    payload: Record<string, any>
-  ): Promise<KernelState> {
-    let endpoint = `/api/agent/kernel/${method}`
-    if (method === "sendIntent") endpoint = "/api/agent/kernel/intent"
-    if (method === "sendOfftopic") endpoint = "/api/agent/kernel/offtopic"
-    if (method === "injectMemory") endpoint = "/api/agent/kernel/inject-memory"
-    const payloadWithSession = { ...payload, sessionId: this._sessionId }
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payloadWithSession)
+  private async _call(method: string, payload: Record<string, any> = {}): Promise<KernelState> {
+    const worker = getSharedWorker()
+    if (!worker) throw new Error("Worker not initialized")
+    const id = Math.random().toString(36).slice(2)
+    payload.sessionId = this._sessionId
+    return new Promise((resolve, reject) => {
+      pendingCalls.set(id, { resolve, reject })
+      worker.postMessage({ id, method, payload })
     })
-
-    if (!res.ok) {
-      const err = await res.json()
-      throw new Error(err.error || err.message || "Kernel error")
-    }
-
-    return await res.json()
   }
 
   private _updateCache(state: KernelState): Effect[] {

@@ -31,12 +31,12 @@ export const AgentRightPanel: FC = () => {
   const [visitedStates, setVisitedStates] = useState<Set<string>>(new Set())
   const [parseError, setParseError] = useState<string | null>(null)
   const [behaviorText, setBehaviorText] = useState(
-    `state welcome
+    `state init
   goal "Help the user get started"
   guide "Be friendly and concise"
   interact
   on intent "continue" transition to setup
-  on offtopic transition to welcome
+  on offtopic transition to init
 
 state setup
   goal "Collect user preferences"
@@ -50,14 +50,14 @@ state preferences
   goal "Confirm collected information"
   interact
   on intent "confirm" transition to end
-  on intent "restart" transition to welcome
+  on intent "restart" transition to init
   on offtopic transition to preferences
 
 state end
   goal "Session complete"
   guide "Thank you for using this agent"
   interact
-  on intent "restart" transition to welcome`
+  on intent "restart" transition to init`
   )
   const [agentMeta, setAgentMeta] = useState<AgentAboutme | null>(null)
   const [agentLoading, setAgentLoading] = useState(false)
@@ -80,9 +80,9 @@ state end
   const guidesRef = useRef<Array<{ path: string; content: string }>>([])
   const behaviorsRef = useRef<Array<{ path: string; content: string }>>([])
   const loadAgentBundleRef = useRef<(payload: UnpackPayload) => Promise<void>>(
-    async () => {}
+    async () => { }
   )
-  const handleAgentFileRef = useRef<(file: File) => Promise<void>>(async () => {})
+  const handleAgentFileRef = useRef<(file: File) => Promise<void>>(async () => { })
 
   // The kernel emits teach effects with just the filename ("recipes.txt").
   // The app is responsible for resolving it to the actual file content.
@@ -159,29 +159,29 @@ state end
       if (mounted) setActiveTab("behavior")
     }
 
-    ;(async () => {
-      try {
-        const proxy = new KernelProxy()
-        engineRef.current = proxy
-        setEngine(proxy)
-        setFlowEngine(proxy)
+      ; (async () => {
+        try {
+          const proxy = new KernelProxy()
+          engineRef.current = proxy
+          setEngine(proxy)
+          setFlowEngine(proxy)
 
-        if (mounted) {
-          await loadBehavior(proxy, behaviorText)
-        }
+          if (mounted) {
+            await loadBehavior(proxy, behaviorText)
+          }
 
-        if (
-          typeof window !== "undefined" &&
-          window.electronAPI?.onOpenAgentFile
-        ) {
-          window.electronAPI.onOpenAgentFile((payload: UnpackPayload) => {
-            loadAgentBundleRef.current(payload)
-          })
+          if (
+            typeof window !== "undefined" &&
+            window.electronAPI?.onOpenAgentFile
+          ) {
+            window.electronAPI.onOpenAgentFile((payload: UnpackPayload) => {
+              loadAgentBundleRef.current(payload)
+            })
+          }
+        } catch (err) {
+          console.error("Failed to initialize kernel proxy:", err)
         }
-      } catch (err) {
-        console.error("Failed to initialize kernel proxy:", err)
-      }
-    })()
+      })()
 
     const onAgentDrop = (e: Event) => {
       const file = (e as CustomEvent<{ file: File }>).detail.file
@@ -192,6 +192,9 @@ state end
     return () => {
       mounted = false
       window.removeEventListener("agent:drop", onAgentDrop)
+      if (engineRef.current) {
+        engineRef.current.destroy()
+      }
     }
   }, [])
 
@@ -430,7 +433,7 @@ state end
                 <div className="text-sm">
                   <p className="mb-3 text-center font-semibold">Estrutura de um .agent</p>
                   <pre className="bg-background text-foreground overflow-auto rounded border p-2 text-xs font-mono mb-3">
-{`agent ExampleAgent
+                    {`agent ExampleAgent
   domain example.com
   license MIT
 

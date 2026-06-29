@@ -142,8 +142,10 @@ export async function runHeadlessAgent(
       await kernel.send_intent(parsed.intent_name)
     }
 
+    kernel.destroy()
     return parsed
   } catch (err) {
+    kernel.destroy()
     console.error("Headless LLM parse error:", err)
   }
 
