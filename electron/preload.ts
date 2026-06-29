@@ -15,8 +15,7 @@
  */
 
 import { contextBridge, ipcRenderer } from "electron"
-import type { UnpackPayload, KernelState } from "../types/electron"
-import type { Effect } from "../types/kernel-effect"
+import type { UnpackPayload } from "../types/electron"
 
 contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
@@ -27,15 +26,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   onOpenAgentFile: (cb: (payload: UnpackPayload) => void) => {
     ipcRenderer.on("open-agent-file", (_event, payload) => cb(payload))
-  },
-  kernel: {
-    load: (text: string, behaviors: Array<{ path: string; content: string }> = []): Promise<KernelState> =>
-      ipcRenderer.invoke("kernel:load", text, behaviors),
-    sendIntent: (intent: string): Promise<KernelState> =>
-      ipcRenderer.invoke("kernel:intent", intent),
-    sendOfftopic: (): Promise<KernelState> =>
-      ipcRenderer.invoke("kernel:offtopic"),
-    tick: (): Promise<{ effects: Effect[] }> =>
-      ipcRenderer.invoke("kernel:tick")
   }
 })

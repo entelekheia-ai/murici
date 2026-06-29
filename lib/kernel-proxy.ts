@@ -21,13 +21,9 @@ export class KernelProxy {
   private _currentState = ""
   private _graph: string | null = null
   private _validIntents: string[] = []
-  private _isElectron = false
   private _sessionId = Math.random().toString(36).slice(2)
 
-  constructor() {
-    this._isElectron =
-      typeof window !== "undefined" && !!window.electronAPI?.kernel
-  }
+  constructor() {}
 
   get_current_state(): string {
     return this._currentState
@@ -65,10 +61,12 @@ export class KernelProxy {
     return this._updateCache(state)
   }
 
+  async inject_memory(domain: string, key: string, value: string): Promise<Effect[]> {
+    const state = await this._call("injectMemory", { domain, key, value })
+    return this._updateCache(state)
+  }
+
   async tick_prompt(): Promise<Effect[]> {
-    if (this._isElectron) {
-      return (await window.electronAPI?.kernel?.tick()) as any
-    }
     const res = await fetch("/api/agent/kernel/tick", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,18 +80,10 @@ export class KernelProxy {
     method: string,
     payload: Record<string, any>
   ): Promise<KernelState> {
-    if (this._isElectron) {
-      const kernel = window.electronAPI?.kernel
-      if (method === "load")
-        return await kernel!.load(payload.behaviorText, payload.behaviors)
-      if (method === "sendIntent") return await kernel!.sendIntent(payload.intent)
-      if (method === "sendOfftopic") return await kernel!.sendOfftopic()
-      throw new Error(`Unknown method: ${method}`)
-    }
-
     let endpoint = `/api/agent/kernel/${method}`
     if (method === "sendIntent") endpoint = "/api/agent/kernel/intent"
     if (method === "sendOfftopic") endpoint = "/api/agent/kernel/offtopic"
+    if (method === "injectMemory") endpoint = "/api/agent/kernel/inject-memory"
     const payloadWithSession = { ...payload, sessionId: this._sessionId }
     const res = await fetch(endpoint, {
       method: "POST",

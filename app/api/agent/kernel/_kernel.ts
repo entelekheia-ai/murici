@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-import { AgentSession } from "@dot-agent/sdk"
+import type { AgentSession } from "@dot-agent/sdk"
 import type { AgentBundle } from "@dot-agent/sdk"
 import { Effect } from "@/types/kernel-effect"
 import { KernelState } from "@/types/electron"
 
 declare global {
   var __kernel_sessions__: Map<string, SessionEntry> | undefined
+}
+
+
+let sdk: typeof import("@dot-agent/sdk") | null = null
+async function getSDK() {
+  if (!sdk) sdk = await (new Function("s", "return import(s)") as (s: string) => Promise<typeof import("@dot-agent/sdk")>)("@dot-agent/sdk")
+  return sdk
 }
 
 const EFFECT_TYPES = [
@@ -41,6 +48,7 @@ const EFFECT_TYPES = [
 interface SessionEntry {
   session: AgentSession
   sink: { current: Effect[] }
+  text: string
 }
 
 const getSessionsMap = () => {
@@ -76,6 +84,12 @@ export async function loadSession(
 ): Promise<KernelState> {
   const sessions = getSessionsMap()
   const old = sessions.get(sessionId)
+  
+  if (old && old.text === behaviorText) {
+    old.session.start()
+    return buildKernelState(old.session, old.sink.current)
+  }
+  
   old?.session.dispose()
   sessions.delete(sessionId)
 
@@ -91,12 +105,13 @@ export async function loadSession(
     }
   } as AgentBundle
 
+  const { AgentSession } = await getSDK()
   const session = await AgentSession.create(bundle)
   const sink = wireHandlers(session)
   sink.current = []
   session.start()
   const effects = sink.current
-  sessions.set(sessionId, { session, sink })
+  sessions.set(sessionId, { session, sink, text: behaviorText })
   return buildKernelState(session, effects)
 }
 

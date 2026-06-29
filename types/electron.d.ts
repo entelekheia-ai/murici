@@ -51,14 +51,8 @@ declare global {
       onOpenAgentFile?: (
         cb: (payload: UnpackPayload) => void
       ) => void
-      kernel?: {
-        load: (text: string, behaviors?: Array<{ path: string; content: string }>) => Promise<KernelState>
-        sendIntent: (intent: string) => Promise<KernelState>
-        sendOfftopic: () => Promise<KernelState>
-        tick: () => Promise<{ effects: import("./kernel-effect").Effect[] }>
-      }
     }
   }
 }
 
-export {}
+export { }
