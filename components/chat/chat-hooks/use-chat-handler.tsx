@@ -84,7 +84,9 @@ export const useChatHandler = () => {
     setKnowledge,
     backgroundModel,
     agentKnowledgeFiles,
-    agentPersona
+    agentPersona,
+    backgroundQueue,
+    setBackgroundQueue
   } = useContext(ChatbotUIContext)
 
   const resolveTeach = (name: string | undefined): string | undefined => {
@@ -96,6 +98,46 @@ export const useChatHandler = () => {
   }
 
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
+
+  const processingQueueRef = useRef(false)
+  useEffect(() => {
+    if (backgroundQueue.length > 0 && !processingQueueRef.current) {
+      const task = backgroundQueue[0]
+      processingQueueRef.current = true
+
+      const runTask = async () => {
+        if (task.type === "enrich_knowledge") {
+          const { record, modelData } = task.payload
+          try {
+            const { runHeadlessAgent } = await import("@/lib/runtime/headless-runner")
+            const { updateKnowledgeRecord } = await import("@/lib/local-db/knowledge")
+            const result = await runHeadlessAgent(
+              record.payload.content,
+              modelData,
+              "/agents/memory.agent",
+              "run_enrichment"
+            )
+            if (result && result.title && result.summary) {
+              const update: any = { summary: result.summary }
+              if (/^.+ · \d{2}:\d{2}$/.test(record.title)) {
+                update.title = result.title
+              }
+              setKnowledge(prev =>
+                prev.map(k => (k.id === record.id ? { ...k, ...update } : k))
+              )
+              await updateKnowledgeRecord(record.id, update)
+            }
+          } catch (e) {
+            console.error("Headless agent failed:", e)
+          }
+        }
+        setBackgroundQueue(prev => prev.slice(1))
+        processingQueueRef.current = false
+      }
+
+      runTask()
+    }
+  }, [backgroundQueue, setKnowledge, setBackgroundQueue])
 
   useEffect(() => {
     if (!isPromptPickerOpen || !isFilePickerOpen || !isToolPickerOpen) {
@@ -519,7 +561,8 @@ export const useChatHandler = () => {
         setChatImages,
         selectedAssistant,
         setKnowledge,
-        backgroundModel
+        backgroundModel,
+        setBackgroundQueue
       )
 
       setIsGenerating(false)

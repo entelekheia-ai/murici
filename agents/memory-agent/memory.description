@@ -1,0 +1,6 @@
+agent BackgroundSystem
+  domain entelekheia.ai
+  description 
+Background agent for memory and summarization tasks without human interaction.
+
+  behavior "main.behavior"

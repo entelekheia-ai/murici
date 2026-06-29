@@ -150,6 +150,9 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   // KNOWLEDGE STORE
   const [knowledge, setKnowledge] = useState<KnowledgeRecord[]>([])
 
+  // BACKGROUND QUEUE
+  const [backgroundQueue, setBackgroundQueue] = useState<any[]>([])
+
   // FLOW EVENT LOG
   const [flowEvents, setFlowEvents] = useState<FlowEvent[]>([])
   const addFlowEvent = useCallback(
@@ -339,7 +342,11 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
         // KNOWLEDGE STORE
         knowledge,
-        setKnowledge
+        setKnowledge,
+
+        // BACKGROUND QUEUE
+        backgroundQueue,
+        setBackgroundQueue
       }}
     >
       {children}

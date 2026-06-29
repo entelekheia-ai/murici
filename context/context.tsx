@@ -169,6 +169,10 @@ interface ChatbotUIContext {
   // KNOWLEDGE STORE
   knowledge: KnowledgeRecord[]
   setKnowledge: Dispatch<SetStateAction<KnowledgeRecord[]>>
+
+  // BACKGROUND QUEUE
+  backgroundQueue: any[]
+  setBackgroundQueue: Dispatch<SetStateAction<any[]>>
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({
@@ -304,5 +308,9 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
 
   // KNOWLEDGE STORE
   knowledge: [],
-  setKnowledge: () => {}
+  setKnowledge: () => {},
+
+  // BACKGROUND QUEUE
+  backgroundQueue: [],
+  setBackgroundQueue: () => {}
 })

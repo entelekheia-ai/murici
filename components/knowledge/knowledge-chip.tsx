@@ -9,9 +9,11 @@ import { FC, useState, useRef } from "react"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { LLM } from "@/types"
 import { updateKnowledgeRecord } from "@/lib/local-db/knowledge"
-import { enrichKnowledgeRecord } from "@/lib/knowledge/enrich"
+import { enrichKnowledgeRecord, triggerEnrichment } from "@/lib/knowledge/enrich"
 import { Button } from "@/components/ui/button"
 import { IconCopy, IconCheck, IconPencil } from "@tabler/icons-react"
+import { ChatbotUIContext } from "@/context/context"
+import { useContext } from "react"
 import { KnowledgePreviewModal } from "./knowledge-preview-modal"
 
 const PLACEHOLDER_TITLE_RE = /^.+ · \d{2}:\d{2}$/
@@ -52,6 +54,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
   const [copied, setCopied] = useState(false)
   const [naming, setNaming] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { setKnowledge, setBackgroundQueue } = useContext(ChatbotUIContext)
 
   const isPlaceholder = PLACEHOLDER_TITLE_RE.test(record.title)
   const showNamingButton = (isPlaceholder || !record.summary) && !compact
@@ -88,15 +91,20 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
   const handleNaming = async (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!modelData || naming) return
-    setNaming(true)
-    try {
-      const result = await enrichKnowledgeRecord(record, modelData)
-      if (result) {
-        await updateKnowledgeRecord(record.id, result)
-        onUpdate(record.id, result)
+
+    if (setBackgroundQueue && setKnowledge) {
+      triggerEnrichment([record], modelData, setKnowledge, setBackgroundQueue)
+    } else {
+      setNaming(true)
+      try {
+        const result = await enrichKnowledgeRecord(record, modelData)
+        if (result) {
+          await updateKnowledgeRecord(record.id, result)
+          onUpdate(record.id, result)
+        }
+      } finally {
+        setNaming(false)
       }
-    } finally {
-      setNaming(false)
     }
   }
 

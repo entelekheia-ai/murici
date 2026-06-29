@@ -41,7 +41,8 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     setChatFiles,
     setShowFilesDisplay,
     setUseRetrieval,
-    setKnowledge
+    setKnowledge,
+    backgroundQueue
   } = useContext(ChatbotUIContext)
 
   const { handleNewChat, handleFocusChatInput } = useChatHandler()
@@ -163,6 +164,12 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
 
       <div className="relative w-full min-w-[300px] items-end px-2 pb-3 pt-0 sm:w-[600px] sm:pb-8 sm:pt-5 md:w-[700px] lg:w-[700px] xl:w-[800px]">
         <ChatInput />
+        {backgroundQueue && backgroundQueue.length > 0 && (
+          <div className="absolute -bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground flex items-center space-x-1.5 opacity-80">
+            <span className="animate-pulse">🧠</span>
+            <span>Processando {backgroundQueue.length} tarefa{backgroundQueue.length > 1 ? "s" : ""} em segundo plano...</span>
+          </div>
+        )}
       </div>
 
       <div className="absolute bottom-2 right-2 hidden md:block lg:bottom-4 lg:right-4">
