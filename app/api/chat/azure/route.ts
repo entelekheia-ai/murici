@@ -9,16 +9,33 @@ import {
   checkApiKey,
   getProfileFromBody
 } from "@/lib/server/server-chat-helpers"
-import { ChatAPIPayload } from "@/types"
-import { OpenAIStream, StreamingTextResponse } from "ai"
-import OpenAI from "openai"
-import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
+import { ChatSettings } from "@/types"
+import { createAzure } from "@ai-sdk/azure"
+import { streamText, generateText, tool as createTool, jsonSchema } from "ai"
 
 export const runtime = "edge"
 
+function buildAiSdkTools(rawTools?: any[]): Record<string, any> | undefined {
+  if (!rawTools || rawTools.length === 0) return undefined
+  const tools: Record<string, any> = {}
+  for (const t of rawTools) {
+    if (t.type === "function") {
+      tools[t.function.name] = createTool({
+        description: t.function.description,
+        inputSchema: jsonSchema(t.function.parameters),
+      })
+    }
+  }
+  return tools
+}
+
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages } = json as ChatAPIPayload
+  const { chatSettings, messages, tools: rawTools } = json as {
+    chatSettings: ChatSettings
+    messages: any[]
+    tools?: any[]
+  }
 
   try {
     const profile = getProfileFromBody(json)
@@ -54,26 +71,50 @@ export async function POST(request: Request) {
       )
     }
 
-    const azureOpenai = new OpenAI({
+    const azure = createAzure({
+      resourceName: ENDPOINT.replace(/https?:\/\//, '').split('.')[0], // Very rough heuristic, assumes endpoint starts with resource name
       apiKey: KEY,
-      baseURL: `${ENDPOINT}/openai/deployments/${DEPLOYMENT_ID}`,
-      defaultQuery: { "api-version": "2023-12-01-preview" },
-      defaultHeaders: { "api-key": KEY }
     })
 
-    const response = await azureOpenai.chat.completions.create({
-      model: DEPLOYMENT_ID as ChatCompletionCreateParamsBase["model"],
-      messages: messages as ChatCompletionCreateParamsBase["messages"],
-      temperature: chatSettings.temperature,
-      max_tokens: chatSettings.model === "gpt-4-vision-preview" ? 4096 : null, // TODO: Fix
-      stream: true
+    const useStreaming = !rawTools?.length
+    const tools = buildAiSdkTools(rawTools)
+
+    if (!useStreaming) {
+      const result = await generateText({
+        model: azure(DEPLOYMENT_ID),
+        messages: messages as any,
+        temperature: chatSettings.temperature,
+        tools
+      })
+
+      return Response.json({
+        choices: [
+          {
+            message: {
+              content: result.text || "",
+              tool_calls: result.toolCalls?.map(call => ({
+                id: call.toolCallId,
+                type: "function",
+                function: {
+                  name: call.toolName,
+                  arguments: JSON.stringify(call.input)
+                }
+              }))
+            }
+          }
+        ]
+      })
+    }
+
+    const result = await streamText({
+      model: azure(DEPLOYMENT_ID),
+      messages: messages as any,
+      temperature: chatSettings.temperature
     })
 
-    const stream = OpenAIStream(response)
-
-    return new StreamingTextResponse(stream)
+    return result.toTextStreamResponse()
   } catch (error: any) {
-    const errorMessage = error.error?.message || "An unexpected error occurred"
+    const errorMessage = error.error?.message || error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
     return new Response(JSON.stringify({ message: errorMessage }), {
       status: errorCode

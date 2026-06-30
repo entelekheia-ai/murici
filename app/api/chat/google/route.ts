@@ -10,15 +10,31 @@ import {
   getProfileFromBody
 } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
-import { GoogleGenerativeAI } from "@google/generative-ai"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
+import { streamText, generateText, tool as createTool, jsonSchema } from "ai"
 
 export const runtime = "edge"
 
+function buildAiSdkTools(rawTools?: any[]): Record<string, any> | undefined {
+  if (!rawTools || rawTools.length === 0) return undefined
+  const tools: Record<string, any> = {}
+  for (const t of rawTools) {
+    if (t.type === "function") {
+      tools[t.function.name] = createTool({
+        description: t.function.description,
+        inputSchema: jsonSchema(t.function.parameters),
+      })
+    }
+  }
+  return tools
+}
+
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages } = json as {
+  const { chatSettings, messages, tools: rawTools } = json as {
     chatSettings: ChatSettings
     messages: any[]
+    tools?: any[]
   }
 
   try {
@@ -26,34 +42,47 @@ export async function POST(request: Request) {
 
     checkApiKey(profile.google_gemini_api_key, "Google")
 
-    const genAI = new GoogleGenerativeAI(profile.google_gemini_api_key || "")
-    const googleModel = genAI.getGenerativeModel({ model: chatSettings.model })
-
-    const lastMessage = messages.pop()
-
-    const chat = googleModel.startChat({
-      history: messages,
-      generationConfig: {
-        temperature: chatSettings.temperature
-      }
+    const google = createGoogleGenerativeAI({
+      apiKey: profile.google_gemini_api_key || ""
     })
 
-    const response = await chat.sendMessageStream(lastMessage.parts)
+    const useStreaming = !rawTools?.length
+    const tools = buildAiSdkTools(rawTools)
 
-    const encoder = new TextEncoder()
-    const readableStream = new ReadableStream({
-      async start(controller) {
-        for await (const chunk of response.stream) {
-          const chunkText = chunk.text()
-          controller.enqueue(encoder.encode(chunkText))
-        }
-        controller.close()
-      }
+    if (!useStreaming) {
+      const result = await generateText({
+        model: google(chatSettings.model),
+        messages,
+        temperature: chatSettings.temperature,
+        tools
+      })
+
+      return Response.json({
+        choices: [
+          {
+            message: {
+              content: result.text || "",
+              tool_calls: result.toolCalls?.map(call => ({
+                id: call.toolCallId,
+                type: "function",
+                function: {
+                  name: call.toolName,
+                  arguments: JSON.stringify(call.input)
+                }
+              }))
+            }
+          }
+        ]
+      })
+    }
+
+    const result = await streamText({
+      model: google(chatSettings.model),
+      messages,
+      temperature: chatSettings.temperature
     })
 
-    return new Response(readableStream, {
-      headers: { "Content-Type": "text/plain" }
-    })
+    return result.toTextStreamResponse()
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500

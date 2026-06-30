@@ -428,7 +428,7 @@ export const handleFlowChat = async (
             content = indicatorText + rawAccum
           } else {
             rawAccum += chunk
-            const { displayText, thinkingText } = extractThinkBlocks(rawAccum)
+            const { displayText, thinkingText, foundTool } = sanitizeStreamText(rawAccum)
             content = indicatorText + displayText
             if (thinkingText) {
               thinking = thinkingText
@@ -448,113 +448,73 @@ export const handleFlowChat = async (
     }
   }
 
-  if (provider === "anthropic") {
-    const textBlock = data.content?.find((b: any) => b.type === "text")
-    const toolBlocks = data.content?.filter((b: any) => b.type === "tool_use") || []
-    
-    content = textBlock?.text ?? ""
-
-    if (toolBlocks.length > 0 && !content) {
-      const assistantMsg = { role: "assistant", content: data.content }
-      const toolResultMsg: any = { role: "user", content: [] }
-
-      for (const toolBlock of toolBlocks) {
-        const name = toolBlock.name
-        let toolResult = "ok"
-
-        if (name === "trigger_intent") {
-          intentName = toolBlock.input?.intent_name ?? null
-          onEvent?.({ type: "tool_call", data: { intentName, raw: toolBlock } })
-        } else if (name === "murici__state_graph") {
-          toolResult = JSON.stringify({ graph: flowState.graph || "No graph available" })
-        } else if (name?.startsWith("mcp__")) {
-          const parts = name.split("__")
-          const serverName = parts[1]
-          const toolName = parts[2]
-          try {
-            const executeRes = await fetch("/api/mcp/execute", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ serverName, toolName, args: toolBlock.input })
-            })
-            if (executeRes.ok) {
-              const resJson = await executeRes.json()
-              toolResult = JSON.stringify(resJson)
-            } else {
-              toolResult = "Error executing tool"
-            }
-          } catch (e: any) {
-            toolResult = e.message
-          }
-        }
-        toolResultMsg.content.push({ type: "tool_result", tool_use_id: toolBlock.id, content: toolResult })
-      }
-
-      await showIndicatorAndStream([assistantMsg, toolResultMsg], "")
+  // All hosted APIs now return OpenAI-compatible JSON formats (choices[0].message)
+  const msg = data.choices?.[0]?.message
+  content = msg?.content ?? ""
+  
+  if (msg?.tool_calls?.length > 0 && !content) {
+    const toolExchangeMsg: any[] = []
+    const assistantMsg = {
+      role: "assistant",
+      content: msg.content ?? "",
+      tool_calls: msg.tool_calls
     }
-  } else {
-    // OpenAI-compatible (openai, custom, azure)
-    const msg = data.choices?.[0]?.message
-    content = msg?.content ?? ""
-    
-    if (msg?.tool_calls?.length > 0 && !content) {
-      const toolExchangeMsg: any[] = []
-      const assistantMsg = {
-        role: "assistant",
-        content: msg.content ?? null,
-        tool_calls: msg.tool_calls
-      }
-      toolExchangeMsg.push(assistantMsg)
+    toolExchangeMsg.push(assistantMsg)
 
-      for (const call of msg.tool_calls) {
-        const name = call.function?.name
-        const argsStr = call.function?.arguments || "{}"
-        
-        let toolResult = "ok"
+    for (const call of msg.tool_calls) {
+      const name = call.function?.name
+      const argsStr = call.function?.arguments || "{}"
+      
+      let toolResult = "ok"
 
-        if (name === "trigger_intent") {
-          try {
-            intentName = JSON.parse(argsStr)?.intent_name ?? null
-          } catch {}
-          onEvent?.({ type: "tool_call", data: { intentName, raw: call } })
-        } else if (name === "murici__state_graph") {
-          toolResult = JSON.stringify({ graph: flowState.graph || "No graph available" })
-        } else if (name?.startsWith("mcp__")) {
-          const parts = name.split("__")
-          const serverName = parts[1]
-          const toolName = parts[2]
-          try {
-            const executeRes = await fetch("/api/mcp/execute", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ serverName, toolName, args: JSON.parse(argsStr) })
-            })
-            if (executeRes.ok) {
-              const resJson = await executeRes.json()
-              toolResult = JSON.stringify(resJson)
-            } else {
-              toolResult = "Error executing tool"
-            }
-          } catch (e: any) {
-            toolResult = e.message
+      if (name === "trigger_intent") {
+        try {
+          intentName = JSON.parse(argsStr)?.intent_name ?? null
+        } catch {}
+        onEvent?.({ type: "tool_call", data: { intentName, raw: call } })
+      } else if (name === "murici__state_graph") {
+        toolResult = JSON.stringify({ graph: flowState.graph || "No graph available" })
+      } else if (name?.startsWith("mcp__")) {
+        const parts = name.split("__")
+        const serverName = parts[1]
+        const toolName = parts[2]
+        try {
+          const executeRes = await fetch("/api/mcp/execute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ serverName, toolName, args: JSON.parse(argsStr) })
+          })
+          if (executeRes.ok) {
+            const resJson = await executeRes.json()
+            toolResult = JSON.stringify(resJson)
+          } else {
+            toolResult = "Error executing tool"
           }
+        } catch (e: any) {
+          toolResult = e.message
         }
-
-        toolExchangeMsg.push({ role: "tool", tool_call_id: call.id, content: toolResult })
       }
 
-      await showIndicatorAndStream(toolExchangeMsg, "")
+      toolExchangeMsg.push({ role: "tool", tool_call_id: call.id, content: toolResult })
     }
+
+    await showIndicatorAndStream(toolExchangeMsg, "")
   }
 
-  // Extract think blocks from direct (non-streaming) content paths
+  // Extract think blocks and fallback tools from direct (non-streaming) content paths
   if (content && !thinking) {
-    const { displayText, thinkingText } = extractThinkBlocks(content)
+    const { displayText, thinkingText, foundTool } = sanitizeStreamText(content)
     if (thinkingText) {
-      content = displayText
       thinking = thinkingText
       onThinkingUpdate?.(thinkingText)
     }
+    if (foundTool && !intentName) {
+      if (foundTool.name === "trigger_intent") {
+        intentName = foundTool.arguments?.intent_name ?? null
+        onEvent?.({ type: "tool_call", data: { intentName, raw: foundTool } })
+      }
+    }
+    content = displayText
   }
 
   // Final update covers the case where content came from the first call directly
@@ -680,36 +640,61 @@ export const fetchChatResponse = async (
   return response
 }
 
-function extractThinkBlocks(raw: string): {
+export function sanitizeStreamText(raw: string): {
   displayText: string
   thinkingText: string
+  foundTool: any | null
 } {
-  const startTag = "<think>"
-  const endTag = "</think>"
-  const startIdx = raw.indexOf(startTag)
+  let displayText = raw
+  let thinkingText = ""
+  let foundTool = null
 
-  if (startIdx === -1) {
-    return { displayText: raw, thinkingText: "" }
-  }
-
-  const endIdx = raw.indexOf(endTag, startIdx)
-  const preThink = raw.slice(0, startIdx)
-
-  if (endIdx === -1) {
-    // Think block still open: hide it from display, accumulate as thinking
-    return {
-      displayText: preThink,
-      thinkingText: raw.slice(startIdx + startTag.length)
+  // 1. Extract <think> blocks (for local models that output raw tags)
+  const thinkStartTag = "<think>"
+  const thinkEndTag = "</think>"
+  let tStartIdx = displayText.indexOf(thinkStartTag)
+  if (tStartIdx !== -1) {
+    const tEndIdx = displayText.indexOf(thinkEndTag, tStartIdx)
+    const pre = displayText.slice(0, tStartIdx)
+    if (tEndIdx === -1) {
+      thinkingText = displayText.slice(tStartIdx + thinkStartTag.length)
+      displayText = pre
+    } else {
+      thinkingText = displayText.slice(tStartIdx + thinkStartTag.length, tEndIdx)
+      const post = displayText.slice(tEndIdx + thinkEndTag.length).trimStart()
+      displayText = pre + post
     }
   }
 
-  // Think block closed: extract thinking, stitch display text
-  const thinkingText = raw.slice(startIdx + startTag.length, endIdx)
-  const postThink = raw.slice(endIdx + endTag.length).trimStart()
-  return {
-    displayText: preThink ? preThink + postThink : postThink,
-    thinkingText
+  // 2. Extract <tool_call> fallback
+  const toolStartTag = "<tool_call>"
+  const toolEndTag = "</tool_call>"
+  let toolStartIdx = displayText.indexOf(toolStartTag)
+  if (toolStartIdx !== -1) {
+    const toolEndIdx = displayText.indexOf(toolEndTag, toolStartIdx)
+    const pre = displayText.slice(0, toolStartIdx)
+    if (toolEndIdx === -1) {
+      displayText = pre
+    } else {
+      const toolText = displayText.slice(toolStartIdx + toolStartTag.length, toolEndIdx)
+      const post = displayText.slice(toolEndIdx + toolEndTag.length).trimStart()
+      displayText = pre + post
+      
+      const funcMatch = toolText.match(/<function=([^>]+)>/)
+      if (funcMatch) {
+        const funcName = funcMatch[1].trim()
+        const params: Record<string, any> = {}
+        const paramRegex = /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/g
+        let pMatch;
+        while ((pMatch = paramRegex.exec(toolText)) !== null) {
+          params[pMatch[1].trim()] = pMatch[2].trim()
+        }
+        foundTool = { name: funcName, arguments: params }
+      }
+    }
   }
+
+  return { displayText, thinkingText, foundTool }
 }
 
 export const processResponse = async (
@@ -764,7 +749,7 @@ export const processResponse = async (
           console.error("Error parsing JSON:", error)
         }
 
-        const { displayText, thinkingText } = extractThinkBlocks(rawAccum)
+        const { displayText, thinkingText } = sanitizeStreamText(rawAccum)
         lastDisplayText = displayText
 
         if (onThinkingUpdate && thinkingText) {

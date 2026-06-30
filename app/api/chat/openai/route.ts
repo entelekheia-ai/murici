@@ -11,14 +11,31 @@ import {
 } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { ServerRuntime } from "next"
-import OpenAI from "openai"
-import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
+import { createOpenAI } from "@ai-sdk/openai"
+import { streamText, generateText, tool as createTool, jsonSchema } from "ai"
+import { z } from "zod"
 
 export const runtime: ServerRuntime = "edge"
 
+// Helper to convert standard JSON schema tools to AI SDK tool records
+function buildAiSdkTools(rawTools?: any[]): Record<string, any> | undefined {
+  if (!rawTools || rawTools.length === 0) return undefined
+  const tools: Record<string, any> = {}
+  for (const t of rawTools) {
+    if (t.type === "function") {
+      tools[t.function.name] = createTool({
+        description: t.function.description,
+        // AI SDK accepts raw json schema if we don't have zod
+        inputSchema: jsonSchema(t.function.parameters),
+      })
+    }
+  }
+  return tools
+}
+
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, tools } = json as {
+  const { chatSettings, messages, tools: rawTools } = json as {
     chatSettings: ChatSettings
     messages: any[]
     tools?: any[]
@@ -29,64 +46,53 @@ export async function POST(request: Request) {
 
     checkApiKey(profile.openai_api_key, "OpenAI")
 
-    const openai = new OpenAI({
+    const openai = createOpenAI({
       apiKey: profile.openai_api_key || "",
-      organization: profile.openai_organization_id
+      organization: profile.openai_organization_id || undefined
     })
 
-    const useStreaming = !tools?.length
-
-    const response = await openai.chat.completions.create({
-      model: chatSettings.model as ChatCompletionCreateParamsBase["model"],
-      messages: messages as ChatCompletionCreateParamsBase["messages"],
-      temperature: chatSettings.temperature,
-      max_tokens:
-        chatSettings.model === "gpt-4-vision-preview" ||
-        chatSettings.model === "gpt-4o"
-          ? 4096
-          : null,
-      stream: useStreaming,
-      ...(tools?.length ? { tools, tool_choice: "auto" } : {})
-    } as any)
+    const useStreaming = !rawTools?.length
+    const tools = buildAiSdkTools(rawTools)
+    const maxTokens =
+      chatSettings.model === "gpt-4-vision-preview" || chatSettings.model === "gpt-4o"
+        ? 4096
+        : undefined
 
     if (!useStreaming) {
-      return Response.json(response)
-    }
+      const result = await generateText({
+        model: openai(chatSettings.model),
+        messages,
+        temperature: chatSettings.temperature,
+        tools
+      })
 
-    const encoder = new TextEncoder()
-    const stream = new ReadableStream({
-      async start(controller) {
-        let thinkOpen = false
-        try {
-          for await (const chunk of response as any) {
-            const delta = chunk.choices?.[0]?.delta as any
-
-            if (delta?.reasoning_content) {
-              if (!thinkOpen) {
-                controller.enqueue(encoder.encode("<think>"))
-                thinkOpen = true
-              }
-              controller.enqueue(encoder.encode(delta.reasoning_content))
-            }
-
-            if (delta?.content) {
-              if (thinkOpen) {
-                controller.enqueue(encoder.encode("</think>"))
-                thinkOpen = false
-              }
-              controller.enqueue(encoder.encode(delta.content))
+      // Map back to OpenAI-compatible format expected by chat-helpers
+      return Response.json({
+        choices: [
+          {
+            message: {
+              content: result.text || "",
+              tool_calls: result.toolCalls?.map(call => ({
+                id: call.toolCallId,
+                type: "function",
+                function: {
+                  name: call.toolName,
+                  arguments: JSON.stringify(call.input)
+                }
+              }))
             }
           }
-        } finally {
-          if (thinkOpen) controller.enqueue(encoder.encode("</think>"))
-          controller.close()
-        }
-      }
+        ]
+      })
+    }
+
+    const result = await streamText({
+      model: openai(chatSettings.model),
+      messages,
+      temperature: chatSettings.temperature
     })
 
-    return new Response(stream, {
-      headers: { "Content-Type": "text/plain; charset=utf-8" }
-    })
+    return result.toTextStreamResponse()
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500

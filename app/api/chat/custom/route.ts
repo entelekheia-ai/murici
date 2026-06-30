@@ -7,14 +7,28 @@
 
 import { ChatSettings } from "@/types"
 import { ServerRuntime } from "next"
-import OpenAI from "openai"
-import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
+import { createOpenAI } from "@ai-sdk/openai"
+import { streamText, generateText, tool as createTool, jsonSchema, extractReasoningMiddleware, wrapLanguageModel } from "ai"
 
 export const runtime: ServerRuntime = "edge"
 
+function buildAiSdkTools(rawTools?: any[]): Record<string, any> | undefined {
+  if (!rawTools || rawTools.length === 0) return undefined
+  const tools: Record<string, any> = {}
+  for (const t of rawTools) {
+    if (t.type === "function") {
+      tools[t.function.name] = createTool({
+        description: t.function.description,
+        inputSchema: jsonSchema(t.function.parameters),
+      })
+    }
+  }
+  return tools
+}
+
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, customModel, tools } = json as {
+  const { chatSettings, messages, customModel, tools: rawTools } = json as {
     chatSettings: ChatSettings
     messages: any[]
     customModel: { api_key: string; base_url: string; model_id: string }
@@ -26,62 +40,54 @@ export async function POST(request: Request) {
       throw new Error("Custom model base_url is required")
     }
 
-    const custom = new OpenAI({
+    const custom = createOpenAI({
       apiKey: customModel.api_key || "",
       baseURL: customModel.base_url
     })
 
-    const useStreaming = !tools?.length
-
-    const response = await custom.chat.completions.create({
-      model: chatSettings.model as ChatCompletionCreateParamsBase["model"],
-      messages: messages as ChatCompletionCreateParamsBase["messages"],
-      temperature: chatSettings.temperature,
-      stream: useStreaming,
-      ...(tools?.length ? { tools, tool_choice: "auto" } : {})
-    } as any)
+    const useStreaming = !rawTools?.length
+    const tools = buildAiSdkTools(rawTools)
+    
+    // Wrap model to automatically extract <think> tags into reasoning protocol
+    const model = wrapLanguageModel({
+      model: custom(chatSettings.model),
+      middleware: extractReasoningMiddleware({ tagName: "think" })
+    })
 
     if (!useStreaming) {
-      return Response.json(response)
-    }
+      const result = await generateText({
+        model,
+        messages,
+        temperature: chatSettings.temperature,
+        tools
+      })
 
-    // Custom streaming: handles both delta.content and delta.reasoning_content
-    // (used by Qwen3, DeepSeek R1 and other thinking models via OpenAI-compatible APIs).
-    // We wrap reasoning_content in <think>...</think> so the client parser can extract it.
-    const encoder = new TextEncoder()
-    const stream = new ReadableStream({
-      async start(controller) {
-        let thinkOpen = false
-        try {
-          for await (const chunk of response as any) {
-            const delta = chunk.choices?.[0]?.delta as any
-
-            if (delta?.reasoning_content) {
-              if (!thinkOpen) {
-                controller.enqueue(encoder.encode("<think>"))
-                thinkOpen = true
-              }
-              controller.enqueue(encoder.encode(delta.reasoning_content))
-            }
-
-            if (delta?.content) {
-              if (thinkOpen) {
-                controller.enqueue(encoder.encode("</think>"))
-                thinkOpen = false
-              }
-              controller.enqueue(encoder.encode(delta.content))
+      return Response.json({
+        choices: [
+          {
+            message: {
+              content: result.text || "",
+              tool_calls: result.toolCalls?.map(call => ({
+                id: call.toolCallId,
+                type: "function",
+                function: {
+                  name: call.toolName,
+                  arguments: JSON.stringify(call.input)
+                }
+              }))
             }
           }
-        } finally {
-          if (thinkOpen) controller.enqueue(encoder.encode("</think>"))
-          controller.close()
-        }
-      }
+        ]
+      })
+    }
+
+    const result = await streamText({
+      model,
+      messages,
+      temperature: chatSettings.temperature
     })
 
-    return new Response(stream, {
-      headers: { "Content-Type": "text/plain; charset=utf-8" }
-    })
+    return result.toTextStreamResponse()
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500

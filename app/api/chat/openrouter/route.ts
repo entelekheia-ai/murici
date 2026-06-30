@@ -5,46 +5,84 @@
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
-import {
-  checkApiKey,
-  getProfileFromBody
-} from "@/lib/server/server-chat-helpers"
+import { checkApiKey, getProfileFromBody } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
-import { OpenAIStream, StreamingTextResponse } from "ai"
-import { ServerRuntime } from "next"
-import OpenAI from "openai"
-import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
+import { createOpenAI } from "@ai-sdk/openai"
+import { streamText, generateText, tool as createTool, jsonSchema } from "ai"
 
-export const runtime: ServerRuntime = "edge"
+export const runtime = "edge"
+
+function buildAiSdkTools(rawTools?: any[]): Record<string, any> | undefined {
+  if (!rawTools || rawTools.length === 0) return undefined
+  const tools: Record<string, any> = {}
+  for (const t of rawTools) {
+    if (t.type === "function") {
+      tools[t.function.name] = createTool({
+        description: t.function.description,
+        inputSchema: jsonSchema(t.function.parameters),
+      })
+    }
+  }
+  return tools
+}
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages } = json as {
+  const { chatSettings, messages, tools: rawTools } = json as {
     chatSettings: ChatSettings
     messages: any[]
+    tools?: any[]
   }
 
   try {
     const profile = getProfileFromBody(json)
 
-    checkApiKey(profile.openrouter_api_key, "OpenRouter")
+    const KEY = profile.openrouter_api_key
 
-    const openai = new OpenAI({
-      apiKey: profile.openrouter_api_key || "",
+    checkApiKey(KEY, "OpenRouter")
+
+    const custom = createOpenAI({
+      apiKey: KEY || "",
       baseURL: "https://openrouter.ai/api/v1"
     })
 
-    const response = await openai.chat.completions.create({
-      model: chatSettings.model as ChatCompletionCreateParamsBase["model"],
-      messages: messages as ChatCompletionCreateParamsBase["messages"],
-      temperature: chatSettings.temperature,
-      max_tokens: undefined,
-      stream: true
+    const useStreaming = !rawTools?.length
+    const tools = buildAiSdkTools(rawTools)
+
+    if (!useStreaming) {
+      const result = await generateText({
+        model: custom(chatSettings.model),
+        messages,
+        temperature: chatSettings.temperature,
+        tools
+      })
+
+      return Response.json({
+        choices: [
+          {
+            message: {
+              content: result.text || "",
+              tool_calls: result.toolCalls?.map(call => ({
+                id: call.toolCallId,
+                type: "function",
+                function: {
+                  name: call.toolName,
+                  arguments: JSON.stringify(call.input)
+                }
+              }))
+            }
+          }
+        ]
+      })
+    }
+
+    const result = await streamText({
+      model: custom(chatSettings.model),
+      messages,
+      temperature: chatSettings.temperature
     })
 
-    const stream = OpenAIStream(response)
-
-    return new StreamingTextResponse(stream)
+    return result.toTextStreamResponse()
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
@@ -52,6 +90,9 @@ export async function POST(request: Request) {
     if (errorMessage.toLowerCase().includes("api key not found")) {
       errorMessage =
         "OpenRouter API Key not found. Please set it in your profile settings."
+    } else if (errorCode === 401) {
+      errorMessage =
+        "OpenRouter API Key is incorrect. Please fix it in your profile settings."
     }
 
     return new Response(JSON.stringify({ message: errorMessage }), {

@@ -67,7 +67,7 @@ export const MessageCodeBlock: FC<MessageCodeBlockProps> = memo(
         3,
         true
       )}${fileExtension}`
-      const fileName = window.prompt("Enter file name" || "", suggestedFileName)
+      const fileName = window.prompt("Enter file name", suggestedFileName)
 
       if (!fileName) {
         return
