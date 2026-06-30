@@ -48,6 +48,8 @@ export interface Message {
   content: string
   model: string
   sequence_number: number
+  tool_calls?: any[]
+  tool_call_id?: string
   image_paths: string[]
   created_at: string
   updated_at: string | null

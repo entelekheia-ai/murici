@@ -37,6 +37,8 @@ export interface MessageRecord {
   content: string
   model: string
   sequenceNumber: number
+  tool_calls?: any[]
+  tool_call_id?: string
   createdAt: string
 }
 

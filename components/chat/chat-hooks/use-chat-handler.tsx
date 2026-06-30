@@ -312,7 +312,8 @@ export const useChatHandler = () => {
             goal: flowState.goal ?? null,
             guide: flowState.guide ?? null,
             teach: flowState.teach ?? null,
-            validIntents: [...(flowState.validIntents ?? [])]
+            validIntents: [...(flowState.validIntents ?? [])],
+            graph: flowState.graph ?? null
           }
         : null
 
@@ -444,7 +445,8 @@ export const useChatHandler = () => {
                 teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
                 validIntents: Array.from(
                   flowEngine.get_valid_intents() || []
-                ) as string[]
+                ) as string[],
+                graph: flowEngine.get_graph()
               })
               addFlowEvent({
                 id: uuidv4(),
@@ -479,7 +481,8 @@ export const useChatHandler = () => {
                 teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
                 validIntents: Array.from(
                   flowEngine.get_valid_intents() || []
-                ) as string[]
+                ) as string[],
+                graph: flowEngine.get_graph()
               })
               addFlowEvent({
                 id: uuidv4(),
@@ -562,7 +565,8 @@ export const useChatHandler = () => {
         selectedAssistant,
         setKnowledge,
         backgroundModel,
-        setBackgroundQueue
+        setBackgroundQueue,
+        flowToolExchange
       )
 
       setIsGenerating(false)

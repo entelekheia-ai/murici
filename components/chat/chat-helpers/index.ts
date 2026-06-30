@@ -268,9 +268,38 @@ export const handleFlowChat = async (
     chatImages,
     onFinalMessages
   )
-  const tools = [
-    buildTriggerIntentTool(flowState.validIntents)
+  const tools: any[] = [
+    buildTriggerIntentTool(flowState.validIntents),
+    {
+      type: "function",
+      function: {
+        name: "murici__state_graph",
+        description: "Get the current state graph of the active FSM agent, showing all possible states and transitions.",
+        parameters: { type: "object", properties: {} }
+      }
+    }
   ]
+
+  try {
+    const res = await fetch("/api/mcp/tools")
+    if (res.ok) {
+      const data = await res.json()
+      for (const server of data) {
+        for (const tool of server.tools) {
+          tools.push({
+            type: "function",
+            function: {
+              name: `mcp__${server.serverName}__${tool.name}`,
+              description: tool.description,
+              parameters: tool.inputSchema
+            }
+          })
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Failed to fetch MCP tools", e)
+  }
 
   const isLocal = modelData.provider === "local"
   const localBaseUrl =
@@ -421,45 +450,100 @@ export const handleFlowChat = async (
 
   if (provider === "anthropic") {
     const textBlock = data.content?.find((b: any) => b.type === "text")
-    const toolBlock = data.content?.find(
-      (b: any) => b.type === "tool_use" && b.name === "trigger_intent"
-    )
+    const toolBlocks = data.content?.filter((b: any) => b.type === "tool_use") || []
+    
     content = textBlock?.text ?? ""
-    intentName = toolBlock?.input?.intent_name ?? null
 
-    if (toolBlock && !content) {
-      onEvent?.({ type: "tool_call", data: { intentName, raw: toolBlock } })
+    if (toolBlocks.length > 0 && !content) {
       const assistantMsg = { role: "assistant", content: data.content }
-      const toolResultMsg = {
-        role: "user",
-        content: [
-          { type: "tool_result", tool_use_id: toolBlock.id, content: "ok" }
-        ]
+      const toolResultMsg: any = { role: "user", content: [] }
+
+      for (const toolBlock of toolBlocks) {
+        const name = toolBlock.name
+        let toolResult = "ok"
+
+        if (name === "trigger_intent") {
+          intentName = toolBlock.input?.intent_name ?? null
+          onEvent?.({ type: "tool_call", data: { intentName, raw: toolBlock } })
+        } else if (name === "murici__state_graph") {
+          toolResult = JSON.stringify({ graph: flowState.graph || "No graph available" })
+        } else if (name?.startsWith("mcp__")) {
+          const parts = name.split("__")
+          const serverName = parts[1]
+          const toolName = parts[2]
+          try {
+            const executeRes = await fetch("/api/mcp/execute", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ serverName, toolName, args: toolBlock.input })
+            })
+            if (executeRes.ok) {
+              const resJson = await executeRes.json()
+              toolResult = JSON.stringify(resJson)
+            } else {
+              toolResult = "Error executing tool"
+            }
+          } catch (e: any) {
+            toolResult = e.message
+          }
+        }
+        toolResultMsg.content.push({ type: "tool_result", tool_use_id: toolBlock.id, content: toolResult })
       }
+
       await showIndicatorAndStream([assistantMsg, toolResultMsg], "")
     }
   } else {
     // OpenAI-compatible (openai, custom, azure)
     const msg = data.choices?.[0]?.message
     content = msg?.content ?? ""
-    const call = msg?.tool_calls?.find(
-      (c: any) => c.function?.name === "trigger_intent"
-    )
-    if (call) {
-      try {
-        intentName = JSON.parse(call.function.arguments)?.intent_name ?? null
-      } catch {}
-
-      if (!content) {
-        onEvent?.({ type: "tool_call", data: { intentName, raw: call } })
-        const assistantMsg = {
-          role: "assistant",
-          content: msg.content ?? null,
-          tool_calls: msg.tool_calls
-        }
-        const toolMsg = { role: "tool", tool_call_id: call.id, content: "ok" }
-        await showIndicatorAndStream([assistantMsg, toolMsg], "")
+    
+    if (msg?.tool_calls?.length > 0 && !content) {
+      const toolExchangeMsg: any[] = []
+      const assistantMsg = {
+        role: "assistant",
+        content: msg.content ?? null,
+        tool_calls: msg.tool_calls
       }
+      toolExchangeMsg.push(assistantMsg)
+
+      for (const call of msg.tool_calls) {
+        const name = call.function?.name
+        const argsStr = call.function?.arguments || "{}"
+        
+        let toolResult = "ok"
+
+        if (name === "trigger_intent") {
+          try {
+            intentName = JSON.parse(argsStr)?.intent_name ?? null
+          } catch {}
+          onEvent?.({ type: "tool_call", data: { intentName, raw: call } })
+        } else if (name === "murici__state_graph") {
+          toolResult = JSON.stringify({ graph: flowState.graph || "No graph available" })
+        } else if (name?.startsWith("mcp__")) {
+          const parts = name.split("__")
+          const serverName = parts[1]
+          const toolName = parts[2]
+          try {
+            const executeRes = await fetch("/api/mcp/execute", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ serverName, toolName, args: JSON.parse(argsStr) })
+            })
+            if (executeRes.ok) {
+              const resJson = await executeRes.json()
+              toolResult = JSON.stringify(resJson)
+            } else {
+              toolResult = "Error executing tool"
+            }
+          } catch (e: any) {
+            toolResult = e.message
+          }
+        }
+
+        toolExchangeMsg.push({ role: "tool", tool_call_id: call.id, content: toolResult })
+      }
+
+      await showIndicatorAndStream(toolExchangeMsg, "")
     }
   }
 
@@ -773,7 +857,8 @@ export const handleCreateMessages = async (
   selectedAssistant: Tables<"assistants"> | null,
   setKnowledge?: React.Dispatch<React.SetStateAction<KnowledgeRecord[]>>,
   backgroundModel?: LLM | null,
-  setBackgroundQueue?: React.Dispatch<React.SetStateAction<any[]>>
+  setBackgroundQueue?: React.Dispatch<React.SetStateAction<any[]>>,
+  toolExchange?: Array<{ role: string; content: any; tool_calls?: any[]; tool_call_id?: string }> | null
 ) => {
   const finalUserMessage: TablesInsert<"messages"> = {
     chat_id: currentChat.id,
@@ -813,10 +898,42 @@ export const handleCreateMessages = async (
 
     setChatMessages(finalChatMessages)
   } else {
-    const createdMessages = await createMessages([
-      finalUserMessage,
-      finalAssistantMessage
-    ])
+    const messagesToInsert: TablesInsert<"messages">[] = [finalUserMessage]
+    let seqOffset = 1
+    const finalChatMessagesAddition: ChatMessage[] = []
+
+    if (toolExchange && toolExchange.length > 0) {
+      for (const tMsg of toolExchange) {
+        // filter out internal trigger_intent to keep it ephemeral
+        if (tMsg.tool_calls?.some((c:any) => c.function?.name === "trigger_intent")) {
+          continue
+        }
+        if (tMsg.role === "tool" && tMsg.content === "ok") {
+          continue // likely trigger_intent response
+        }
+
+        const msgRecord: TablesInsert<"messages"> = {
+          chat_id: currentChat.id,
+          assistant_id: selectedAssistant?.id || null,
+          user_id: profile.user_id,
+          content: typeof tMsg.content === "string" ? tMsg.content : JSON.stringify(tMsg.content),
+          model: modelData.modelId,
+          role: tMsg.role as any,
+          sequence_number: chatMessages.length + seqOffset,
+          tool_calls: tMsg.tool_calls,
+          tool_call_id: tMsg.tool_call_id,
+          image_paths: []
+        }
+        messagesToInsert.push(msgRecord)
+        seqOffset++
+      }
+    }
+
+    finalAssistantMessage.sequence_number = chatMessages.length + seqOffset
+    messagesToInsert.push(finalAssistantMessage)
+
+    const createdMessages = await createMessages(messagesToInsert)
+    const finalCreatedAssistantMessage = createdMessages[createdMessages.length - 1]
 
     // Upload each image (stored in newMessageImages) for the user message to message_images bucket
     const uploadPromises = newMessageImages
@@ -854,11 +971,16 @@ export const handleCreateMessages = async (
       retrievedFileItems.map(fileItem => {
         return {
           user_id: profile.user_id,
-          message_id: createdMessages[1].id,
+          message_id: finalCreatedAssistantMessage.id,
           file_item_id: fileItem.id
         }
       })
     )
+
+    const intermediateMessages = createdMessages.slice(1, -1).map(m => ({
+      message: m,
+      fileItems: []
+    }))
 
     finalChatMessages = [
       ...chatMessages,
@@ -866,8 +988,9 @@ export const handleCreateMessages = async (
         message: updatedMessage,
         fileItems: []
       },
+      ...intermediateMessages,
       {
-        message: createdMessages[1],
+        message: finalCreatedAssistantMessage,
         fileItems: retrievedFileItems.map(fileItem => fileItem.id)
       }
     ]
@@ -886,7 +1009,7 @@ export const handleCreateMessages = async (
       try {
         const records = buildKnowledgeRecords(
           {
-            id: createdMessages[1].id,
+            id: finalCreatedAssistantMessage.id,
             content: generatedText,
             chat_id: currentChat.id
           },

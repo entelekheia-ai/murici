@@ -20,6 +20,7 @@ export interface FlowStateInfo {
   guide?: string
   teach?: string
   validIntents: string[]
+  graph?: string | null
 }
 
 export function injectFlowContext(

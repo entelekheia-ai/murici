@@ -185,6 +185,10 @@ export const Message: FC<MessageProps> = ({
     return acc
   }, fileAccumulator)
 
+  if (message.role === "tool" || (message.role === "assistant" && !message.content && message.tool_calls && message.tool_calls.length > 0)) {
+    return null
+  }
+
   return (
     <div
       className={cn(

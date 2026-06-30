@@ -138,7 +138,8 @@ state end
         goal,
         guide,
         teach,
-        validIntents: Array.from(eng.get_valid_intents() || []) as string[]
+        validIntents: Array.from(eng.get_valid_intents() || []) as string[],
+        graph
       })
     } catch (e: any) {
       console.error("Error loading flow:", e)
@@ -222,7 +223,8 @@ state end
         goal,
         guide,
         teach,
-        validIntents: Array.from(engine.get_valid_intents() || []) as string[]
+        validIntents: Array.from(engine.get_valid_intents() || []) as string[],
+        graph
       })
     } catch (err) {
       console.error("Error sending intent:", err)

@@ -145,6 +145,7 @@ interface ChatbotUIContext {
     guide?: string
     teach?: string
     validIntents: string[]
+    graph?: string | null
   } | null
   setFlowState: Dispatch<
     SetStateAction<{
@@ -153,6 +154,7 @@ interface ChatbotUIContext {
       guide?: string
       teach?: string
       validIntents: string[]
+      graph?: string | null
     } | null>
   >
   flowDebugLog: Record<number, FlowTurnDebug>
