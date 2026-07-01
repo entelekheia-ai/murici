@@ -8,7 +8,7 @@ import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
 import {
-  IconCirclePlus,
+  IconPaperclip,
   IconPlayerStopFilled,
   IconSend
 } from "@tabler/icons-react"
@@ -191,14 +191,14 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
         )}
       </div>
 
-      <div className="border-input relative mt-3 flex min-h-[60px] w-full items-center justify-center rounded-xl border-2">
+      <div className="bg-sidebar-bg relative mt-3 flex min-h-[60px] w-full items-center justify-center rounded-xl">
         <div className="absolute bottom-[76px] left-0 max-h-[300px] w-full overflow-auto rounded-xl dark:border-none">
           <ChatCommandInput />
         </div>
 
         <>
-          <IconCirclePlus
-            className="absolute bottom-[12px] left-3 cursor-pointer p-1 hover:opacity-50"
+          <IconPaperclip
+            className="absolute bottom-[12px] left-3 cursor-pointer p-1 hover:opacity-50 text-murici-text-secondary"
             size={32}
             onClick={() => fileInputRef.current?.click()}
           />
@@ -219,10 +219,7 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
         <TextareaAutosize
           textareaRef={chatInputRef}
           className="ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring text-md flex w-full resize-none rounded-md border-none bg-transparent px-14 py-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-          placeholder={t(
-            // `Ask anything. Type "@" for assistants, "/" for prompts, "#" for files, and "!" for tools.`
-            `Ask anything. Type @  /  #  !`
-          )}
+          placeholder={t("Como posso ajudar hoje?")}
           onValueChange={handleInputChange}
           value={userInput}
           minRows={1}
@@ -243,7 +240,7 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
           ) : (
             <IconSend
               className={cn(
-                "bg-primary text-secondary rounded p-1",
+                "bg-murici-green text-white rounded p-1",
                 !userInput && "cursor-not-allowed opacity-50"
               )}
               onClick={() => {

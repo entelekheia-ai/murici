@@ -47,7 +47,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     setChatImages,
     setNewMessageFiles,
     setNewMessageImages,
-    setShowFilesDisplay
+    setShowRightSidebar
   } = useContext(ChatbotUIContext)
 
   const [loading, setLoading] = useState(true)
@@ -64,7 +64,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     setChatImages([])
     setNewMessageFiles([])
     setNewMessageImages([])
-    setShowFilesDisplay(false)
+    setShowRightSidebar(false)
   }, [workspaceId])
 
   const fetchWorkspaceData = async (workspaceId: string) => {

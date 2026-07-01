@@ -123,7 +123,13 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [chatImages, setChatImages] = useState<MessageImage[]>([])
   const [newMessageFiles, setNewMessageFiles] = useState<ChatFile[]>([])
   const [newMessageImages, setNewMessageImages] = useState<MessageImage[]>([])
-  const [showFilesDisplay, setShowFilesDisplay] = useState<boolean>(false)
+  const [showSidebar, setShowSidebar] = useState<boolean>(false)
+  const [showRightSidebar, setShowRightSidebar] = useState<boolean>(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem("showSidebar")
+    if (saved !== null) setShowSidebar(saved === "true")
+  }, [])
 
   // RETIEVAL STORE
   const [useRetrieval, setUseRetrieval] = useState<boolean>(true)
@@ -311,8 +317,10 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setNewMessageFiles,
         newMessageImages,
         setNewMessageImages,
-        showFilesDisplay,
-        setShowFilesDisplay,
+        showSidebar,
+        setShowSidebar,
+        showRightSidebar,
+        setShowRightSidebar,
 
         // RETRIEVAL STORE
         useRetrieval,

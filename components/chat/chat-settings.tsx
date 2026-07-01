@@ -12,6 +12,7 @@ import { FC, useContext, useEffect, useRef, useState } from "react"
 import { Button } from "../ui/button"
 import { ChatSettingsForm } from "../ui/chat-settings-form"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { IconSparklesFigma, IconChevronDownFigma } from "../icons/chat-icons"
 
 interface ChatSettingsProps {}
 
@@ -71,18 +72,19 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger>
+      <PopoverTrigger asChild>
         <Button
           ref={buttonRef}
-          className="flex items-center space-x-2"
-          variant="ghost"
+          className="flex h-[29px] items-center space-x-1.5 rounded-full border border-[#E5E3DF] bg-transparent px-3 py-1 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
           onClick={() => setOpen(prev => !prev)}
         >
-          <div className="max-w-[120px] truncate text-lg sm:max-w-[300px] lg:max-w-[500px]">
+          <IconSparklesFigma className="text-muted-foreground" size={16} />
+          
+          <div className="max-w-[120px] truncate text-sm font-medium sm:max-w-[300px] lg:max-w-[500px] text-murici-text-primary">
             {fullModel?.modelName || chatSettings.model}
           </div>
 
-          <IconAdjustmentsHorizontal size={28} />
+          <IconChevronDownFigma className="text-muted-foreground" size={12} />
         </Button>
       </PopoverTrigger>
 

@@ -17,7 +17,7 @@ export const usePromptAndCommand = () => {
     setNewMessageFiles,
     userInput,
     setUserInput,
-    setShowFilesDisplay,
+    setShowRightSidebar,
     setIsPromptPickerOpen,
     setIsFilePickerOpen,
     setSlashCommand,
@@ -60,7 +60,7 @@ export const usePromptAndCommand = () => {
   }
 
   const handleSelectUserFile = async (file: Tables<"files">) => {
-    setShowFilesDisplay(true)
+    setShowRightSidebar(true)
     setIsFilePickerOpen(false)
     setUseRetrieval(true)
 
@@ -89,7 +89,7 @@ export const usePromptAndCommand = () => {
   const handleSelectUserCollection = async (
     collection: Tables<"collections">
   ) => {
-    setShowFilesDisplay(true)
+    setShowRightSidebar(true)
     setIsFilePickerOpen(false)
     setUseRetrieval(true)
     setUserInput(userInput.replace(/#[^ ]*$/, ""))
@@ -121,7 +121,7 @@ export const usePromptAndCommand = () => {
       }))
     )
 
-    if (allFiles.length > 0) setShowFilesDisplay(true)
+    if (allFiles.length > 0) setShowRightSidebar(true)
   }
 
   return {

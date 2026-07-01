@@ -54,7 +54,16 @@ module.exports = {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
-        }
+        },
+        'app-bg': 'hsl(var(--app-bg))',
+        'sidebar-bg': 'hsl(var(--sidebar-bg))',
+        'sidebar-border': 'hsl(var(--sidebar-border))',
+        'chat-bg': 'hsl(var(--chat-bg))',
+        'inspector-bg': 'hsl(var(--inspector-bg))',
+        'murici-orange': 'hsl(var(--murici-orange))',
+        'murici-green': 'hsl(var(--murici-green))',
+        'murici-text-primary': 'hsl(var(--murici-text-primary))',
+        'murici-text-secondary': 'hsl(var(--murici-text-secondary))'
       },
       borderRadius: {
         lg: 'var(--radius)',

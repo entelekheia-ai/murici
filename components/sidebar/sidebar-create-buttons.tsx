@@ -79,17 +79,21 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
 
   return (
     <div className="flex w-full space-x-2">
-      <Button className="flex h-[36px] grow" onClick={getCreateFunction()}>
+      <Button
+        variant="outline"
+        className="flex h-[36px] grow rounded-full border-sidebar-border bg-transparent text-murici-text-primary hover:bg-sidebar-border/50"
+        onClick={getCreateFunction()}
+      >
         <IconPlus className="mr-1" size={20} />
-        {t(
-          "New " +
-            contentType.charAt(0).toUpperCase() +
-            contentType.slice(1, contentType.length - 1)
-        )}
+        {t("Novo chat")}
       </Button>
 
       {hasData && (
-        <Button className="size-[36px] p-1" onClick={handleCreateFolder}>
+        <Button
+          variant="outline"
+          className="size-[36px] rounded-full border-sidebar-border bg-transparent p-1 text-murici-text-primary hover:bg-sidebar-border/50"
+          onClick={handleCreateFolder}
+        >
           <IconFolderPlus size={20} />
         </Button>
       )}

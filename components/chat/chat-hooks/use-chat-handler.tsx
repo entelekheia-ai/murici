@@ -62,7 +62,7 @@ export const useChatHandler = () => {
     setChatImages,
     setChatFiles,
     setNewMessageFiles,
-    setShowFilesDisplay,
+    setShowRightSidebar,
     newMessageFiles,
     chatFileItems,
     setChatFileItems,
@@ -160,7 +160,7 @@ export const useChatHandler = () => {
     setChatImages([])
     setNewMessageFiles([])
     setNewMessageImages([])
-    setShowFilesDisplay(false)
+    setShowRightSidebar(false)
     setIsPromptPickerOpen(false)
     setIsFilePickerOpen(false)
 
@@ -191,7 +191,7 @@ export const useChatHandler = () => {
         }))
       )
 
-      if (allFiles.length > 0) setShowFilesDisplay(true)
+      if (allFiles.length > 0) setShowRightSidebar(true)
     } else if (selectedWorkspace) {
       // setChatSettings({
       //   model: (selectedWorkspace.default_model ||

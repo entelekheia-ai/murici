@@ -3,11 +3,11 @@
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
-import { IconMoon, IconSun } from "@tabler/icons-react"
+import { IconMoon } from "@tabler/icons-react"
 import { useTheme } from "next-themes"
 import { FC } from "react"
-import { SIDEBAR_ICON_SIZE } from "../sidebar/sidebar-switcher"
 import { Button } from "../ui/button"
+import { IconSunFigma } from "../icons/chat-icons"
 
 interface ThemeSwitcherProps {}
 
@@ -22,15 +22,15 @@ export const ThemeSwitcher: FC<ThemeSwitcherProps> = () => {
 
   return (
     <Button
-      className="flex cursor-pointer space-x-2"
+      className="flex cursor-pointer space-x-2 text-muted-foreground"
       variant="ghost"
       size="icon"
       onClick={() => handleChange(theme === "light" ? "dark" : "light")}
     >
       {theme === "dark" ? (
-        <IconMoon size={SIDEBAR_ICON_SIZE} />
+        <IconSunFigma size={18} />
       ) : (
-        <IconSun size={SIDEBAR_ICON_SIZE} />
+        <IconMoon size={18} />
       )}
     </Button>
   )

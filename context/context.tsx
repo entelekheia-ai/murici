@@ -123,8 +123,10 @@ interface ChatbotUIContext {
   setNewMessageFiles: Dispatch<SetStateAction<ChatFile[]>>
   newMessageImages: MessageImage[]
   setNewMessageImages: Dispatch<SetStateAction<MessageImage[]>>
-  showFilesDisplay: boolean
-  setShowFilesDisplay: Dispatch<SetStateAction<boolean>>
+  showSidebar: boolean
+  setShowSidebar: Dispatch<SetStateAction<boolean>>
+  showRightSidebar: boolean
+  setShowRightSidebar: Dispatch<SetStateAction<boolean>>
 
   // RETRIEVAL STORE
   useRetrieval: boolean
@@ -279,8 +281,10 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setNewMessageFiles: () => {},
   newMessageImages: [],
   setNewMessageImages: () => {},
-  showFilesDisplay: false,
-  setShowFilesDisplay: () => {},
+  showSidebar: false,
+  setShowSidebar: () => {},
+  showRightSidebar: false,
+  setShowRightSidebar: () => {},
 
   // RETRIEVAL STORE
   useRetrieval: false,

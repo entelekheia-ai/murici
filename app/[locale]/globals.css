@@ -56,10 +56,19 @@
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-
     --ring: 38 90% 48%;
 
     --radius: 0.75rem;
+
+    --app-bg: 60 66.7% 97.6%;
+    --sidebar-bg: 27 40.7% 94.7%;
+    --sidebar-border: 40 10.3% 88.6%;
+    --chat-bg: 30 41.7% 95.3%;
+    --inspector-bg: 33 68.6% 90%;
+    --murici-orange: 32 94.6% 43.7%;
+    --murici-green: 86 69% 22.7%;
+    --murici-text-primary: 27 24.4% 8.8%;
+    --murici-text-secondary: 31 14.7% 58.6%;
   }
 
   .dark {
@@ -89,8 +98,17 @@
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 85.7% 97.3%;
-
     --ring: 0 0% 14.9%;
+
+    --app-bg: 0 0% 5.9%;
+    --sidebar-bg: 0 0% 3.9%;
+    --sidebar-border: 0 0% 14.9%;
+    --chat-bg: 0 0% 5.9%;
+    --inspector-bg: 0 0% 3.9%;
+    --murici-orange: 32 94.6% 43.7%;
+    --murici-green: 84 80.5% 44.3%;
+    --murici-text-primary: 0 0% 100%;
+    --murici-text-secondary: 0 0% 45.1%;
   }
 }
 

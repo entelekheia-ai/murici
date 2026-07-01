@@ -41,7 +41,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { TextareaAutosize } from "../ui/textarea-autosize"
 import { WithTooltip } from "../ui/with-tooltip"
-import { ThemeSwitcher } from "./theme-switcher"
 import { MCPSettings } from "./mcp-settings"
 
 const LOCALE_PROMPTS: Record<string, string> = {
@@ -711,7 +710,6 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
 
         <div className="mt-6 flex items-center">
           <div className="flex items-center space-x-1">
-            <ThemeSwitcher />
 
             <WithTooltip
               display={

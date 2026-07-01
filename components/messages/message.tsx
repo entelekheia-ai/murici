@@ -193,7 +193,7 @@ export const Message: FC<MessageProps> = ({
     <div
       className={cn(
         "flex w-full justify-center",
-        message.role === "user" ? "" : "bg-secondary"
+        message.role === "user" ? "" : "bg-chat-bg"
       )}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
@@ -224,43 +224,34 @@ export const Message: FC<MessageProps> = ({
           ) : (
             <div className="flex items-center space-x-3">
               {message.role === "assistant" ? (
-                messageAssistantImage ? (
-                  <Image
-                    style={{
-                      width: `${ICON_SIZE}px`,
-                      height: `${ICON_SIZE}px`
-                    }}
-                    className="rounded"
-                    src={messageAssistantImage}
-                    alt="assistant image"
-                    height={ICON_SIZE}
-                    width={ICON_SIZE}
-                  />
-                ) : (
-                  <WithTooltip
-                    display={<div>{MODEL_DATA?.modelName}</div>}
-                    trigger={
-                      <ModelIcon
-                        provider={modelDetails?.provider || "custom"}
-                        height={ICON_SIZE}
-                        width={ICON_SIZE}
-                      />
-                    }
-                  />
-                )
-              ) : profile?.image_url ? (
-                <Image
-                  className={`size-[32px] rounded`}
-                  src={profile?.image_url}
-                  height={32}
-                  width={32}
-                  alt="user image"
-                />
+                <div className="flex size-[32px] items-center justify-center rounded bg-murici-orange text-white">
+                  {messageAssistantImage ? (
+                    <Image
+                      style={{
+                        width: `${ICON_SIZE}px`,
+                        height: `${ICON_SIZE}px`
+                      }}
+                      className="rounded"
+                      src={messageAssistantImage}
+                      alt="assistant image"
+                      height={ICON_SIZE}
+                      width={ICON_SIZE}
+                    />
+                  ) : (
+                    <WithTooltip
+                      display={<div>{MODEL_DATA?.modelName}</div>}
+                      trigger={
+                        <ModelIcon
+                          provider={modelDetails?.provider || "custom"}
+                          height={20}
+                          width={20}
+                        />
+                      }
+                    />
+                  )}
+                </div>
               ) : (
-                <IconMoodSmile
-                  className="bg-primary text-secondary border-primary rounded border-DEFAULT p-1"
-                  size={ICON_SIZE}
-                />
+                <div className="flex size-[32px] shrink-0 items-center justify-center rounded-full bg-murici-green"></div>
               )}
 
               <div className="font-semibold">

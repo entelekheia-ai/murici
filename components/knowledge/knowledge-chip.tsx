@@ -18,20 +18,6 @@ import { KnowledgePreviewModal } from "./knowledge-preview-modal"
 
 const PLACEHOLDER_TITLE_RE = /^.+ · \d{2}:\d{2}$/
 
-function languageColor(lang: string): string {
-  const palette = [
-    "bg-blue-500/20 text-blue-400",
-    "bg-green-500/20 text-green-400",
-    "bg-purple-500/20 text-purple-400",
-    "bg-orange-500/20 text-orange-400",
-    "bg-pink-500/20 text-pink-400",
-    "bg-teal-500/20 text-teal-400",
-    "bg-yellow-500/20 text-yellow-400"
-  ]
-  let hash = 0
-  for (let i = 0; i < lang.length; i++) hash = (hash * 31 + lang.charCodeAt(i)) & 0xffff
-  return palette[hash % palette.length]
-}
 
 interface KnowledgeChipProps {
   record: KnowledgeRecord
@@ -59,10 +45,6 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
   const isPlaceholder = PLACEHOLDER_TITLE_RE.test(record.title)
   const showNamingButton = (isPlaceholder || !record.summary) && !compact
 
-  const createdAt = new Date(record.createdAt)
-  const timeLabel = `${String(createdAt.getHours()).padStart(2, "0")}:${String(createdAt.getMinutes()).padStart(2, "0")}`
-
-  const lang = record.payload.language || "text"
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -110,46 +92,40 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
 
   return (
     <div
-      className="bg-muted/50 hover:bg-muted group cursor-pointer rounded-lg border px-3 py-2 transition-colors"
+      className="group flex items-center justify-between gap-3 py-2 cursor-pointer transition-colors w-full"
       onClick={() => !compact && setPreviewOpen(true)}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          {editing ? (
-            <input
-              ref={inputRef}
-              className="bg-background w-full rounded border px-1 text-sm font-medium outline-none"
-              value={editTitle}
-              onChange={e => setEditTitle(e.target.value)}
-              onBlur={handleTitleSave}
-              onKeyDown={e => {
-                if (e.key === "Enter") handleTitleSave()
-                if (e.key === "Escape") setEditing(false)
-              }}
-              onClick={e => e.stopPropagation()}
-              autoFocus
-            />
-          ) : (
-            <span
-              className="block truncate text-sm font-medium leading-snug"
-              title={record.title}
-              onClick={handleTitleClick}
-            >
-              {record.title}
-            </span>
-          )}
-          <div className="mt-1 flex items-center gap-2">
-            <span className={`rounded px-1.5 py-0.5 text-xs font-mono ${languageColor(lang)}`}>
-              {lang}
-            </span>
-            <span className="text-muted-foreground text-xs">{timeLabel}</span>
-            {record.summary && !compact && (
-              <span className="text-muted-foreground truncate text-xs italic">
-                {record.summary}
-              </span>
-            )}
-          </div>
-        </div>
+      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="bg-background w-full rounded border px-1 text-[13px] font-medium outline-none text-murici-text-primary"
+            value={editTitle}
+            onChange={e => setEditTitle(e.target.value)}
+            onBlur={handleTitleSave}
+            onKeyDown={e => {
+              if (e.key === "Enter") handleTitleSave()
+              if (e.key === "Escape") setEditing(false)
+            }}
+            onClick={e => e.stopPropagation()}
+            autoFocus
+          />
+        ) : (
+          <span
+            className="block truncate text-[13px] font-medium leading-tight text-murici-text-primary"
+            title={record.title}
+            onClick={handleTitleClick}
+          >
+            {record.title}
+          </span>
+        )}
+        
+        {record.summary && !compact && (
+          <span className="text-murici-text-secondary text-[11px] leading-tight line-clamp-2 mt-0.5">
+            {record.summary}
+          </span>
+        )}
+      </div>
 
         <div className="flex shrink-0 items-center gap-1">
           {showNamingButton && (
@@ -188,7 +164,6 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
             )}
           </div>
         </div>
-      </div>
 
       {previewOpen && (
         <KnowledgePreviewModal

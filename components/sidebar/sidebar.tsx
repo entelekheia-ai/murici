@@ -14,13 +14,17 @@ import { TabsContent } from "../ui/tabs"
 import { WorkspaceSettings } from "../workspace/workspace-settings"
 import { SidebarContent } from "./sidebar-content"
 import { KnowledgeSidebarSection } from "../knowledge/knowledge-sidebar-section"
+import { ProfileMenu } from "./profile-menu"
+import { ProfileSettings } from "../utility/profile-settings"
+import { SidebarFilesContent } from "./sidebar-files"
 
 interface SidebarProps {
   contentType: ContentType
   showSidebar: boolean
+  onContentTypeChange: (contentType: ContentType) => void
 }
 
-export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
+export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar, onContentTypeChange }) => {
   const {
     folders,
     chats,
@@ -71,7 +75,7 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
               )
 
             case "files":
-              return renderSidebarContent("files", files, filesFolders)
+              return <SidebarFilesContent />
 
             case "assistants":
               return renderSidebarContent(
@@ -87,6 +91,13 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
               return null
           }
         })()}
+        </div>
+        
+        <div className="mt-auto border-t p-3">
+          <ProfileMenu onContentTypeChange={onContentTypeChange} />
+          <div className="hidden">
+            <ProfileSettings />
+          </div>
         </div>
       </div>
     </TabsContent>
