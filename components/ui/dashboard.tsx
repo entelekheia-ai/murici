@@ -8,35 +8,24 @@
 "use client"
 
 import { Sidebar } from "@/components/sidebar/sidebar"
-import { SidebarSwitcher } from "@/components/sidebar/sidebar-switcher"
 import { Button } from "@/components/ui/button"
 import { Tabs } from "@/components/ui/tabs"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { cn } from "@/lib/utils"
+import { ChatbotUIContext } from "@/context/context"
 import { ContentType } from "@/types"
 import { IconChevronCompactRight } from "@tabler/icons-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import dynamic from "next/dynamic"
-import { FC, useEffect, useState } from "react"
+import { FC, useEffect, useState, useContext } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { CommandK } from "../utility/command-k"
 
-// Load AgentRightPanel only on client to avoid WASM SSR issues
-const AgentRightPanel = dynamic(
+// Load RightSidebar only on client to avoid WASM SSR issues
+const RightSidebar = dynamic(
   () =>
-    import("../agents/agent-right-panel").then(mod => ({
-      default: mod.AgentRightPanel
-    })),
-  {
-    ssr: false,
-    loading: () => <div className="bg-muted h-full w-[400px] animate-pulse" />
-  }
-)
-
-const KnowledgeRightPanel = dynamic(
-  () =>
-    import("../knowledge/knowledge-right-panel").then(mod => ({
-      default: mod.KnowledgeRightPanel
+    import("../sidebar/right-sidebar").then(mod => ({
+      default: mod.RightSidebar
     })),
   {
     ssr: false,
@@ -57,17 +46,13 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tabValue = searchParams.get("tab") || "chats"
-  const isAgentOpen = searchParams.get("agent") === "true"
-  const isKnowledgeOpen = searchParams.get("knowledge") === "true"
 
   const { handleSelectDeviceFile } = useSelectFileHandler()
 
   const [contentType, setContentType] = useState<ContentType>(
     tabValue as ContentType
   )
-  const [showSidebar, setShowSidebar] = useState(
-    localStorage.getItem("showSidebar") === "true"
-  )
+  const { showSidebar, setShowSidebar, showRightSidebar } = useContext(ChatbotUIContext)
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -81,15 +66,6 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
     return () => window.removeEventListener("murici:sidebar-navigate", handler)
   }, [pathname, router])
 
-  useEffect(() => {
-    const handler = () => {
-      const params = new URLSearchParams(searchParams.toString())
-      params.set("knowledge", "true")
-      router.replace(`${pathname}?${params.toString()}`)
-    }
-    window.addEventListener("murici:knowledge-panel-open", handler)
-    return () => window.removeEventListener("murici:knowledge-panel-open", handler)
-  }, [pathname, router, searchParams])
   const [isDragging, setIsDragging] = useState(false)
 
   const onFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -130,7 +106,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
       <div
         className={cn(
-          "duration-200 dark:border-none " + (showSidebar ? "border-r-2" : "")
+          "bg-sidebar-bg duration-200 dark:border-none " + (showSidebar ? "border-r-2" : "")
         )}
         style={{
           // Sidebar
@@ -149,15 +125,14 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
             }}
           >
             <div className="flex h-full w-full flex-col">
-              <Sidebar contentType={contentType} showSidebar={showSidebar} />
-              <SidebarSwitcher onContentTypeChange={setContentType} />
+              <Sidebar contentType={contentType} showSidebar={showSidebar} onContentTypeChange={setContentType} />
             </div>
           </Tabs>
         )}
       </div>
 
       <div
-        className="bg-muted/50 relative flex w-screen min-w-[90%] grow flex-col sm:min-w-fit"
+        className="bg-muted/50 relative flex flex-1 flex-col overflow-hidden sm:min-w-fit"
         onDrop={onFileDrop}
         onDragOver={onDragOver}
         onDragEnter={handleDragEnter}
@@ -170,8 +145,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
         ) : (
           <div className="flex size-full overflow-hidden">
             <div className="flex-1 overflow-hidden">{children}</div>
-            {isAgentOpen && <AgentRightPanel />}
-            {isKnowledgeOpen && <KnowledgeRightPanel />}
+            {showRightSidebar && <RightSidebar />}
           </div>
         )}
 

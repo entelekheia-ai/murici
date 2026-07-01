@@ -18,6 +18,7 @@ import { NextResponse } from "next/server"
 // import { mcpClientManager } from "@/lib/mcp/client-manager"
 
 export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
 export async function GET(req: Request) {
   // A placeholder for the SSE endpoint that pushes spontaneous MCP events to the frontend.
