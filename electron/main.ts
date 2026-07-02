@@ -91,7 +91,7 @@ async function createWindow() {
       trafficLightPosition: { x: 12, y: 18 }
     }),
     show: false,
-    icon: path.join(__dirname, "../icon/Murici@2x.png"),
+    icon: path.join(__dirname, "../icon/Murici-liquid-glass@2x.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
