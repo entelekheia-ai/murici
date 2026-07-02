@@ -38,9 +38,53 @@ import { KnowledgeRecord } from "@/types/knowledge"
 import { createKnowledgeRecord } from "@/lib/local-db/knowledge"
 import { buildKnowledgeRecords } from "@/lib/knowledge/extract"
 import { triggerEnrichment } from "@/lib/knowledge/enrich"
+import { t } from "@/lib/i18n-instance"
 import React from "react"
 import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
+
+// Local inference servers (oMLX, LM Studio, Ollama, LocalAI, vLLM...) surface
+// failures as plain HTTP status codes with engine-specific bodies. Map the
+// common ones to a cause a non-technical user can act on, so failures show
+// up in the chat/toast instead of only in devtools console.
+function describeLocalServerError(status: number, bodyText: string): string {
+  const snippet = bodyText.trim().slice(0, 300)
+  switch (status) {
+    case 507:
+      return t(
+        "Local model server is out of disk space (cache full). Clear the engine's cache and try again."
+      )
+    case 503:
+      return t(
+        "Local model server is unavailable — it may be loading the model or overloaded. Try again shortly."
+      )
+    case 502:
+    case 504:
+      return t(
+        "Local model server did not respond in time (gateway/timeout). Check whether the engine is still running."
+      )
+    case 429:
+      return t(
+        "Local model server rejected the request due to too many concurrent calls."
+      )
+    case 401:
+    case 403:
+      return t(
+        "Authentication with the local model server failed. Check the API key configured for the engine."
+      )
+    case 404:
+      return t(
+        "Model not found on the local server. It may have been unloaded or renamed."
+      )
+    default:
+      return snippet
+        ? t("Local model server returned error {{status}}: {{snippet}}", {
+            status,
+            snippet
+          })
+        : t("Local model server returned error {{status}}", { status })
+  }
+}
 
 async function resolveCustomModel(hostedId: string | undefined) {
   if (!hostedId) return undefined
@@ -294,6 +338,7 @@ export async function executeToolLoopAndStream(
     )
 
     let res2;
+    let connectError: any = null
     try {
       res2 = isLocal
         ? await fetch(`${localBaseUrl}/v1/chat/completions`, {
@@ -317,7 +362,8 @@ export async function executeToolLoopAndStream(
             })
           })
     } catch (e) {
-      console.error("Second turn fetch failed:", e)
+      connectError = e
+      console.error(`[executeToolLoopAndStream] fetch to ${isLocal ? localBaseUrl : apiEndpoint} threw:`, e)
     }
 
     if (res2 && res2.ok && res2.body) {
@@ -361,7 +407,35 @@ export async function executeToolLoopAndStream(
         new AbortController().signal
       )
     } else {
-       console.error("Stream request failed")
+      let cause: string
+      if (connectError) {
+        cause = isLocal
+          ? t(
+              "Could not connect to the local model server at {{baseUrl}}. Check whether the engine is running.",
+              { baseUrl: localBaseUrl }
+            )
+          : t("Could not connect to {{endpoint}}.", { endpoint: apiEndpoint })
+      } else if (res2) {
+        const bodyText = await res2.text().catch(() => "")
+        console.error(
+          `[executeToolLoopAndStream] stream request failed: status=${res2.status} url=${res2.url} body=${bodyText.slice(0, 500)}`
+        )
+        cause = isLocal
+          ? describeLocalServerError(res2.status, bodyText)
+          : t("Request failed (status {{status}}).", { status: res2.status })
+      } else {
+        cause = t("Unknown failure while contacting the model.")
+      }
+      console.error("[executeToolLoopAndStream] stream request failed:", cause)
+      toast.error(cause)
+      content = `⚠️ ${cause}`
+      setChatMessages(prev =>
+        prev.map(m =>
+          m.message.id === targetId
+            ? { ...m, message: { ...m.message, content } }
+            : m
+        )
+      )
     }
   }
 
@@ -397,12 +471,26 @@ export async function executeToolLoopAndStream(
         })
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: "Request failed" }))
-      throw new Error(err.message || "Chat request failed")
+      const bodyText = await res.text().catch(() => "")
+      const err: any = new Error(
+        (() => {
+          try {
+            return JSON.parse(bodyText).message || "Chat request failed"
+          } catch {
+            return "Chat request failed"
+          }
+        })()
+      )
+      err.status = res.status
+      err.bodyText = bodyText
+      throw err
     }
   } catch (err: any) {
     if (isLocal) {
-      console.warn("Local model failed with tools payload, falling back to streaming without tools.")
+      console.warn(
+        `[executeToolLoopAndStream] tools-call request failed (status=${err.status ?? "n/a"}), falling back to streaming without tools:`,
+        err.bodyText?.slice(0, 500) ?? err.message
+      )
       await doStream([], "")
       return { content, thinking, intentName, toolExchange }
     }

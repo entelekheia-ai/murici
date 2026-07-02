@@ -28,5 +28,17 @@
   "Search collections...": "Search collections...",
   "Search assistants...": "Search assistants...",
   "Search tools...": "Search tools...",
-  "Search models...": "Search models..."
+  "Search models...": "Search models...",
+  "Local model server is out of disk space (cache full). Clear the engine's cache and try again.": "Local model server is out of disk space (cache full). Clear the engine's cache and try again.",
+  "Local model server is unavailable — it may be loading the model or overloaded. Try again shortly.": "Local model server is unavailable — it may be loading the model or overloaded. Try again shortly.",
+  "Local model server did not respond in time (gateway/timeout). Check whether the engine is still running.": "Local model server did not respond in time (gateway/timeout). Check whether the engine is still running.",
+  "Local model server rejected the request due to too many concurrent calls.": "Local model server rejected the request due to too many concurrent calls.",
+  "Authentication with the local model server failed. Check the API key configured for the engine.": "Authentication with the local model server failed. Check the API key configured for the engine.",
+  "Model not found on the local server. It may have been unloaded or renamed.": "Model not found on the local server. It may have been unloaded or renamed.",
+  "Local model server returned error {{status}}: {{snippet}}": "Local model server returned error {{status}}: {{snippet}}",
+  "Local model server returned error {{status}}": "Local model server returned error {{status}}",
+  "Could not connect to the local model server at {{baseUrl}}. Check whether the engine is running.": "Could not connect to the local model server at {{baseUrl}}. Check whether the engine is running.",
+  "Could not connect to {{endpoint}}.": "Could not connect to {{endpoint}}.",
+  "Request failed (status {{status}}).": "Request failed (status {{status}}).",
+  "Unknown failure while contacting the model.": "Unknown failure while contacting the model."
 }

@@ -28,5 +28,17 @@
   "Search collections...": "Buscar coleções...",
   "Search assistants...": "Buscar assistentes...",
   "Search tools...": "Buscar ferramentas...",
-  "Search models...": "Buscar modelos..."
+  "Search models...": "Buscar modelos...",
+  "Local model server is out of disk space (cache full). Clear the engine's cache and try again.": "O servidor de modelo local está sem espaço em disco (cache cheio). Limpe o cache do engine e tente novamente.",
+  "Local model server is unavailable — it may be loading the model or overloaded. Try again shortly.": "O servidor de modelo local está indisponível — pode estar carregando o modelo ou sobrecarregado. Tente novamente em instantes.",
+  "Local model server did not respond in time (gateway/timeout). Check whether the engine is still running.": "O servidor de modelo local não respondeu a tempo (gateway/timeout). Verifique se o engine ainda está rodando.",
+  "Local model server rejected the request due to too many concurrent calls.": "O servidor de modelo local recusou a requisição por excesso de chamadas simultâneas.",
+  "Authentication with the local model server failed. Check the API key configured for the engine.": "Falha de autenticação com o servidor de modelo local. Confira a API key configurada para o engine.",
+  "Model not found on the local server. It may have been unloaded or renamed.": "Modelo não encontrado no servidor local. Ele pode ter sido descarregado ou o nome mudou.",
+  "Local model server returned error {{status}}: {{snippet}}": "Servidor de modelo local retornou erro {{status}}: {{snippet}}",
+  "Local model server returned error {{status}}": "Servidor de modelo local retornou erro {{status}}",
+  "Could not connect to the local model server at {{baseUrl}}. Check whether the engine is running.": "Não foi possível conectar ao servidor de modelo local em {{baseUrl}}. Verifique se o engine está rodando.",
+  "Could not connect to {{endpoint}}.": "Não foi possível conectar a {{endpoint}}.",
+  "Request failed (status {{status}}).": "Falha na requisição (status {{status}}).",
+  "Unknown failure while contacting the model.": "Falha desconhecida ao contatar o modelo."
 }

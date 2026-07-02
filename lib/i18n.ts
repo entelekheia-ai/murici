@@ -35,7 +35,11 @@ export default async function initTranslations(
     defaultNS: namespaces[0],
     fallbackNS: namespaces[0],
     ns: namespaces,
-    preload: resources ? [] : i18nConfig.locales
+    preload: resources ? [] : i18nConfig.locales,
+    // React already escapes text when rendering JSX, so i18next's own HTML
+    // escaping (e.g. "/" -> "&#x2F;") would double-encode interpolated
+    // values like URLs and show up literally in the UI.
+    interpolation: { escapeValue: false }
   })
 
   return {
