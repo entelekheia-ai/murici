@@ -737,45 +737,55 @@ export function sanitizeStreamText(raw: string): {
   // 1. Extract <think> blocks (for local models that output raw tags)
   const thinkStartTag = "<think>"
   const thinkEndTag = "</think>"
-  let tStartIdx = displayText.indexOf(thinkStartTag)
-  if (tStartIdx !== -1) {
-    const tEndIdx = displayText.indexOf(thinkEndTag, tStartIdx)
-    const pre = displayText.slice(0, tStartIdx)
-    if (tEndIdx === -1) {
-      thinkingText = displayText.slice(tStartIdx + thinkStartTag.length)
-      displayText = pre
+  while (true) {
+    let tStartIdx = displayText.indexOf(thinkStartTag)
+    if (tStartIdx !== -1) {
+      const tEndIdx = displayText.indexOf(thinkEndTag, tStartIdx)
+      const pre = displayText.slice(0, tStartIdx)
+      if (tEndIdx === -1) {
+        thinkingText += (thinkingText ? "\n" : "") + displayText.slice(tStartIdx + thinkStartTag.length)
+        displayText = pre
+        break
+      } else {
+        thinkingText += (thinkingText ? "\n" : "") + displayText.slice(tStartIdx + thinkStartTag.length, tEndIdx)
+        const post = displayText.slice(tEndIdx + thinkEndTag.length).trimStart()
+        displayText = pre + post
+      }
     } else {
-      thinkingText = displayText.slice(tStartIdx + thinkStartTag.length, tEndIdx)
-      const post = displayText.slice(tEndIdx + thinkEndTag.length).trimStart()
-      displayText = pre + post
+      break
     }
   }
 
   // 2. Extract <tool_call> fallback
   const toolStartTag = "<tool_call>"
   const toolEndTag = "</tool_call>"
-  let toolStartIdx = displayText.indexOf(toolStartTag)
-  if (toolStartIdx !== -1) {
-    const toolEndIdx = displayText.indexOf(toolEndTag, toolStartIdx)
-    const pre = displayText.slice(0, toolStartIdx)
-    if (toolEndIdx === -1) {
-      displayText = pre
-    } else {
-      const toolText = displayText.slice(toolStartIdx + toolStartTag.length, toolEndIdx)
-      const post = displayText.slice(toolEndIdx + toolEndTag.length).trimStart()
-      displayText = pre + post
-      
-      const funcMatch = toolText.match(/<function=([^>]+)>/)
-      if (funcMatch) {
-        const funcName = funcMatch[1].trim()
-        const params: Record<string, any> = {}
-        const paramRegex = /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/g
-        let pMatch;
-        while ((pMatch = paramRegex.exec(toolText)) !== null) {
-          params[pMatch[1].trim()] = pMatch[2].trim()
+  while (true) {
+    let toolStartIdx = displayText.indexOf(toolStartTag)
+    if (toolStartIdx !== -1) {
+      const toolEndIdx = displayText.indexOf(toolEndTag, toolStartIdx)
+      const pre = displayText.slice(0, toolStartIdx)
+      if (toolEndIdx === -1) {
+        displayText = pre
+        break
+      } else {
+        const toolText = displayText.slice(toolStartIdx + toolStartTag.length, toolEndIdx)
+        const post = displayText.slice(toolEndIdx + toolEndTag.length).trimStart()
+        displayText = pre + post
+        
+        const funcMatch = toolText.match(/<function=([^>]+)>/)
+        if (funcMatch) {
+          const funcName = funcMatch[1].trim()
+          const params: Record<string, any> = {}
+          const paramRegex = /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/g
+          let pMatch;
+          while ((pMatch = paramRegex.exec(toolText)) !== null) {
+            params[pMatch[1].trim()] = pMatch[2].trim()
+          }
+          foundTool = { name: funcName, arguments: params }
         }
-        foundTool = { name: funcName, arguments: params }
       }
+    } else {
+      break
     }
   }
 

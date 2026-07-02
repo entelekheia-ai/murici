@@ -192,15 +192,14 @@ export const Message: FC<MessageProps> = ({
   return (
     <div
       className={cn(
-        "flex w-full justify-center",
-        message.role === "user" ? "" : "bg-chat-bg"
+        "flex w-full justify-center px-[40px]",
       )}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onKeyDown={handleKeyDown}
     >
-      <div className="relative flex w-full flex-col p-6 sm:w-[550px] sm:px-0 md:w-[650px] lg:w-[650px] xl:w-[700px]">
-        <div className="absolute right-5 top-7 sm:right-0">
+      <div className="relative flex w-full flex-col py-[24px]">
+        <div className="absolute right-0 top-7">
           <MessageActions
             onCopy={handleCopy}
             onEdit={handleStartEdit}
@@ -211,86 +210,96 @@ export const Message: FC<MessageProps> = ({
             onRegenerate={handleRegenerate}
           />
         </div>
-        <div className="space-y-3">
-          {message.role === "system" ? (
-            <div className="flex items-center space-x-4">
-              <IconPencil
-                className="border-primary bg-primary text-secondary rounded border-DEFAULT p-1"
-                size={ICON_SIZE}
-              />
-
-              <div className="text-lg font-semibold">Prompt</div>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-3">
+        <div className="flex w-full gap-[16px]">
+          {message.role !== "system" && (
+            <div className="shrink-0 pt-[2px]">
               {message.role === "assistant" ? (
-                <div className="flex size-[32px] items-center justify-center rounded bg-murici-orange text-white">
+                <div className="flex size-[32px] items-center justify-center overflow-hidden rounded-full bg-[#126e3d]">
                   {messageAssistantImage ? (
                     <Image
                       style={{
                         width: `${ICON_SIZE}px`,
                         height: `${ICON_SIZE}px`
                       }}
-                      className="rounded"
+                      className="rounded-full"
                       src={messageAssistantImage}
                       alt="assistant image"
                       height={ICON_SIZE}
                       width={ICON_SIZE}
                     />
                   ) : (
-                    <WithTooltip
-                      display={<div>{MODEL_DATA?.modelName}</div>}
-                      trigger={
-                        <ModelIcon
-                          provider={modelDetails?.provider || "custom"}
-                          height={20}
-                          width={20}
-                        />
-                      }
+                    <Image
+                      src="/murici mini.png"
+                      alt="Murici"
+                      width={ICON_SIZE}
+                      height={ICON_SIZE}
+                      className="rounded-full"
                     />
                   )}
                 </div>
               ) : (
-                <div className="flex size-[32px] shrink-0 items-center justify-center rounded-full bg-murici-green"></div>
+                <div className="flex size-[32px] items-center justify-center rounded-[16px] bg-[#3f6212] text-[14px] font-bold text-white">
+                  V
+                </div>
               )}
-
-              <div className="font-semibold">
-                {message.role === "assistant"
-                  ? message.assistant_id
-                    ? assistants.find(
-                        assistant => assistant.id === message.assistant_id
-                      )?.name
-                    : selectedAssistant
-                      ? selectedAssistant?.name
-                      : MODEL_DATA?.modelName
-                  : profile?.display_name ?? profile?.username}
-              </div>
             </div>
           )}
-          {message.role === "assistant" &&
-            thinkingLog?.[message.sequence_number] && (
-              <MessageThinkingBlock
-                thinking={thinkingLog[message.sequence_number]}
-              />
+
+          <div className="flex min-w-px flex-[1_0_0] flex-col gap-[12px]">
+            {message.role === "system" ? (
+              <div className="flex items-center space-x-4">
+                <IconPencil
+                  className="border-primary bg-primary text-secondary rounded border-DEFAULT p-1"
+                  size={ICON_SIZE}
+                />
+                <div className="text-lg font-semibold">Prompt</div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-[8px]">
+                <div className="text-[15px] font-semibold text-[#1c1611] dark:text-white">
+                  {message.role === "assistant"
+                    ? message.assistant_id
+                      ? assistants.find(
+                          assistant => assistant.id === message.assistant_id
+                        )?.name
+                      : selectedAssistant
+                        ? selectedAssistant?.name
+                        : MODEL_DATA?.modelName
+                    : "Você"}
+                </div>
+                <div className="text-[13px] font-normal text-[#a59686] dark:text-[#a3a3a3]">
+                  {new Date(message.created_at).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  })}
+                </div>
+              </div>
             )}
-          {!firstTokenReceived &&
-          isGenerating &&
-          isLast &&
-          message.role === "assistant" ? (
-            <>
+            
+            {message.role === "assistant" &&
+              thinkingLog?.[message.sequence_number] && (
+                <MessageThinkingBlock
+                  thinking={thinkingLog[message.sequence_number]}
+                />
+              )}
+              
+            {!firstTokenReceived &&
+            isGenerating &&
+            isLast &&
+            message.role === "assistant" ? (
               <IconCircleFilled className="animate-pulse" size={20} />
-            </>
-          ) : isEditing ? (
-            <TextareaAutosize
-              textareaRef={editInputRef}
-              className="text-md"
-              value={editedMessage}
-              onValueChange={setEditedMessage}
-              maxRows={20}
-            />
-          ) : (
-            <MessageMarkdown content={message.content} />
-          )}
+            ) : isEditing ? (
+              <TextareaAutosize
+                textareaRef={editInputRef}
+                className="text-md"
+                value={editedMessage}
+                onValueChange={setEditedMessage}
+                maxRows={20}
+              />
+            ) : (
+              <MessageMarkdown content={message.content} />
+            )}
+          </div>
         </div>
 
         {fileItems.length > 0 && (

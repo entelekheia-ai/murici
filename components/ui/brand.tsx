@@ -6,6 +6,7 @@
 "use client"
 
 import { FC } from "react"
+import Image from "next/image"
 
 interface BrandProps {
   theme?: "dark" | "light"
@@ -13,8 +14,20 @@ interface BrandProps {
 
 export const Brand: FC<BrandProps> = ({ theme = "dark" }) => {
   return (
-    <div className="flex flex-col items-center">
-      <div className="text-4xl font-bold tracking-wide">Murici</div>
+    <div className="flex flex-col items-center gap-6">
+      <div className="flex size-[96px] items-center justify-center overflow-hidden rounded-[12px] shadow-lg bg-[#126e3d]">
+        <Image 
+          src="/murici.svg" 
+          alt="Murici" 
+          width={96} 
+          height={96} 
+          className="rounded-[12px]"
+          priority 
+        />
+      </div>
+      <div className="font-ysabeau font-medium text-[48px] leading-none text-murici-text-primary">
+        murici
+      </div>
     </div>
   )
 }
