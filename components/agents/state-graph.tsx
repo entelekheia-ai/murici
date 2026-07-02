@@ -32,7 +32,7 @@ interface ParsedGraph {
   activeState: string
 }
 
-function parseScxml(scxml: string): ParsedGraph | null {
+export function parseScxml(scxml: string): ParsedGraph | null {
   if (!scxml) return null
   const parser = new DOMParser()
   const doc = parser.parseFromString(scxml, "text/xml")

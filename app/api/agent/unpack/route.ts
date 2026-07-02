@@ -51,6 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         license: am.license
       },
       behaviorText: bundle.files.behavior,
+      descriptionText: bundle.files.description,
       knowledge: bundle.files.knowledge ?? [],
       guides: bundle.files.guides ?? [],
       behaviors: bundle.files.behaviors ?? []

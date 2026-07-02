@@ -55,6 +55,7 @@ async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
       license: am.license
     },
     behaviorText: files.behavior,
+    descriptionText: files.description,
     behaviors: files.behaviors ?? []
   }
 }

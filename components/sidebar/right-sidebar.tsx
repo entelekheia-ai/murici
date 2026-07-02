@@ -10,7 +10,7 @@ import Image from "next/image"
 import { Button } from "../ui/button"
 import { ChatbotUIContext } from "@/context/context"
 import type { UnpackPayload, AgentAboutme } from "@/types/electron"
-import { IconCircleCheck, IconCircleDot, IconCircle, IconX, IconFolderOpen, IconGlobe, IconFileText, IconLayout, IconCircleX, IconClock, IconDatabase, IconActivity } from "@tabler/icons-react"
+import { IconCircleCheck, IconCheck, IconDots, IconX, IconFolderOpen, IconGlobe, IconFileText, IconLayout, IconCircleX, IconClock, IconDatabase, IconActivity } from "@tabler/icons-react"
 import {
   Accordion,
   AccordionContent,
@@ -20,9 +20,25 @@ import {
 import { KernelProxy } from "@/lib/kernel-proxy"
 import { KnowledgeChip } from "../knowledge/knowledge-chip"
 import { KnowledgeRecord } from "@/types/knowledge"
-import { StateGraph } from "../agents/state-graph"
+import { StateGraph, parseScxml } from "../agents/state-graph"
+import { cn } from "@/lib/utils"
 import { useRouter, useParams } from "next/navigation"
 import { getMcpAndBuiltInTools } from "../chat/chat-helpers"
+
+function computePending(scxml: string | null, currentState: string, exclude: Set<string>): string[] {
+  if (!scxml || !currentState) return []
+  const parsed = parseScxml(scxml)
+  if (!parsed) return []
+  const seen = new Set<string>()
+  const pending: string[] = []
+  for (const t of parsed.transitions) {
+    if (t.from !== currentState || t.to === currentState) continue
+    if (exclude.has(t.to) || seen.has(t.to)) continue
+    seen.add(t.to)
+    pending.push(t.to)
+  }
+  return pending
+}
 
 export const RightSidebar: FC = () => {
   const router = useRouter()
@@ -38,9 +54,10 @@ export const RightSidebar: FC = () => {
   const [engine, setEngine] = useState<any>(null)
   const [currentState, setCurrentState] = useState<string>("")
   const [graphData, setGraphData] = useState<string | null>(null)
-  const [visitedStates, setVisitedStates] = useState<Set<string>>(new Set())
+  const [visitedOrder, setVisitedOrder] = useState<string[]>([])
   const [parseError, setParseError] = useState<string | null>(null)
   const [behaviorText, setBehaviorText] = useState("")
+  const [descriptionText, setDescriptionText] = useState("")
   const [agentMeta, setAgentMeta] = useState<AgentAboutme | null>(null)
   const [agentLoading, setAgentLoading] = useState(false)
   
@@ -88,7 +105,7 @@ export const RightSidebar: FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const engineRef = useRef<any>(null)
-  const visitedRef = useRef<Set<string>>(new Set())
+  const visitedRef = useRef<string[]>([])
   const knowledgeRef = useRef<Array<{ path: string; content: string }>>([])
   const guidesRef = useRef<Array<{ path: string; content: string }>>([])
   const behaviorsRef = useRef<Array<{ path: string; content: string }>>([])
@@ -117,7 +134,7 @@ export const RightSidebar: FC = () => {
     guidesRef.current = guides
     behaviorsRef.current = behaviors
     setAgentKnowledgeFiles(know)
-    visitedRef.current = new Set()
+    visitedRef.current = []
     setParseError(null)
 
     try {
@@ -130,9 +147,9 @@ export const RightSidebar: FC = () => {
       }
 
       const state = eng.get_current_state()
-      visitedRef.current.add(state)
+      visitedRef.current = [state]
       setCurrentState(state)
-      setVisitedStates(new Set([state]))
+      setVisitedOrder([state])
 
       const graph = eng.get_graph()
       setGraphData(graph)
@@ -158,9 +175,9 @@ export const RightSidebar: FC = () => {
     if (!flowState?.currentState || !engineRef.current) return
     const newState = flowState.currentState
     if (newState === currentState) return
-    visitedRef.current.add(newState)
+    if (!visitedRef.current.includes(newState)) visitedRef.current.push(newState)
     setCurrentState(newState)
-    setVisitedStates(new Set(visitedRef.current))
+    setVisitedOrder([...visitedRef.current])
     const freshGraph = engineRef.current.get_graph()
     if (freshGraph) setGraphData(freshGraph)
   }, [flowState?.currentState])
@@ -171,7 +188,10 @@ export const RightSidebar: FC = () => {
     loadAgentBundleRef.current = async (payload: UnpackPayload) => {
       setAgentMeta(payload.aboutme)
       setAgentPersona(payload.aboutme.persona || null)
-      if (mounted) setBehaviorText(payload.behaviorText)
+      if (mounted) {
+        setBehaviorText(payload.behaviorText)
+        setDescriptionText(payload.descriptionText || "")
+      }
       if (engineRef.current && mounted) {
         await loadBehavior(engineRef.current, payload.behaviorText, payload.knowledge, payload.guides, payload.behaviors)
       }
@@ -271,6 +291,15 @@ export const RightSidebar: FC = () => {
   const validIntents = engine
     ? (Array.from(engine.get_valid_intents() || []) as string[])
     : []
+
+  const doneStates = visitedOrder.filter(s => s !== currentState)
+  const excludeForPending = new Set<string>([...doneStates, currentState].filter(Boolean))
+  const pendingStates = computePending(graphData, currentState, excludeForPending)
+  const historyRows: Array<{ state: string; status: "done" | "current" | "pending" }> = [
+    ...doneStates.map(state => ({ state, status: "done" as const })),
+    ...(currentState ? [{ state: currentState, status: "current" as const }] : []),
+    ...pendingStates.map(state => ({ state, status: "pending" as const }))
+  ]
 
   return (
     <div
@@ -373,26 +402,114 @@ export const RightSidebar: FC = () => {
 
               <div className="space-y-3">
                 <h3 className="font-semibold uppercase text-[10px] text-murici-text-secondary tracking-wider">Histórico de Estados</h3>
-                <div className="space-y-2">
-                  {Array.from(visitedStates).map(state => (
-                    <div key={`visited-${state}`} className="flex items-center space-x-2 text-sm text-murici-text-secondary">
-                      <IconCircleCheck size={16} className="text-murici-green" />
-                      <span>{state}</span>
-                    </div>
-                  ))}
-                  
-                  {currentState && (
-                    <div className="flex items-center space-x-2 text-sm font-semibold">
-                      <IconCircleDot size={16} className="text-murici-orange" />
-                      <span>{currentState}</span>
-                    </div>
-                  )}
-
-                  {!currentState && Array.from(visitedStates).length === 0 && (
-                    <p className="text-muted-foreground text-xs">Aguardando início do fluxo...</p>
-                  )}
-                </div>
+                {historyRows.length === 0 ? (
+                  <p className="text-muted-foreground text-xs">Aguardando início do fluxo...</p>
+                ) : (
+                  <div>
+                    {historyRows.map((row, i) => {
+                      const isLast = i === historyRows.length - 1
+                      return (
+                        <div key={`${row.status}-${row.state}`} className="relative flex gap-3 pb-4 last:pb-0">
+                          {!isLast && (
+                            <div className="absolute left-[8px] top-5 bottom-0 w-px bg-sidebar-border" />
+                          )}
+                          <div className="relative z-10 mt-0.5 shrink-0">
+                            {row.status === "done" && (
+                              <div className="flex h-[18px] w-[18px] items-center justify-center rounded-md border-[1.5px] border-murici-orange">
+                                <IconCheck size={11} stroke={3} className="text-murici-orange" />
+                              </div>
+                            )}
+                            {row.status === "current" && (
+                              <div className="h-[18px] w-[18px] rounded-md bg-murici-orange" />
+                            )}
+                            {row.status === "pending" && (
+                              <div className="h-[18px] w-[18px] rounded-md border-[1.5px] border-neutral-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className={cn(
+                                "font-instrument truncate text-[13px]",
+                                row.status === "current"
+                                  ? "font-semibold text-murici-text-primary"
+                                  : "text-murici-text-secondary"
+                              )}
+                            >
+                              {row.state}
+                            </p>
+                            {row.status === "done" && (
+                              <p className="mt-0.5 text-[11px] text-murici-orange">Concluído</p>
+                            )}
+                            {row.status === "current" && (
+                              <p className="mt-0.5 text-[11px] text-murici-text-secondary">Em andamento</p>
+                            )}
+                          </div>
+                          {row.status === "done" && (
+                            <IconCircleCheck size={16} className="mt-0.5 shrink-0 text-murici-orange" />
+                          )}
+                          {row.status === "current" && (
+                            <IconDots size={16} className="mt-0.5 shrink-0 text-murici-text-secondary" />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
+
+              {(descriptionText || behaviorText || behaviorsRef.current.length > 0) && (
+                <div className="space-y-3">
+                  <Accordion type="single" collapsible className="w-full border-none">
+                    <AccordionItem value="debug" className="border-none">
+                      <AccordionTrigger className="text-[15px] font-semibold text-murici-text-primary py-2 hover:no-underline">
+                        DEBUG
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <Accordion type="multiple" className="w-full border-none">
+                          {descriptionText && (
+                            <AccordionItem value="debug-description" className="border-none">
+                              <AccordionTrigger className="text-[12px] uppercase font-semibold text-murici-text-secondary py-2 hover:no-underline tracking-wider">
+                                {`${agentMeta?.name || "Agente"}.DESCRIPTION`}
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-murici-text-primary">
+                                  {descriptionText}
+                                </pre>
+                              </AccordionContent>
+                            </AccordionItem>
+                          )}
+
+                          {behaviorText && (
+                            <AccordionItem value="debug-behavior-main" className="border-none">
+                              <AccordionTrigger className="text-[12px] uppercase font-semibold text-murici-text-secondary py-2 hover:no-underline tracking-wider">
+                                {`${agentMeta?.name || "Agente"}.BEHAVIOR`}
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-murici-text-primary">
+                                  {behaviorText}
+                                </pre>
+                              </AccordionContent>
+                            </AccordionItem>
+                          )}
+
+                          {behaviorsRef.current.map((b, i) => (
+                            <AccordionItem key={b.path || i} value={`debug-behavior-${i}`} className="border-none">
+                              <AccordionTrigger className="text-[12px] uppercase font-semibold text-murici-text-secondary py-2 hover:no-underline tracking-wider">
+                                {`${agentMeta?.name || "Agente"}.BEHAVIOR (${b.path || `#${i + 1}`})`}
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-murici-text-primary">
+                                  {b.content}
+                                </pre>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))}
+                        </Accordion>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </div>
+              )}
 
               {graphData && (
                 <div className="space-y-3">
@@ -405,7 +522,7 @@ export const RightSidebar: FC = () => {
                         <div className="bg-transparent overflow-auto rounded-lg border border-sidebar-border p-2 min-h-[200px]">
                           <StateGraph
                             scxml={graphData}
-                            visitedStates={visitedStates}
+                            visitedStates={new Set(visitedOrder)}
                           />
                         </div>
                       </AccordionContent>

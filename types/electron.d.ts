@@ -27,6 +27,7 @@ export interface AgentAboutme {
 export interface UnpackPayload {
   aboutme: AgentAboutme
   behaviorText: string
+  descriptionText?: string
   knowledge?: Array<{ path: string; content: string }>
   guides?: Array<{ path: string; content: string }>
   behaviors?: Array<{ path: string; content: string }>
