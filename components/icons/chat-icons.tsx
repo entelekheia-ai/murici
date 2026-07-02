@@ -61,3 +61,14 @@ export const IconPlusFigma = ({ className, size = 16, strokeWidth = 2, ...props 
   </svg>
 )
 
+export const IconPaperclipFigma = ({ className, size = 18, strokeWidth = 2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+    <path d="M12.0001 4.49951L5.68907 10.9396C5.40769 11.221 5.24961 11.6027 5.24961 12.0006C5.24961 12.3986 5.40769 12.7802 5.68907 13.0616C5.97046 13.343 6.3521 13.5011 6.75004 13.5011C7.14798 13.5011 7.52962 13.343 7.811 13.0616L14.122 6.62146C14.6847 6.05878 15.0008 5.29563 15.0008 4.49988C15.0008 3.70413 14.6847 2.94098 14.122 2.3783C13.5594 1.81562 12.7962 1.49951 12.0005 1.49951C11.2047 1.49951 10.4416 1.81562 9.87892 2.3783L3.59415 8.79217C3.17066 9.20882 2.83386 9.7052 2.60317 10.2527C2.37247 10.8001 2.25246 11.3879 2.25004 11.9819C2.24762 12.576 2.36285 13.1647 2.58907 13.714C2.8153 14.2634 3.14805 14.7625 3.56813 15.1826C3.98821 15.6026 4.4873 15.9354 5.03662 16.1616C5.58595 16.3879 6.17462 16.5031 6.7687 16.5007C7.36278 16.4983 7.95049 16.3782 8.49796 16.1475C9.04542 15.9168 9.54178 15.58 9.95843 15.1565L16.2432 8.74267" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round"/>
+  </svg>
+)
+
+export const IconArrowUpFigma = ({ className, size = 20, strokeWidth = 2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+    <path d="M15.834 10L10 4.16602L4.16602 10M10 4.16602V15.834" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round"/>
+  </svg>
+)

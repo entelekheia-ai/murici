@@ -75,16 +75,16 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
       <PopoverTrigger asChild>
         <Button
           ref={buttonRef}
-          className="flex h-[29px] items-center space-x-1.5 rounded-full border border-[#E5E3DF] bg-transparent px-3 py-1 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          className="flex items-center gap-[8px] rounded-[100px] border border-[#e5e3df] dark:border-[#262626] bg-transparent px-[12px] py-[6px] hover:bg-black/5 dark:hover:bg-white/10"
           onClick={() => setOpen(prev => !prev)}
         >
-          <IconSparklesFigma className="text-muted-foreground" size={16} />
+          <IconSparklesFigma className="text-[#1c1611] dark:text-white" size={16} />
           
-          <div className="max-w-[120px] truncate text-sm font-medium sm:max-w-[300px] lg:max-w-[500px] text-murici-text-primary">
+          <div className="max-w-[120px] truncate text-[14px] font-medium sm:max-w-[300px] lg:max-w-[500px] text-[#1c1611] dark:text-white">
             {fullModel?.modelName || chatSettings.model}
           </div>
 
-          <IconChevronDownFigma className="text-muted-foreground" size={12} />
+          <IconChevronDownFigma className="text-[#1c1611] dark:text-white" size={12} />
         </Button>
       </PopoverTrigger>
 

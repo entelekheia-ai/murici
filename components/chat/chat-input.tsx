@@ -8,10 +8,9 @@ import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
 import {
-  IconPaperclip,
-  IconPlayerStopFilled,
-  IconSend
+  IconPlayerStopFilled
 } from "@tabler/icons-react"
+import { IconPaperclipFigma, IconArrowUpFigma } from "../icons/chat-icons"
 import Image from "next/image"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -191,34 +190,14 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
         )}
       </div>
 
-      <div className="bg-sidebar-bg relative mt-3 flex min-h-[60px] w-full items-center justify-center rounded-xl">
-        <div className="absolute bottom-[76px] left-0 max-h-[300px] w-full overflow-auto rounded-xl dark:border-none">
+      <div className="relative mt-3 flex w-full flex-col gap-[24px] rounded-[16px] border border-[#e5e3df] dark:border-[#262626] bg-[#e8e2d9] dark:bg-[#1a1a1a] p-[16px]">
+        <div className="absolute bottom-full left-0 max-h-[300px] w-full overflow-auto rounded-xl pb-2 dark:border-none">
           <ChatCommandInput />
         </div>
 
-        <>
-          <IconPaperclip
-            className="absolute bottom-[12px] left-3 cursor-pointer p-1 hover:opacity-50 text-murici-text-secondary"
-            size={32}
-            onClick={() => fileInputRef.current?.click()}
-          />
-
-          {/* Hidden input to select files from device */}
-          <Input
-            ref={fileInputRef}
-            className="hidden"
-            type="file"
-            onChange={e => {
-              if (!e.target.files) return
-              handleSelectDeviceFile(e.target.files[0])
-            }}
-            accept={filesToAccept}
-          />
-        </>
-
         <TextareaAutosize
           textareaRef={chatInputRef}
-          className="ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring text-md flex w-full resize-none rounded-md border-none bg-transparent px-14 py-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="text-md flex w-full resize-none rounded-md border-none bg-transparent p-0 placeholder:text-[#a59686] dark:placeholder-white/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 text-[#1c1611] dark:text-white"
           placeholder={t("Como posso ajudar hoje?")}
           onValueChange={handleInputChange}
           value={userInput}
@@ -230,27 +209,51 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
           onCompositionEnd={() => setIsTyping(false)}
         />
 
-        <div className="absolute bottom-[14px] right-3 cursor-pointer hover:opacity-50">
-          {isGenerating ? (
-            <IconPlayerStopFilled
-              className="hover:bg-background animate-pulse rounded bg-transparent p-1"
-              onClick={handleStopMessage}
-              size={30}
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-[12px]">
+            <IconPaperclipFigma
+              className="cursor-pointer text-[#a59686] hover:opacity-50 dark:text-white/50"
+              size={18}
+              strokeWidth={2}
+              onClick={() => fileInputRef.current?.click()}
             />
-          ) : (
-            <IconSend
-              className={cn(
-                "bg-murici-green text-white rounded p-1",
-                !userInput && "cursor-not-allowed opacity-50"
-              )}
-              onClick={() => {
-                if (!userInput) return
 
-                handleSendMessage(userInput, chatMessages, false)
+            {/* Hidden input to select files from device */}
+            <Input
+              ref={fileInputRef}
+              className="hidden"
+              type="file"
+              onChange={e => {
+                if (!e.target.files) return
+                handleSelectDeviceFile(e.target.files[0])
               }}
-              size={30}
+              accept={filesToAccept}
             />
-          )}
+          </div>
+
+          <div className="cursor-pointer hover:opacity-50">
+            {isGenerating ? (
+              <div 
+                className="flex size-[36px] items-center justify-center rounded-[8px] bg-transparent"
+                onClick={handleStopMessage}
+              >
+                <IconPlayerStopFilled className="animate-pulse text-[#3f6212]" size={20} />
+              </div>
+            ) : (
+              <div 
+                className={cn(
+                  "flex size-[36px] items-center justify-center rounded-[8px] bg-[#3f6212] text-white",
+                  !userInput && "cursor-not-allowed opacity-50"
+                )}
+                onClick={() => {
+                  if (!userInput) return
+                  handleSendMessage(userInput, chatMessages, false)
+                }}
+              >
+                <IconArrowUpFigma size={20} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

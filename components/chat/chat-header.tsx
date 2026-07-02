@@ -18,32 +18,9 @@ export const ChatHeader: FC<ChatHeaderProps> = ({}) => {
   const { selectedChat, showRightSidebar, setShowRightSidebar } = useContext(ChatbotUIContext)
 
   return (
-    <div className="drag-region flex h-[124px] w-full items-center justify-between px-6 border-b border-sidebar-border/50 shrink-0">
+    <div className="drag-region flex w-full items-center justify-between px-[24px] py-[12px] border-b border-[#e5e3df] dark:border-[#262626] shrink-0 bg-[#f8f3ee] dark:bg-[#0f0f0f]">
       {/* Esquerda: 100x100 space for Chat Info or empty */}
-      <div className="flex h-[100px] w-[100px] items-center justify-start">
-        {selectedChat && (
-          <div className="no-drag">
-            <WithTooltip
-            delayDuration={200}
-            display={
-              <div>
-                <div className="text-xl font-bold">Chat Info</div>
-                <div className="mx-auto mt-2 max-w-xs space-y-2 sm:max-w-sm md:max-w-md lg:max-w-lg">
-                  <div>Model: {selectedChat.model}</div>
-                  <div>Prompt: {selectedChat.prompt}</div>
-                  <div>Temperature: {selectedChat.temperature}</div>
-                  <div>Context Length: {selectedChat.context_length}</div>
-                </div>
-              </div>
-            }
-            trigger={
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:opacity-50">
-                <IconInfoCircle size={24} />
-              </Button>
-            }
-          />
-          </div>
-        )}
+      <div className="flex w-[100px] items-center justify-start">
       </div>
 
       {/* Centro: Model Selector */}

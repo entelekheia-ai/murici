@@ -63,7 +63,7 @@ export default function ChatPage() {
                 }, 50)
               }
             }}
-            className="absolute bottom-0 z-50 w-full min-w-[300px] items-end px-2 pb-3 pt-0 sm:w-[600px] sm:pb-8 sm:pt-5 md:w-[700px] lg:w-[700px] xl:w-[800px]"
+            className="absolute bottom-0 z-50 w-full items-end p-[24px]"
           >
             <ChatInput />
           </div>
@@ -76,7 +76,7 @@ export default function ChatPage() {
               <Brand theme={theme === "dark" ? "dark" : "light"} />
             </div>
           </div>
-          <div className="w-full min-w-[300px] items-end px-2 pb-3 pt-0 sm:w-[600px] sm:pb-8 sm:pt-5 md:w-[700px] lg:w-[700px] xl:w-[800px]">
+          <div className="w-full items-end p-[24px]">
             <ChatInput />
           </div>
           <div className="absolute bottom-2 right-2 hidden md:block lg:bottom-4 lg:right-4">
