@@ -27,7 +27,8 @@
     "electron:compile": "tsc -p tsconfig.electron.json",
     "electron:dev": "npm run electron:compile && NODE_ENV=development ELECTRON_ENV=development concurrently -k -n next,electron \"next dev\" \"wait-on http://localhost:3000 && electron electron-dist/main.js\"",
     "electron:build": "ELECTRON_BUILD=1 npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && npm run electron:compile && electron-builder",
-    "electron:publish": "npm run electron:build -- --publish always"
+    "electron:publish": "npm run electron:build -- --publish always",
+    "postinstall": "node scripts/copy-tree-sitter-assets.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.3",
@@ -42,6 +43,7 @@
     "@dot-agent/compiler": "file:../dot-agent-spec/packages/compiler",
     "@dot-agent/kernel-dsl": "file:../dot-agent-spec/packages/kernel-dsl",
     "@dot-agent/sdk": "file:../dot-agent-spec/packages/sdk",
+    "@dot-agent/tree-sitter": "file:../dot-agent-spec/packages/tree-sitter",
     "@google/generative-ai": "^0.11.4",
     "@hookform/resolvers": "^3.3.2",
     "@mistralai/mistralai": "^0.0.8",
@@ -110,6 +112,7 @@
     "uuid": "^9.0.1",
     "vis-data": "^8.0.4",
     "vis-network": "^10.1.0",
+    "web-tree-sitter": "^0.26.9",
     "zod": "^3.22.4"
   },
   "devDependencies": {

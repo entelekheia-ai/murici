@@ -53,7 +53,7 @@ module.exports = withBundleAnalyzer(
       if (!isServer) {
         config.resolve.fallback = {
           ...config.resolve.fallback,
-          fs: false, path: false, crypto: false
+          fs: false, path: false, crypto: false, module: false
         }
       }
       return config

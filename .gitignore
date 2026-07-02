@@ -50,6 +50,9 @@ workbox-*.js.map
 /dist-electron/
 public/kernel-dsl.wasm
 
+# tree-sitter grammars/runtime, copied from node_modules by postinstall
+public/tree-sitter/
+
 # Graphify
 graphify-out/
 

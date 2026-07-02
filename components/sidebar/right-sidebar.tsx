@@ -17,6 +17,7 @@ import {
   AccordionItem,
   AccordionTrigger
 } from "../ui/accordion"
+import { DslHighlightedCode } from "../agents/dsl-highlighted-code"
 import { KernelProxy } from "@/lib/kernel-proxy"
 import { KnowledgeChip } from "../knowledge/knowledge-chip"
 import { KnowledgeRecord } from "@/types/knowledge"
@@ -473,7 +474,7 @@ export const RightSidebar: FC = () => {
                               </AccordionTrigger>
                               <AccordionContent>
                                 <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-murici-text-primary">
-                                  {descriptionText}
+                                  <DslHighlightedCode language="description" value={descriptionText} />
                                 </pre>
                               </AccordionContent>
                             </AccordionItem>
@@ -486,7 +487,7 @@ export const RightSidebar: FC = () => {
                               </AccordionTrigger>
                               <AccordionContent>
                                 <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-murici-text-primary">
-                                  {behaviorText}
+                                  <DslHighlightedCode language="behavior" value={behaviorText} />
                                 </pre>
                               </AccordionContent>
                             </AccordionItem>
@@ -499,7 +500,7 @@ export const RightSidebar: FC = () => {
                               </AccordionTrigger>
                               <AccordionContent>
                                 <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-murici-text-primary">
-                                  {b.content}
+                                  <DslHighlightedCode language="behavior" value={b.content} />
                                 </pre>
                               </AccordionContent>
                             </AccordionItem>

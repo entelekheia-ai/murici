@@ -4,11 +4,18 @@
  */
 
 import { Button } from "@/components/ui/button"
+import { DslHighlightedCode } from "@/components/agents/dsl-highlighted-code"
 import { useCopyToClipboard } from "@/lib/hooks/use-copy-to-clipboard"
+import type { DslLangId } from "@/lib/dsl-highlight"
 import { IconCheck, IconCopy, IconDownload } from "@tabler/icons-react"
 import { FC, memo } from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism"
+
+const DSL_LANGUAGES: DslLangId[] = ["description", "behavior"]
+function isDslLanguage(language: string): language is DslLangId {
+  return (DSL_LANGUAGES as string[]).includes(language)
+}
 
 interface MessageCodeBlockProps {
   language: string
@@ -114,24 +121,33 @@ export const MessageCodeBlock: FC<MessageCodeBlockProps> = memo(
             </Button>
           </div>
         </div>
-        <SyntaxHighlighter
-          language={language}
-          style={oneDark}
-          // showLineNumbers
-          customStyle={{
-            margin: 0,
-            width: "100%",
-            background: "transparent"
-          }}
-          codeTagProps={{
-            style: {
-              fontSize: "14px",
-              fontFamily: "var(--font-mono)"
-            }
-          }}
-        >
-          {value}
-        </SyntaxHighlighter>
+        {isDslLanguage(language) ? (
+          <pre
+            className="m-0 w-full overflow-auto whitespace-pre bg-transparent p-4 text-zinc-100"
+            style={{ fontSize: "14px", fontFamily: "var(--font-mono)" }}
+          >
+            <DslHighlightedCode language={language} value={value} />
+          </pre>
+        ) : (
+          <SyntaxHighlighter
+            language={language}
+            style={oneDark}
+            // showLineNumbers
+            customStyle={{
+              margin: 0,
+              width: "100%",
+              background: "transparent"
+            }}
+            codeTagProps={{
+              style: {
+                fontSize: "14px",
+                fontFamily: "var(--font-mono)"
+              }
+            }}
+          >
+            {value}
+          </SyntaxHighlighter>
+        )}
       </div>
     )
   }
