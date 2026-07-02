@@ -9,7 +9,7 @@
 
 "use client"
 
-import { ChatbotUIContext } from "@/context/context"
+import { ChatAgentSession, ChatbotUIContext } from "@/context/context"
 import { getProfileByUserId } from "@/db/profile"
 import { getWorkspacesByUserId } from "@/db/workspaces"
 import {
@@ -32,7 +32,7 @@ import {
 import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
-import { FC, useCallback, useEffect, useState } from "react"
+import { FC, useCallback, useEffect, useRef, useState } from "react"
 
 interface GlobalStateProps {
   children: React.ReactNode
@@ -149,6 +149,30 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [flowDebugLog, setFlowDebugLog] = useState<
     Record<number, FlowTurnDebug>
   >({})
+
+  // AGENT SESSION CACHE (per chat)
+  const chatAgentSessionsRef = useRef<Map<string, ChatAgentSession>>(new Map())
+  const destroyChatAgentSession = useCallback((chatId: string) => {
+    const session = chatAgentSessionsRef.current.get(chatId)
+    if (session) {
+      session.proxy.destroy()
+      chatAgentSessionsRef.current.delete(chatId)
+    }
+  }, [])
+  const migrateChatAgentSession = useCallback(
+    (fromChatId: string, toChatId: string) => {
+      if (fromChatId === toChatId) return
+      const fromSession = chatAgentSessionsRef.current.get(fromChatId)
+      if (!fromSession) return
+      const staleTarget = chatAgentSessionsRef.current.get(toChatId)
+      if (staleTarget && staleTarget !== fromSession) {
+        staleTarget.proxy.destroy()
+      }
+      chatAgentSessionsRef.current.delete(fromChatId)
+      chatAgentSessionsRef.current.set(toChatId, fromSession)
+    },
+    []
+  )
 
   // THINKING LOG STORE
   const [thinkingLog, setThinkingLog] = useState<Record<number, string>>({})
@@ -339,6 +363,11 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setFlowState,
         flowDebugLog,
         setFlowDebugLog,
+
+        // AGENT SESSION CACHE (per chat)
+        chatAgentSessionsRef,
+        destroyChatAgentSession,
+        migrateChatAgentSession,
 
         // THINKING LOG STORE
         thinkingLog,

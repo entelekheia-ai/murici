@@ -93,7 +93,9 @@ export const useChatHandler = () => {
     agentKnowledgeFiles,
     agentPersona,
     backgroundQueue,
-    setBackgroundQueue
+    setBackgroundQueue,
+    destroyChatAgentSession,
+    migrateChatAgentSession
   } = useContext(ChatbotUIContext)
 
   const resolveTeach = (name: string | undefined): string | undefined => {
@@ -153,6 +155,11 @@ export const useChatHandler = () => {
 
   const handleNewChat = async () => {
     if (!selectedWorkspace) return
+
+    // "__new__" is the shared bucket for whatever unsaved chat is being
+    // composed (see chatAgentSessionsRef). Starting a new chat must not
+    // inherit an agent left over from a previous abandoned/unsent one.
+    destroyChatAgentSession("__new__")
 
     setUserInput("")
     setChatMessages([])
@@ -545,6 +552,19 @@ export const useChatHandler = () => {
       }))
 
       if (!currentChat) {
+        // The message was composed while selectedChat was still null, so the
+        // agent session (if any) for it lives under the "__new__" bucket.
+        // Migrate it onto the just-persisted chat id before setSelectedChat
+        // triggers RightSidebar's chat-switch effect, otherwise that effect
+        // would create a brand new empty session for the new chat id and
+        // orphan the one that was actually driving this conversation.
+        const chatKeyBeforeCreate = selectedChat?.id ?? "__new__"
+        const setSelectedChatAndMigrateSession: typeof setSelectedChat = value => {
+          const nextChat =
+            typeof value === "function" ? value(selectedChat) : value
+          if (nextChat) migrateChatAgentSession(chatKeyBeforeCreate, nextChat.id)
+          setSelectedChat(value)
+        }
         currentChat = await handleCreateChat(
           chatSettings!,
           profile!,
@@ -552,7 +572,7 @@ export const useChatHandler = () => {
           messageContent,
           selectedAssistant!,
           newMessageFiles,
-          setSelectedChat,
+          setSelectedChatAndMigrateSession,
           setChats,
           setChatFiles
         )

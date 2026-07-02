@@ -18,8 +18,32 @@ import {
 import { FlowEvent, FlowTurnDebug } from "@/types"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
+import { AgentAboutme } from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
-import { Dispatch, SetStateAction, createContext } from "react"
+import { KernelProxy } from "@/lib/kernel-proxy"
+import { Dispatch, MutableRefObject, SetStateAction, createContext } from "react"
+
+export interface ChatAgentSession {
+  proxy: KernelProxy
+  agentMeta: AgentAboutme | null
+  behaviorText: string
+  descriptionText: string
+  currentState: string
+  graphData: string | null
+  visitedOrder: string[]
+  parseError: string | null
+  knowledge: Array<{ path: string; content: string }>
+  guides: Array<{ path: string; content: string }>
+  behaviors: Array<{ path: string; content: string }>
+  flowState: {
+    currentState: string
+    goal?: string
+    guide?: string
+    teach?: string
+    validIntents: string[]
+    graph?: string | null
+  } | null
+}
 
 interface ChatbotUIContext {
   // PROFILE STORE
@@ -162,6 +186,11 @@ interface ChatbotUIContext {
   flowDebugLog: Record<number, FlowTurnDebug>
   setFlowDebugLog: Dispatch<SetStateAction<Record<number, FlowTurnDebug>>>
 
+  // AGENT SESSION CACHE (per chat)
+  chatAgentSessionsRef: MutableRefObject<Map<string, ChatAgentSession>>
+  destroyChatAgentSession: (chatId: string) => void
+  migrateChatAgentSession: (fromChatId: string, toChatId: string) => void
+
   // THINKING LOG STORE
   thinkingLog: Record<number, string>
   setThinkingLog: Dispatch<SetStateAction<Record<number, string>>>
@@ -303,6 +332,11 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setFlowState: () => {},
   flowDebugLog: {},
   setFlowDebugLog: () => {},
+
+  // AGENT SESSION CACHE (per chat)
+  chatAgentSessionsRef: { current: new Map() },
+  destroyChatAgentSession: () => {},
+  migrateChatAgentSession: () => {},
 
   // THINKING LOG STORE
   thinkingLog: {},

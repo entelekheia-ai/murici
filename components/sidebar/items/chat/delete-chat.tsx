@@ -30,7 +30,7 @@ interface DeleteChatProps {
 export const DeleteChat: FC<DeleteChatProps> = ({ chat }) => {
   useHotkey("Backspace", () => setShowChatDialog(true))
 
-  const { setChats } = useContext(ChatbotUIContext)
+  const { setChats, destroyChatAgentSession } = useContext(ChatbotUIContext)
   const { handleNewChat } = useChatHandler()
 
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -39,6 +39,7 @@ export const DeleteChat: FC<DeleteChatProps> = ({ chat }) => {
 
   const handleDeleteChat = async () => {
     await deleteChat(chat.id)
+    destroyChatAgentSession(chat.id)
 
     setChats(prevState => prevState.filter(c => c.id !== chat.id))
 

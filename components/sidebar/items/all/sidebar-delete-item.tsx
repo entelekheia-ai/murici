@@ -38,7 +38,8 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
     setChats,
     setFiles,
     setAssistants,
-    setModels
+    setModels,
+    destroyChatAgentSession
   } = useContext(ChatbotUIContext)
 
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -48,6 +49,7 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
   const deleteFunctions = {
     chats: async (chat: Tables<"chats">) => {
       await deleteChat(chat.id)
+      destroyChatAgentSession(chat.id)
     },
     files: async (file: Tables<"files">) => {
       await deleteFileFromStorage(file.file_path)

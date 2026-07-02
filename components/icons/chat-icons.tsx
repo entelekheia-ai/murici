@@ -49,11 +49,15 @@ export const IconEditFigma = ({ className, size = 14, strokeWidth = 1.2, ...prop
   </svg>
 )
 
-export const IconTrashFigma = ({ className, size = 14, strokeWidth = 1.2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+export const IconTrashFigma = React.forwardRef<
+  SVGSVGElement,
+  React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }
+>(({ className, size = 14, strokeWidth = 1.2, ...props }, ref) => (
+  <svg ref={ref} width={size} height={size} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
     <path d="M1 2.89474H13M4 2.89474V1H10V2.89474M2.2 2.89474L2.8 12.3684C2.8 12.7221 3.064 13 3.4 13H10.6C10.936 13 11.2 12.7221 11.2 12.3684L11.8 2.89474M5.2 5.42105V10.4737M8.8 5.42105V10.4737" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
-)
+))
+IconTrashFigma.displayName = "IconTrashFigma"
 
 export const IconPlusFigma = ({ className, size = 16, strokeWidth = 2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
   <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>

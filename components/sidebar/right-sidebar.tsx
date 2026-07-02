@@ -8,7 +8,7 @@
 import { FC, useState, useEffect, useRef, useContext } from "react"
 import Image from "next/image"
 import { Button } from "../ui/button"
-import { ChatbotUIContext } from "@/context/context"
+import { ChatAgentSession, ChatbotUIContext } from "@/context/context"
 import type { UnpackPayload, AgentAboutme } from "@/types/electron"
 import { IconCircleCheck, IconCheck, IconDots, IconX, IconFolderOpen, IconGlobe, IconFileText, IconLayout, IconCircleX, IconClock, IconDatabase, IconActivity } from "@tabler/icons-react"
 import {
@@ -17,6 +17,15 @@ import {
   AccordionItem,
   AccordionTrigger
 } from "../ui/accordion"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "../ui/alert-dialog"
 import { DslHighlightedCode } from "../agents/dsl-highlighted-code"
 import { KernelProxy } from "@/lib/kernel-proxy"
 import { KnowledgeChip } from "../knowledge/knowledge-chip"
@@ -25,6 +34,7 @@ import { StateGraph, parseScxml } from "../agents/state-graph"
 import { cn } from "@/lib/utils"
 import { useRouter, useParams } from "next/navigation"
 import { getMcpAndBuiltInTools } from "../chat/chat-helpers"
+import { useChatHandler } from "../chat/chat-hooks/use-chat-handler"
 
 function computePending(scxml: string | null, currentState: string, exclude: Set<string>): string[] {
   if (!scxml || !currentState) return []
@@ -46,11 +56,12 @@ export const RightSidebar: FC = () => {
   const params = useParams()
   const locale = (params?.locale as string) || "local"
   const workspaceid = (params?.workspaceid as string) || "local"
-  const { 
+  const {
     setFlowState, setFlowEngine, flowState, setAgentKnowledgeFiles, setAgentPersona,
     knowledge, setKnowledge, chatSettings, availableLocalModels, backgroundModel, selectedChat,
-    setShowRightSidebar
+    setShowRightSidebar, chatAgentSessionsRef, destroyChatAgentSession
   } = useContext(ChatbotUIContext)
+  const { handleNewChat } = useChatHandler()
 
   const [engine, setEngine] = useState<any>(null)
   const [currentState, setCurrentState] = useState<string>("")
@@ -61,7 +72,8 @@ export const RightSidebar: FC = () => {
   const [descriptionText, setDescriptionText] = useState("")
   const [agentMeta, setAgentMeta] = useState<AgentAboutme | null>(null)
   const [agentLoading, setAgentLoading] = useState(false)
-  
+  const [behaviors, setBehaviors] = useState<Array<{ path: string; content: string }>>([])
+
   const [groupedTools, setGroupedTools] = useState<Record<string, any[]>>({})
   const [toolsLoading, setToolsLoading] = useState(true)
 
@@ -107,68 +119,134 @@ export const RightSidebar: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const engineRef = useRef<any>(null)
   const visitedRef = useRef<string[]>([])
-  const knowledgeRef = useRef<Array<{ path: string; content: string }>>([])
-  const guidesRef = useRef<Array<{ path: string; content: string }>>([])
-  const behaviorsRef = useRef<Array<{ path: string; content: string }>>([])
-  
-  const loadAgentBundleRef = useRef<(payload: UnpackPayload) => Promise<void>>(
+  const activeChatKeyRef = useRef<string>("__new__")
+
+  const loadAgentBundleRef = useRef<(payload: UnpackPayload, targetChatKey?: string) => Promise<void>>(
     async () => { }
   )
   const handleAgentFileRef = useRef<(file: File) => Promise<void>>(async () => { })
+  const handleOpenAgentFileEventRef = useRef<(payload: UnpackPayload) => void>(() => { })
+  const goToNewChatWithPayloadRef = useRef<(payload: UnpackPayload) => void>(() => { })
+  const pendingNewChatPayloadRef = useRef<UnpackPayload | null>(null)
 
-  const resolveTeach = (name: string | undefined): string | undefined => {
+  const [pendingAgentPayload, setPendingAgentPayload] = useState<UnpackPayload | null>(null)
+
+  const getOrCreateSession = (chatKey: string): ChatAgentSession => {
+    let session = chatAgentSessionsRef.current.get(chatKey)
+    if (!session) {
+      session = {
+        proxy: new KernelProxy(),
+        agentMeta: null,
+        behaviorText: "",
+        descriptionText: "",
+        currentState: "",
+        graphData: null,
+        visitedOrder: [],
+        parseError: null,
+        knowledge: [],
+        guides: [],
+        behaviors: [],
+        flowState: null
+      }
+      chatAgentSessionsRef.current.set(chatKey, session)
+    }
+    return session
+  }
+
+  const updateSession = (chatKey: string, patch: Partial<ChatAgentSession>) => {
+    const existing = chatAgentSessionsRef.current.get(chatKey)
+    if (!existing) return
+    chatAgentSessionsRef.current.set(chatKey, { ...existing, ...patch })
+  }
+
+  const applySessionToView = (session: ChatAgentSession) => {
+    engineRef.current = session.proxy
+    visitedRef.current = [...session.visitedOrder]
+    setEngine(session.proxy)
+    setFlowEngine(session.proxy)
+    setAgentMeta(session.agentMeta)
+    setAgentPersona(session.agentMeta?.persona || null)
+    setBehaviorText(session.behaviorText)
+    setDescriptionText(session.descriptionText)
+    setCurrentState(session.currentState)
+    setGraphData(session.graphData)
+    setVisitedOrder(session.visitedOrder)
+    setParseError(session.parseError)
+    setAgentKnowledgeFiles(session.knowledge)
+    setFlowState(session.flowState)
+    setBehaviors(session.behaviors)
+  }
+
+  const resolveTeach = (
+    name: string | undefined,
+    know: Array<{ path: string; content: string }>
+  ): string | undefined => {
     if (!name) return undefined
-    const entry = knowledgeRef.current.find(
+    const entry = know.find(
       k => k.path === name || k.path === `knowledge/${name}` || k.path.endsWith(`/${name}`)
     )
     return entry ? entry.content : name
   }
 
   const loadBehavior = async (
+    chatKey: string,
     eng: any,
     text: string,
-    know: Array<{ path: string; content: string }> = knowledgeRef.current,
-    guides: Array<{ path: string; content: string }> = guidesRef.current,
-    behaviors: Array<{ path: string; content: string }> = behaviorsRef.current
+    know: Array<{ path: string; content: string }> = [],
+    guides: Array<{ path: string; content: string }> = [],
+    behaviors: Array<{ path: string; content: string }> = []
   ) => {
-    knowledgeRef.current = know
-    guidesRef.current = guides
-    behaviorsRef.current = behaviors
-    setAgentKnowledgeFiles(know)
-    visitedRef.current = []
-    setParseError(null)
+    const isActive = () => chatKey === activeChatKeyRef.current
+    if (isActive()) setParseError(null)
 
     try {
       const effects = await eng.load_behavior(text, know, guides, behaviors)
-      
+
       const parseErrorEffect = effects.find((e: any) => e.type === "parse_error")
       if (parseErrorEffect) {
-        setParseError(parseErrorEffect.message)
+        updateSession(chatKey, { parseError: parseErrorEffect.message })
+        if (isActive()) setParseError(parseErrorEffect.message)
         return
       }
 
       const state = eng.get_current_state()
-      visitedRef.current = [state]
-      setCurrentState(state)
-      setVisitedOrder([state])
-
       const graph = eng.get_graph()
-      setGraphData(graph)
-
       const goal = effects.find((e: any) => e.type === "goal")?.text
       const guide = effects.find((e: any) => e.type === "guide")?.text
-      const teach = resolveTeach(effects.find((e: any) => e.type === "teach")?.text)
-
-      setFlowState({
+      const teach = resolveTeach(effects.find((e: any) => e.type === "teach")?.text, know)
+      const newFlowState = {
         currentState: state,
         goal,
         guide,
         teach,
         validIntents: Array.from(eng.get_valid_intents() || []) as string[],
         graph
+      }
+
+      updateSession(chatKey, {
+        knowledge: know,
+        guides,
+        behaviors,
+        currentState: state,
+        visitedOrder: [state],
+        graphData: graph,
+        parseError: null,
+        flowState: newFlowState
       })
+
+      if (isActive()) {
+        visitedRef.current = [state]
+        setCurrentState(state)
+        setVisitedOrder([state])
+        setGraphData(graph)
+        setAgentKnowledgeFiles(know)
+        setFlowState(newFlowState)
+        setBehaviors(behaviors)
+      }
     } catch (e: any) {
-      setParseError(e.message || "Failed to load behavior")
+      const message = e.message || "Failed to load behavior"
+      updateSession(chatKey, { parseError: message })
+      if (isActive()) setParseError(message)
     }
   }
 
@@ -181,43 +259,85 @@ export const RightSidebar: FC = () => {
     setVisitedOrder([...visitedRef.current])
     const freshGraph = engineRef.current.get_graph()
     if (freshGraph) setGraphData(freshGraph)
+
+    const chatKey = activeChatKeyRef.current
+    updateSession(chatKey, {
+      currentState: newState,
+      visitedOrder: [...visitedRef.current],
+      graphData: freshGraph || chatAgentSessionsRef.current.get(chatKey)?.graphData || null,
+      flowState
+    })
   }, [flowState?.currentState])
 
+  // Swap the active agent session whenever the visible chat changes, so each
+  // chat keeps its own KernelProxy/sessionId instead of sharing a global one.
   useEffect(() => {
-    let mounted = true
+    const chatKey = selectedChat?.id ?? "__new__"
+    activeChatKeyRef.current = chatKey
+    const session = getOrCreateSession(chatKey)
+    applySessionToView(session)
 
-    loadAgentBundleRef.current = async (payload: UnpackPayload) => {
+    if (pendingNewChatPayloadRef.current) {
+      const payload = pendingNewChatPayloadRef.current
+      pendingNewChatPayloadRef.current = null
+      loadAgentBundleRef.current(payload, chatKey)
+    }
+  }, [selectedChat?.id])
+
+  loadAgentBundleRef.current = async (payload: UnpackPayload, targetChatKey?: string) => {
+    const chatKey = targetChatKey ?? activeChatKeyRef.current
+    const session = getOrCreateSession(chatKey)
+    updateSession(chatKey, {
+      agentMeta: payload.aboutme,
+      behaviorText: payload.behaviorText,
+      descriptionText: payload.descriptionText || ""
+    })
+    if (chatKey === activeChatKeyRef.current) {
       setAgentMeta(payload.aboutme)
       setAgentPersona(payload.aboutme.persona || null)
-      if (mounted) {
-        setBehaviorText(payload.behaviorText)
-        setDescriptionText(payload.descriptionText || "")
-      }
-      if (engineRef.current && mounted) {
-        await loadBehavior(engineRef.current, payload.behaviorText, payload.knowledge, payload.guides, payload.behaviors)
-      }
+      setBehaviorText(payload.behaviorText)
+      setDescriptionText(payload.descriptionText || "")
     }
+    await loadBehavior(chatKey, session.proxy, payload.behaviorText, payload.knowledge, payload.guides, payload.behaviors)
+  }
 
-    ;(async () => {
-      try {
-        const proxy = new KernelProxy()
-        engineRef.current = proxy
-        setEngine(proxy)
-        setFlowEngine(proxy)
+  // "Novo chat" always needs a chat with no agent to land the payload on.
+  // If we're already sitting on the "__new__" (unsaved) bucket, calling
+  // handleNewChat() is a no-op for selectedChat, so there's nothing to
+  // navigate to - reset that bucket in place instead of leaving the
+  // payload stuck in pendingNewChatPayloadRef.
+  const goToNewChatWithPayload = (payload: UnpackPayload) => {
+    if (activeChatKeyRef.current === "__new__") {
+      destroyChatAgentSession("__new__")
+      const fresh = getOrCreateSession("__new__")
+      applySessionToView(fresh)
+      loadAgentBundleRef.current(payload, "__new__")
+    } else {
+      pendingNewChatPayloadRef.current = payload
+      handleNewChat()
+    }
+  }
+  goToNewChatWithPayloadRef.current = goToNewChatWithPayload
 
-        if (mounted && behaviorText) {
-          await loadBehavior(proxy, behaviorText)
-        }
+  // Opening a .agent from the OS ("abrir com") is ambiguous about which
+  // chat it targets. Enforce one-agent-per-chat: if the active chat
+  // already has an agent, route straight to a new chat; otherwise ask.
+  handleOpenAgentFileEventRef.current = (payload: UnpackPayload) => {
+    const chatKey = activeChatKeyRef.current
+    const session = chatAgentSessionsRef.current.get(chatKey)
+    if (session?.agentMeta) {
+      goToNewChatWithPayload(payload)
+    } else {
+      setPendingAgentPayload(payload)
+    }
+  }
 
-        if (typeof window !== "undefined" && window.electronAPI?.onOpenAgentFile) {
-          window.electronAPI.onOpenAgentFile((payload: UnpackPayload) => {
-            loadAgentBundleRef.current(payload)
-          })
-        }
-      } catch (err) {
-        console.error("Failed to initialize kernel proxy:", err)
-      }
-    })()
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.electronAPI?.onOpenAgentFile) {
+      window.electronAPI.onOpenAgentFile((payload: UnpackPayload) => {
+        handleOpenAgentFileEventRef.current(payload)
+      })
+    }
 
     const onAgentDrop = (e: Event) => {
       const file = (e as CustomEvent<{ file: File }>).detail.file
@@ -226,11 +346,7 @@ export const RightSidebar: FC = () => {
     window.addEventListener("agent:drop", onAgentDrop)
 
     return () => {
-      mounted = false
       window.removeEventListener("agent:drop", onAgentDrop)
-      if (engineRef.current) {
-        engineRef.current.destroy()
-      }
     }
   }, [])
 
@@ -303,11 +419,46 @@ export const RightSidebar: FC = () => {
   ]
 
   return (
-    <div
-      className="bg-inspector-bg flex h-full w-[320px] flex-col border-l border-sidebar-border"
-      onDragOver={e => e.preventDefault()}
-      onDrop={handleDrop}
-    >
+    <>
+      <AlertDialog
+        open={!!pendingAgentPayload}
+        onOpenChange={open => { if (!open) setPendingAgentPayload(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Carregar {pendingAgentPayload?.aboutme.name || "agente"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Carregar este agente na conversa atual ou criar uma nova conversa para ele?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const payload = pendingAgentPayload
+                setPendingAgentPayload(null)
+                if (payload) loadAgentBundleRef.current(payload, activeChatKeyRef.current)
+              }}
+            >
+              Nesta conversa
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                const payload = pendingAgentPayload
+                setPendingAgentPayload(null)
+                if (payload) goToNewChatWithPayloadRef.current(payload)
+              }}
+            >
+              Nova conversa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <div
+        className="bg-inspector-bg flex h-full w-[320px] flex-col border-l border-sidebar-border"
+        onDragOver={e => e.preventDefault()}
+        onDrop={handleDrop}
+      >
       <div className="drag-region flex items-center justify-between border-b p-4 border-sidebar-border/50 shrink-0">
         <h2 className="select-none text-[15px] font-semibold text-murici-text-primary">
           Detalhes
@@ -458,7 +609,7 @@ export const RightSidebar: FC = () => {
                 )}
               </div>
 
-              {(descriptionText || behaviorText || behaviorsRef.current.length > 0) && (
+              {(descriptionText || behaviorText || behaviors.length > 0) && (
                 <div className="space-y-3">
                   <Accordion type="single" collapsible className="w-full border-none">
                     <AccordionItem value="debug" className="border-none">
@@ -493,7 +644,7 @@ export const RightSidebar: FC = () => {
                             </AccordionItem>
                           )}
 
-                          {behaviorsRef.current.map((b, i) => (
+                          {behaviors.map((b, i) => (
                             <AccordionItem key={b.path || i} value={`debug-behavior-${i}`} className="border-none">
                               <AccordionTrigger className="text-[12px] uppercase font-semibold text-murici-text-secondary py-2 hover:no-underline tracking-wider">
                                 {`${agentMeta?.name || "Agente"}.BEHAVIOR (${b.path || `#${i + 1}`})`}
@@ -577,5 +728,6 @@ export const RightSidebar: FC = () => {
         </div>
       </div>
     </div>
+    </>
   )
 }
