@@ -52,3 +52,6 @@ public/kernel-dsl.wasm
 
 # Graphify
 graphify-out/
+
+# Claude Code local settings (machine-specific, should never be committed)
+.claude/settings.local.json
