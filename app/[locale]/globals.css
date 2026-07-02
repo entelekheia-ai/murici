@@ -69,6 +69,7 @@
     --murici-green: 86 69% 22.7%;
     --murici-text-primary: 27 24.4% 8.8%;
     --murici-text-secondary: 31 14.7% 58.6%;
+    --murici-nav-selected: 26 41% 91%;
   }
 
   .dark {
@@ -109,6 +110,7 @@
     --murici-green: 84 80.5% 44.3%;
     --murici-text-primary: 0 0% 100%;
     --murici-text-secondary: 0 0% 45.1%;
+    --murici-nav-selected: 0 0% 14.9%; /* Using accent fallback for dark mode */
   }
 }
 

@@ -63,7 +63,12 @@ module.exports = {
         'murici-orange': 'hsl(var(--murici-orange))',
         'murici-green': 'hsl(var(--murici-green))',
         'murici-text-primary': 'hsl(var(--murici-text-primary))',
-        'murici-text-secondary': 'hsl(var(--murici-text-secondary))'
+        'murici-text-secondary': 'hsl(var(--murici-text-secondary))',
+        'murici-nav-selected': 'hsl(var(--murici-nav-selected))'
+      },
+      fontFamily: {
+        instrument: ['var(--font-instrument-sans)', 'sans-serif'],
+        ysabeau: ['var(--font-ysabeau-sc)', 'sans-serif']
       },
       borderRadius: {
         lg: 'var(--radius)',

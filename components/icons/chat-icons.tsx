@@ -42,3 +42,22 @@ export const IconPanelRightFigma = ({ className, size = 18, strokeWidth = 2, ...
     <path d="M11.25 2.25V15.75M3.75 2.25H14.25C15.0784 2.25 15.75 2.92157 15.75 3.75V14.25C15.75 15.0784 15.0784 15.75 14.25 15.75H3.75C2.92157 15.75 2.25 15.0784 2.25 14.25V3.75C2.25 2.92157 2.92157 2.25 3.75 2.25Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round"/>
   </svg>
 )
+
+export const IconEditFigma = ({ className, size = 14, strokeWidth = 1.2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+    <path d="M9.4 2.8L11.2 4.6M11.2 1L13 2.8L4 11.8L1 13L2.2 10L11.2 1Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+export const IconTrashFigma = ({ className, size = 14, strokeWidth = 1.2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+    <path d="M1 2.89474H13M4 2.89474V1H10V2.89474M2.2 2.89474L2.8 12.3684C2.8 12.7221 3.064 13 3.4 13H10.6C10.936 13 11.2 12.7221 11.2 12.3684L11.8 2.89474M5.2 5.42105V10.4737M8.8 5.42105V10.4737" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+export const IconPlusFigma = ({ className, size = 16, strokeWidth = 2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+    <path d="M3.3328 8H12.6672M8 3.3328V12.6672" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round"/>
+  </svg>
+)
+

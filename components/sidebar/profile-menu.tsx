@@ -61,12 +61,11 @@ export const ProfileMenu: FC<ProfileMenuProps> = ({ onContentTypeChange }) => {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full justify-start rounded-full border border-sidebar-border bg-transparent hover:bg-sidebar-border/50 px-2 py-1.5 h-auto text-murici-text-primary"
+          className="w-full justify-start rounded-xl border border-sidebar-border bg-transparent hover:bg-sidebar-border/50 p-3 h-auto text-murici-text-primary"
         >
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded-full bg-murici-green"></div>
-              <span className="font-medium text-sm">{t("Perfil")}</span>
+              <span className="font-semibold text-sm font-instrument">{t("Perfil")}</span>
             </div>
             <IconChevronUp size={16} className="text-murici-text-secondary" />
           </div>

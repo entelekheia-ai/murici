@@ -64,40 +64,18 @@ export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
     <div
       ref={itemRef}
       className={cn(
-        "hover:bg-accent focus:bg-accent group flex w-full cursor-pointer items-center rounded p-2 hover:opacity-50 focus:outline-none",
-        isActive && "bg-accent"
+        "group flex w-full cursor-pointer items-center h-[37px] rounded-lg px-2 py-1 focus:outline-none font-instrument transition-colors",
+        isActive
+          ? "bg-murici-nav-selected text-murici-text-primary"
+          : "text-murici-text-secondary hover:bg-accent/50"
       )}
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onClick={handleClick}
     >
-      {chat.assistant_id ? (
-        assistantImage ? (
-          <Image
-            style={{ width: "30px", height: "30px" }}
-            className="rounded"
-            src={assistantImage}
-            alt="Assistant image"
-            width={30}
-            height={30}
-          />
-        ) : (
-          <IconRobotFace
-            className="bg-primary text-secondary border-primary rounded border-DEFAULT p-1"
-            size={30}
-          />
-        )
-      ) : (
-        <WithTooltip
-          delayDuration={200}
-          display={<div>{MODEL_DATA?.modelName}</div>}
-          trigger={
-            <ModelIcon provider={MODEL_DATA?.provider} height={30} width={30} />
-          }
-        />
-      )}
+      {/* No icon rendered next to chat name to match Figma design */}
 
-      <div className="ml-3 flex-1 truncate text-sm font-semibold">
+      <div className={cn("flex-1 truncate text-sm", isActive ? "font-semibold" : "font-medium")}>
         {chat.name}
       </div>
 
@@ -106,7 +84,7 @@ export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
           e.stopPropagation()
           e.preventDefault()
         }}
-        className={`ml-2 flex space-x-2 ${!isActive && "w-11 opacity-0 group-hover:opacity-100"}`}
+        className="ml-2 flex space-x-2 opacity-0 group-hover:opacity-100"
       >
         <UpdateChat chat={chat} />
 

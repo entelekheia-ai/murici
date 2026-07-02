@@ -101,7 +101,7 @@ export const SidebarItem: FC<SidebarItemProps> = ({
       <div
         ref={itemRef}
         className={cn(
-          "hover:bg-accent flex w-full cursor-pointer items-center rounded p-2 hover:opacity-50 focus:outline-none"
+          "group flex w-full cursor-pointer items-center h-[37px] rounded-lg px-2 py-1 focus:outline-none font-instrument transition-colors text-murici-text-secondary hover:bg-accent/50"
         )}
         tabIndex={0}
         onKeyDown={handleKeyDown}
@@ -110,7 +110,7 @@ export const SidebarItem: FC<SidebarItemProps> = ({
       >
         {icon}
 
-        <div className="ml-3 flex-1 truncate text-sm font-semibold">
+        <div className="ml-3 flex-1 truncate text-sm font-medium">
           {item.name}
         </div>
 

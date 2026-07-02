@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label"
 import { ChatbotUIContext } from "@/context/context"
 import { updateChat } from "@/db/chats"
 import { Tables } from "@/types/database"
-import { IconEdit } from "@tabler/icons-react"
+import { IconEditFigma } from "@/components/icons/chat-icons"
 import { FC, useContext, useRef, useState } from "react"
 
 interface UpdateChatProps {
@@ -54,7 +54,7 @@ export const UpdateChat: FC<UpdateChatProps> = ({ chat }) => {
   return (
     <Dialog open={showChatDialog} onOpenChange={setShowChatDialog}>
       <DialogTrigger asChild>
-        <IconEdit className="hover:opacity-50" size={18} />
+        <IconEditFigma className="hover:opacity-50 text-[#a3a3a3]" size={14} />
       </DialogTrigger>
 
       <DialogContent onKeyDown={handleKeyDown}>

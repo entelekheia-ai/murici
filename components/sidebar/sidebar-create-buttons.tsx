@@ -11,7 +11,7 @@ import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { createFolder } from "@/db/folders"
 import { ContentType } from "@/types"
-import { IconFolderPlus, IconPlus } from "@tabler/icons-react"
+import { IconPlusFigma } from "@/components/icons/chat-icons"
 import { FC, useContext, useState } from "react"
 import { Button } from "../ui/button"
 import { CreateAssistant } from "./items/assistants/create-assistant"
@@ -78,25 +78,15 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
   }
 
   return (
-    <div className="flex w-full space-x-2">
+    <div className="flex w-full">
       <Button
         variant="outline"
-        className="flex h-[36px] grow rounded-full border-sidebar-border bg-transparent text-murici-text-primary hover:bg-sidebar-border/50"
+        className="flex h-[41px] grow items-center justify-start gap-2 rounded-[10px] border border-sidebar-border bg-[#ebe6de] p-3 text-murici-text-primary font-instrument font-semibold text-sm hover:bg-[#ebe6de]/80 dark:bg-accent dark:hover:bg-accent/80"
         onClick={getCreateFunction()}
       >
-        <IconPlus className="mr-1" size={20} />
+        <IconPlusFigma size={16} />
         {t("Novo chat")}
       </Button>
-
-      {hasData && (
-        <Button
-          variant="outline"
-          className="size-[36px] rounded-full border-sidebar-border bg-transparent p-1 text-murici-text-primary hover:bg-sidebar-border/50"
-          onClick={handleCreateFolder}
-        >
-          <IconFolderPlus size={20} />
-        </Button>
-      )}
 
       {isCreatingFile && (
         <CreateFile isOpen={isCreatingFile} onOpenChange={setIsCreatingFile} />

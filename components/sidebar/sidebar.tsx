@@ -13,7 +13,7 @@ import { FC, useContext } from "react"
 import { TabsContent } from "../ui/tabs"
 import { WorkspaceSettings } from "../workspace/workspace-settings"
 import { SidebarContent } from "./sidebar-content"
-import { KnowledgeSidebarSection } from "../knowledge/knowledge-sidebar-section"
+
 import { ProfileMenu } from "./profile-menu"
 import { ProfileSettings } from "../utility/profile-settings"
 import { SidebarFilesContent } from "./sidebar-files"
@@ -56,23 +56,20 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar, onContentT
       value={contentType}
     >
       <div className="flex h-full flex-col">
-        <div className="drag-region flex h-12 items-center justify-between border-b pl-20 pr-4">
-          <span className="select-none text-lg font-bold">Murici</span>
+        <div className="drag-region flex h-12 items-center justify-between pl-20 pr-4 mb-4">
+          <div className="flex items-center gap-2 select-none pt-1">
+            <span className="font-ysabeau font-medium text-[36px] leading-none text-murici-text-primary">murici</span>
+          </div>
           <div className="no-drag">
             <WorkspaceSettings />
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden p-3">
+        <div className="flex flex-1 flex-col overflow-hidden p-5 pt-0">
         {(() => {
           switch (contentType) {
             case "chats":
-              return (
-                <>
-                  <KnowledgeSidebarSection />
-                  {renderSidebarContent("chats", chats, chatFolders)}
-                </>
-              )
+              return renderSidebarContent("chats", chats, chatFolders)
 
             case "files":
               return <SidebarFilesContent />
@@ -93,7 +90,7 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar, onContentT
         })()}
         </div>
         
-        <div className="mt-auto border-t p-3">
+        <div className="mt-auto p-5">
           <ProfileMenu onContentTypeChange={onContentTypeChange} />
           <div className="hidden">
             <ProfileSettings />

@@ -20,7 +20,7 @@ import { ChatbotUIContext } from "@/context/context"
 import { deleteChat } from "@/db/chats"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { Tables } from "@/types/database"
-import { IconTrash } from "@tabler/icons-react"
+import { IconTrashFigma } from "@/components/icons/chat-icons"
 import { FC, useContext, useRef, useState } from "react"
 
 interface DeleteChatProps {
@@ -56,7 +56,7 @@ export const DeleteChat: FC<DeleteChatProps> = ({ chat }) => {
   return (
     <Dialog open={showChatDialog} onOpenChange={setShowChatDialog}>
       <DialogTrigger asChild>
-        <IconTrash className="hover:opacity-50" size={18} />
+        <IconTrashFigma className="hover:opacity-50 text-[#a3a3a3]" size={14} />
       </DialogTrigger>
 
       <DialogContent onKeyDown={handleKeyDown}>
