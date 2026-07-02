@@ -53,6 +53,11 @@ export async function updateConversation(
 ): Promise<ConversationRecord> {
   const db = await getDB()
   const existing = await db.get("conversations", id)
+  // Strip explicit `undefined`s so a caller that only intends to touch one
+  // field can't accidentally null out the rest via object spread.
+  const definedUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([, v]) => v !== undefined)
+  ) as Partial<ConversationRecord>
   const record: ConversationRecord = {
     ...(existing ?? {
       id,
@@ -63,7 +68,7 @@ export async function updateConversation(
       contextLength: 4096,
       createdAt: new Date().toISOString()
     }),
-    ...updates,
+    ...definedUpdates,
     id,
     updatedAt: new Date().toISOString()
   }

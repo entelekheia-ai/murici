@@ -5,7 +5,6 @@
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
-// @ts-nocheck
 import { useTranslation } from "react-i18next"
 import { ChatbotUIContext } from "@/context/context"
 import { updateAssistant } from "@/db/assistants"
@@ -56,15 +55,10 @@ export const SidebarDataList: FC<SidebarDataListProps> = ({
         return <ChatItem key={item.id} chat={item as Tables<"chats">} />
 
       case "files":
-        return <FileItem key={item.id} file={item as Tables<"files">} />
+        return <FileItem key={item.id} />
 
       case "assistants":
-        return (
-          <AssistantItem
-            key={item.id}
-            assistant={item as Tables<"assistants">}
-          />
-        )
+        return <AssistantItem key={item.id} />
 
       case "models":
         return <ModelItem key={item.id} model={item as Tables<"models">} />

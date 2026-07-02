@@ -123,6 +123,7 @@ export async function runHeadlessAgent(
   }
 
   // 7. Parse the LLM's response
+  let parsed: HeadlessResult
   try {
     const data = await response.json()
     const raw: string =
@@ -131,23 +132,30 @@ export async function runHeadlessAgent(
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       console.error("Headless LLM returned no JSON:", raw)
+      kernel.destroy()
       return null
     }
 
-    const parsed = JSON.parse(jsonMatch[0])
-    
-    // Validate that it triggered the required intent
-    if (parsed.intent_name) {
-      // Complete the FSM loop
-      await kernel.send_intent(parsed.intent_name)
-    }
-
-    kernel.destroy()
-    return parsed
+    parsed = JSON.parse(jsonMatch[0])
   } catch (err) {
     kernel.destroy()
-    console.error("Headless LLM parse error:", err)
+    console.error("Headless LLM response parse error:", err)
+    return null
   }
 
-  return null
+  // 8. Validate that it triggered the required intent, distinct from the
+  // parsing above so a kernel failure (e.g. a wasm panic) isn't misreported
+  // as a JSON parse error.
+  if (parsed.intent_name) {
+    try {
+      await kernel.send_intent(parsed.intent_name)
+    } catch (err) {
+      console.error("Headless kernel send_intent failed:", err)
+      kernel.destroy()
+      return null
+    }
+  }
+
+  kernel.destroy()
+  return parsed
 }

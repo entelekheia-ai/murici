@@ -22,21 +22,42 @@ const EFFECT_TYPES = [
   "parse_error"
 ]
 
+interface PendingMemoryWrite {
+  domain: string
+  key: string
+  value: string
+}
+
 interface SessionEntry {
   session: AgentSession
   sink: { current: Effect[] }
   text: string
+  pendingMemory: PendingMemoryWrite[]
 }
 
 const sessions = new Map<string, SessionEntry>()
 
-function wireHandlers(session: AgentSession): { current: Effect[] } {
+// wasm-bindgen panics with "recursive use of an object detected which would
+// lead to unsafe aliasing" if a Rust-invoked JS callback calls back into the
+// same AgentSession while it's still on the call stack (e.g. a set_memory
+// effect firing injectMemory() synchronously during sendIntent/tickPrompt).
+// So set_memory writes are queued here and flushed via flushPendingMemory()
+// once the outer kernel call has returned to the top of the worker's message
+// loop, turning the nested call into a top-level one.
+function wireHandlers(
+  session: AgentSession,
+  pendingMemory: PendingMemoryWrite[]
+): { current: Effect[] } {
   const localSink: { current: Effect[] } = { current: [] }
   for (const type of EFFECT_TYPES) {
     if (type === "set_memory") {
       session.registerHandler(type, (e: any) => {
         localSink.current.push(e as Effect)
-        session.injectMemory(e.domain, e.key, String(e.value ?? ""))
+        pendingMemory.push({
+          domain: e.domain,
+          key: e.key,
+          value: String(e.value ?? "")
+        })
       })
     } else {
       session.registerHandler(type, (e: any) => {
@@ -47,6 +68,19 @@ function wireHandlers(session: AgentSession): { current: Effect[] } {
   return localSink
 }
 
+function flushPendingMemory(entry: SessionEntry) {
+  let guard = 0
+  while (entry.pendingMemory.length > 0 && guard++ < 100) {
+    const { domain, key, value } = entry.pendingMemory.shift()!
+    entry.session.injectMemory(domain, key, value)
+  }
+  if (guard >= 100) {
+    console.warn(
+      "[fsm.worker] pendingMemory drain guard hit — possible set_memory cycle"
+    )
+  }
+}
+
 function buildKernelState(session: AgentSession, effects: Effect[]): KernelState {
   const state = session.getState()
   const scxml = session.getGraph()
@@ -55,10 +89,21 @@ function buildKernelState(session: AgentSession, effects: Effect[]): KernelState
   return { currentState: state, graph, validIntents, effects }
 }
 
-self.onmessage = async (e: MessageEvent) => {
+// Serialize message handling: without this, two overlapping postMessage
+// deliveries (e.g. the main chat flow and a background headless agent both
+// calling into the shared worker) could interleave around the only real
+// await in this file (AgentSession.create in the "load" branch), racing
+// against the wasm module's shared FFI marshalling stack.
+let messageQueue: Promise<void> = Promise.resolve()
+
+self.onmessage = (e: MessageEvent) => {
+  messageQueue = messageQueue.then(() => processMessage(e))
+}
+
+async function processMessage(e: MessageEvent) {
   const { id, method, payload } = e.data
   const sessionId = payload?.sessionId
-  
+
   try {
     if (method === "DESTROY") {
       if (sessionId && sessions.has(sessionId)) {
@@ -75,6 +120,7 @@ self.onmessage = async (e: MessageEvent) => {
       const old = sessions.get(sessionId)
       if (old && old.text === behaviorText) {
         old.session.start()
+        flushPendingMemory(old)
         self.postMessage({ id, state: buildKernelState(old.session, old.sink.current) })
         return
       }
@@ -97,11 +143,14 @@ self.onmessage = async (e: MessageEvent) => {
       } as AgentBundle
 
       const session = await AgentSession.create(bundle)
-      const sink = wireHandlers(session)
+      const pendingMemory: PendingMemoryWrite[] = []
+      const sink = wireHandlers(session, pendingMemory)
       sink.current = []
       session.start()
-      sessions.set(sessionId, { session, sink, text: behaviorText })
-      
+      const entry: SessionEntry = { session, sink, text: behaviorText, pendingMemory }
+      sessions.set(sessionId, entry)
+      flushPendingMemory(entry)
+
       self.postMessage({ id, state: buildKernelState(session, sink.current) })
       return
     }
@@ -112,27 +161,31 @@ self.onmessage = async (e: MessageEvent) => {
     }
 
     entry.sink.current = [] // clear previous effects
-    
+
     if (method === "sendIntent") {
       entry.session.sendIntent(payload.intent)
+      flushPendingMemory(entry)
       self.postMessage({ id, state: buildKernelState(entry.session, entry.sink.current) })
       return
     }
 
     if (method === "sendOfftopic") {
       entry.session.sendEvent("offtopic")
+      flushPendingMemory(entry)
       self.postMessage({ id, state: buildKernelState(entry.session, entry.sink.current) })
       return
     }
 
     if (method === "injectMemory") {
       entry.session.injectMemory(payload.domain, payload.key, payload.value)
+      flushPendingMemory(entry)
       self.postMessage({ id, state: buildKernelState(entry.session, entry.sink.current) })
       return
     }
 
     if (method === "tick") {
       entry.session.tickPrompt()
+      flushPendingMemory(entry)
       self.postMessage({ id, state: buildKernelState(entry.session, entry.sink.current) })
       return
     }

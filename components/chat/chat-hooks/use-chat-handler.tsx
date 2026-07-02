@@ -34,6 +34,13 @@ import {
   validateChatSettings
 } from "../chat-helpers"
 
+// useChatHandler() is called from many components (one per rendered message,
+// one per sidebar chat item, plus chat-ui/chat-input/etc.), so any per-call
+// useRef guard here is NOT shared — every mounted instance would race to
+// process the same head-of-queue task independently. This lock lives at
+// module scope so it's a true singleton across every hook instance.
+let isProcessingBackgroundQueue = false
+
 export const useChatHandler = () => {
   const router = useRouter()
 
@@ -99,11 +106,10 @@ export const useChatHandler = () => {
 
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
-  const processingQueueRef = useRef(false)
   useEffect(() => {
-    if (backgroundQueue.length > 0 && !processingQueueRef.current) {
+    if (backgroundQueue.length > 0 && !isProcessingBackgroundQueue) {
       const task = backgroundQueue[0]
-      processingQueueRef.current = true
+      isProcessingBackgroundQueue = true
 
       const runTask = async () => {
         if (task.type === "enrich_knowledge") {
@@ -132,7 +138,7 @@ export const useChatHandler = () => {
           }
         }
         setBackgroundQueue(prev => prev.slice(1))
-        processingQueueRef.current = false
+        isProcessingBackgroundQueue = false
       }
 
       runTask()
@@ -433,81 +439,92 @@ export const useChatHandler = () => {
       // Post-turn: run FSM transition (flow only) then record debug info for all turns
       const transitionEffects: any[] = []
       if (flowEngine) {
-        if (flowIntentName === "offtopic") {
-          const fx = await flowEngine.send_offtopic()
-          if (Array.isArray(fx)) {
-            transitionEffects.push(...fx)
-            const transitionEffect = fx.find(
-              (e: any) => e.type === "transition"
-            )
-            if (transitionEffect) {
-              const newState = flowEngine.get_current_state()
-              setFlowState({
-                currentState: newState,
-                goal: fx.find((e: any) => e.type === "goal")?.text,
-                guide: fx.find((e: any) => e.type === "guide")?.text,
-                teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
-                validIntents: Array.from(
-                  flowEngine.get_valid_intents() || []
-                ) as string[],
-                graph: flowEngine.get_graph()
-              })
-              addFlowEvent({
-                id: uuidv4(),
-                seqNum,
-                type: "fsm_transition",
-                timestamp: Date.now(),
-                data: {
-                  intent: "offtopic",
-                  from: transitionEffect.from,
-                  to: transitionEffect.to,
-                  effects: fx,
-                  newGoal: fx.find((e: any) => e.type === "goal")?.text ?? null,
-                  newGuide:
-                    fx.find((e: any) => e.type === "guide")?.text ?? null
-                }
-              })
+        // Kernel calls can reject (e.g. a wasm panic in the shared worker).
+        // Isolate them so a kernel failure degrades to "no flow transition
+        // this turn" instead of aborting the send before the message is
+        // persisted to IndexedDB.
+        try {
+          if (flowIntentName === "offtopic") {
+            const fx = await flowEngine.send_offtopic()
+            if (Array.isArray(fx)) {
+              transitionEffects.push(...fx)
+              const transitionEffect = fx.find(
+                (e: any) => e.type === "transition"
+              )
+              if (transitionEffect) {
+                const newState = flowEngine.get_current_state()
+                setFlowState({
+                  currentState: newState,
+                  goal: fx.find((e: any) => e.type === "goal")?.text,
+                  guide: fx.find((e: any) => e.type === "guide")?.text,
+                  teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
+                  validIntents: Array.from(
+                    flowEngine.get_valid_intents() || []
+                  ) as string[],
+                  graph: flowEngine.get_graph()
+                })
+                addFlowEvent({
+                  id: uuidv4(),
+                  seqNum,
+                  type: "fsm_transition",
+                  timestamp: Date.now(),
+                  data: {
+                    intent: "offtopic",
+                    from: transitionEffect.from,
+                    to: transitionEffect.to,
+                    effects: fx,
+                    newGoal: fx.find((e: any) => e.type === "goal")?.text ?? null,
+                    newGuide:
+                      fx.find((e: any) => e.type === "guide")?.text ?? null
+                  }
+                })
+              }
+            }
+          } else if (flowIntentName) {
+            const fx = await flowEngine.send_intent(flowIntentName)
+            if (Array.isArray(fx)) {
+              transitionEffects.push(...fx)
+              const transitionEffect = fx.find(
+                (e: any) => e.type === "transition"
+              )
+              if (transitionEffect) {
+                const newState = flowEngine.get_current_state()
+                setFlowState({
+                  currentState: newState,
+                  goal: fx.find((e: any) => e.type === "goal")?.text,
+                  guide: fx.find((e: any) => e.type === "guide")?.text,
+                  teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
+                  validIntents: Array.from(
+                    flowEngine.get_valid_intents() || []
+                  ) as string[],
+                  graph: flowEngine.get_graph()
+                })
+                addFlowEvent({
+                  id: uuidv4(),
+                  seqNum,
+                  type: "fsm_transition",
+                  timestamp: Date.now(),
+                  data: {
+                    intent: flowIntentName,
+                    from: transitionEffect.from,
+                    to: transitionEffect.to,
+                    effects: fx,
+                    newGoal: fx.find((e: any) => e.type === "goal")?.text ?? null,
+                    newGuide:
+                      fx.find((e: any) => e.type === "guide")?.text ?? null
+                  }
+                })
+              }
             }
           }
-        } else if (flowIntentName) {
-          const fx = await flowEngine.send_intent(flowIntentName)
-          if (Array.isArray(fx)) {
-            transitionEffects.push(...fx)
-            const transitionEffect = fx.find(
-              (e: any) => e.type === "transition"
-            )
-            if (transitionEffect) {
-              const newState = flowEngine.get_current_state()
-              setFlowState({
-                currentState: newState,
-                goal: fx.find((e: any) => e.type === "goal")?.text,
-                guide: fx.find((e: any) => e.type === "guide")?.text,
-                teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
-                validIntents: Array.from(
-                  flowEngine.get_valid_intents() || []
-                ) as string[],
-                graph: flowEngine.get_graph()
-              })
-              addFlowEvent({
-                id: uuidv4(),
-                seqNum,
-                type: "fsm_transition",
-                timestamp: Date.now(),
-                data: {
-                  intent: flowIntentName,
-                  from: transitionEffect.from,
-                  to: transitionEffect.to,
-                  effects: fx,
-                  newGoal: fx.find((e: any) => e.type === "goal")?.text ?? null,
-                  newGuide:
-                    fx.find((e: any) => e.type === "guide")?.text ?? null
-                }
-              })
-            }
-          }
+          const tickFx = await flowEngine.tick_prompt()
+          if (Array.isArray(tickFx)) transitionEffects.push(...tickFx)
+        } catch (flowError) {
+          console.error(
+            "[flowEngine] kernel call failed; continuing without flow transition",
+            flowError
+          )
         }
-        const tickFx = await flowEngine.tick_prompt()
-        if (Array.isArray(tickFx)) transitionEffects.push(...tickFx)
       }
 
       setFlowDebugLog(prev => ({
@@ -576,6 +593,7 @@ export const useChatHandler = () => {
       setIsGenerating(false)
       setFirstTokenReceived(false)
     } catch (error) {
+      console.error("[handleSendMessage] send failed:", error)
       setIsGenerating(false)
       setFirstTokenReceived(false)
       setUserInput(startingInput)

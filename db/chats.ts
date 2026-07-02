@@ -12,6 +12,7 @@ import {
   updateConversation,
   deleteConversation
 } from "@/lib/local-db/conversations"
+import { ConversationRecord } from "@/lib/local-db/schema"
 import { Chat } from "@/types/database"
 import { v4 as uuidv4 } from "uuid"
 
@@ -69,12 +70,21 @@ export async function updateChat(
   chatId: string,
   updates: Partial<Chat>
 ): Promise<Chat> {
-  const conv = await updateConversation(chatId, {
-    title: updates.title ?? updates.name,
-    model: updates.model,
-    temperature: updates.temperature,
-    contextLength: updates.context_length
-  })
+  // Only forward fields the caller actually intended to change — spreading
+  // explicit `undefined`s through updateConversation() would otherwise wipe
+  // out the existing title/model/temperature/contextLength (e.g. when a
+  // caller only passes { updated_at }, as happens on every message sent in
+  // an existing chat).
+  const patch: Partial<ConversationRecord> = {}
+  if (updates.title !== undefined || updates.name !== undefined) {
+    patch.title = updates.title ?? updates.name
+  }
+  if (updates.model !== undefined) patch.model = updates.model
+  if (updates.temperature !== undefined) patch.temperature = updates.temperature
+  if (updates.context_length !== undefined) {
+    patch.contextLength = updates.context_length
+  }
+  const conv = await updateConversation(chatId, patch)
   return toChat(conv)
 }
 

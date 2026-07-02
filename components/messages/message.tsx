@@ -32,6 +32,15 @@ import { MessageThinkingBlock } from "./message-thinking-block"
 
 const ICON_SIZE = 32
 
+// Optimistic messages haven't been persisted yet and have no created_at,
+// so guard against rendering the literal string "Invalid Date".
+function formatMessageTime(createdAt: string | null | undefined): string {
+  if (!createdAt) return ""
+  const date = new Date(createdAt)
+  if (isNaN(date.getTime())) return ""
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+}
+
 interface MessageProps {
   message: Tables<"messages">
   fileItems: Tables<"file_items">[]
@@ -268,10 +277,7 @@ export const Message: FC<MessageProps> = ({
                     : "Você"}
                 </div>
                 <div className="text-[13px] font-normal text-[#a59686] dark:text-[#a3a3a3]">
-                  {new Date(message.created_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit"
-                  })}
+                  {formatMessageTime(message.created_at)}
                 </div>
               </div>
             )}
