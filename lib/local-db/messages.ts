@@ -40,6 +40,8 @@ export async function createMessage(
     content: data.content ?? "",
     model: data.model ?? "",
     sequenceNumber: data.sequenceNumber ?? 0,
+    tool_calls: data.tool_calls,
+    tool_call_id: data.tool_call_id,
     createdAt: new Date().toISOString()
   }
   await db.put("messages", record)

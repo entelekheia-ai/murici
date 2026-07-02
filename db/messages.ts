@@ -24,6 +24,8 @@ function toMessage(m: any): Message {
     content: m.content ?? "",
     model: m.model ?? "",
     sequence_number: m.sequenceNumber ?? 0,
+    tool_calls: m.tool_calls,
+    tool_call_id: m.tool_call_id,
     image_paths: [],
     created_at: m.createdAt ?? new Date().toISOString(),
     updated_at: null
@@ -45,7 +47,9 @@ export async function createMessages(
       role: m.role ?? "user",
       content: m.content ?? "",
       model: m.model ?? "",
-      sequenceNumber: m.sequence_number ?? 0
+      sequenceNumber: m.sequence_number ?? 0,
+      tool_calls: m.tool_calls,
+      tool_call_id: m.tool_call_id
     }))
   )
   return records.map(toMessage)

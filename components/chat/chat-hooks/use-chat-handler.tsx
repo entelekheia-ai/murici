@@ -385,8 +385,9 @@ export const useChatHandler = () => {
         flowIntentName = result.intentName
         flowToolExchange = result.toolExchange
       } else {
+        let result;
         if (modelData!.provider === "local") {
-          generatedText = await handleLocalChat(
+          result = await handleLocalChat(
             payload,
             profile!,
             chatSettings!,
@@ -403,7 +404,7 @@ export const useChatHandler = () => {
             }
           )
         } else {
-          generatedText = await handleHostedChat(
+          result = await handleHostedChat(
             payload,
             profile!,
             modelData!,
@@ -424,6 +425,9 @@ export const useChatHandler = () => {
             }
           )
         }
+        generatedText = result.content
+        flowIntentName = result.intentName || null
+        flowToolExchange = result.toolExchange || null
       }
 
       // Post-turn: run FSM transition (flow only) then record debug info for all turns

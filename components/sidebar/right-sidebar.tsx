@@ -22,6 +22,7 @@ import { KnowledgeChip } from "../knowledge/knowledge-chip"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { StateGraph } from "../agents/state-graph"
 import { useRouter, useParams } from "next/navigation"
+import { getMcpAndBuiltInTools } from "../chat/chat-helpers"
 
 export const RightSidebar: FC = () => {
   const router = useRouter()
@@ -43,21 +44,47 @@ export const RightSidebar: FC = () => {
   const [agentMeta, setAgentMeta] = useState<AgentAboutme | null>(null)
   const [agentLoading, setAgentLoading] = useState(false)
   
-  const [mcpServers, setMcpServers] = useState<{ serverName: string; tools: any[] }[]>([])
+  const [groupedTools, setGroupedTools] = useState<Record<string, any[]>>({})
   const [toolsLoading, setToolsLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/mcp/tools")
-      .then(res => res.json())
-      .then(data => {
-        setMcpServers(data || [])
+    let isMounted = true;
+    getMcpAndBuiltInTools(flowState || undefined)
+      .then(tools => {
+        if (!isMounted) return;
+        const groups: Record<string, any[]> = {}
+        for (const tool of tools) {
+          const funcName = tool.function?.name || "unknown"
+          let namespace = "Outros"
+          let displayName = funcName
+
+          if (funcName.startsWith("mcp__")) {
+            const parts = funcName.split("__")
+            namespace = parts[1] || "Outros"
+            displayName = parts[2] || funcName
+          } else if (funcName.startsWith("murici__")) {
+            namespace = "murici"
+            displayName = funcName.replace("murici__", "")
+          } else if (funcName === "trigger_intent") {
+            namespace = "murici"
+            displayName = "trigger_intent"
+          } else {
+            namespace = "murici"
+          }
+
+          if (!groups[namespace]) groups[namespace] = []
+          groups[namespace].push({ name: displayName, description: tool.function?.description || "" })
+        }
+        setGroupedTools(groups)
         setToolsLoading(false)
       })
       .catch(err => {
-        console.error("Error loading MCP tools", err)
-        setToolsLoading(false)
+        console.error("Error loading tools", err)
+        if (isMounted) setToolsLoading(false)
       })
-  }, [])
+      
+      return () => { isMounted = false }
+  }, [flowState])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const engineRef = useRef<any>(null)
@@ -399,26 +426,18 @@ export const RightSidebar: FC = () => {
             ) : (
               <div className="space-y-1">
                 <Accordion type="multiple" className="w-full border-none">
-                  <AccordionItem value="murici" className="border-none">
-                    <AccordionTrigger className="text-[13px] font-semibold text-murici-text-primary py-2 hover:no-underline tracking-wider">
-                      murici
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="flex flex-col space-y-2 ml-2">
-                        <div className="text-[13px] text-murici-text-secondary">trigger_intent</div>
-                        <div className="text-[13px] text-murici-text-secondary">state_graph</div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                  {mcpServers.map(server => (
-                    <AccordionItem key={server.serverName} value={server.serverName} className="border-none">
+                  {Object.entries(groupedTools).map(([namespace, tools]) => (
+                    <AccordionItem key={namespace} value={namespace} className="border-none">
                       <AccordionTrigger className="text-[13px] font-semibold text-murici-text-primary py-2 hover:no-underline tracking-wider">
-                        {server.serverName}
+                        {namespace}
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="flex flex-col space-y-2 ml-2">
-                          {server.tools.map((t: any) => (
-                            <div key={t.name} className="text-[13px] text-murici-text-secondary">{t.name}</div>
+                        <div className="flex flex-col gap-3 ml-2">
+                          {tools.map((t: any) => (
+                            <div key={t.name} className="text-[13px] text-murici-text-secondary leading-snug">
+                              <span className="font-semibold text-murici-text-primary">{t.name}</span>
+                              {t.description ? `: ${t.description}` : ""}
+                            </div>
                           ))}
                         </div>
                       </AccordionContent>

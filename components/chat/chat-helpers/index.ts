@@ -190,6 +190,317 @@ export const createTempMessages = (
   }
 }
 
+
+export async function getMcpAndBuiltInTools(flowState?: FlowStateInfo): Promise<any[]> {
+  const tools: any[] = [
+    {
+      type: "function",
+      function: {
+        name: "murici__save_doc",
+        description: "Save structured knowledge to the chat. Use this when the user asks you to save a document, summarize a topic for future reference, or extract a specific piece of knowledge.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "A short, descriptive title for the document." },
+            theme: { type: "string", description: "The general theme or topic." },
+            summary: { type: "string", description: "A one-sentence summary of the content." },
+            content: { type: "string", description: "The full content of the document, formatted in markdown." }
+          },
+          required: ["title", "theme", "summary", "content"]
+        }
+      }
+    }
+  ]
+
+  if (flowState && flowState.validIntents) {
+    tools.push(buildTriggerIntentTool(flowState.validIntents))
+    tools.push({
+      type: "function",
+      function: {
+        name: "murici__state_graph",
+        description: "Get the current state graph of the active FSM agent, showing all possible states and transitions.",
+        parameters: { type: "object", properties: {} }
+      }
+    })
+  }
+
+  try {
+    const res = await fetch("/api/mcp/tools")
+    if (res.ok) {
+      const data = await res.json()
+      for (const server of data) {
+        for (const tool of server.tools) {
+          tools.push({
+            type: "function",
+            function: {
+              name: `mcp__${server.serverName}__${tool.name}`,
+              description: tool.description,
+              parameters: tool.inputSchema
+            }
+          })
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Failed to fetch MCP tools", e)
+  }
+
+  return tools
+}
+
+export async function executeToolLoopAndStream(
+  messages: any[],
+  tools: any[],
+  chatSettings: ChatSettings,
+  isLocal: boolean,
+  localBaseUrl: string,
+  localHeaders: Record<string, string>,
+  apiEndpoint: string,
+  customModel: any,
+  profile: Tables<"profiles">,
+  targetId: string,
+  setFirstTokenReceived: React.Dispatch<React.SetStateAction<boolean>>,
+  setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
+  onEvent?: (event: Pick<FlowEvent, "type" | "data">) => void,
+  onThinkingUpdate?: (thinking: string) => void,
+  flowState?: FlowStateInfo
+): Promise<{
+  content: string
+  thinking: string | null
+  intentName: string | null
+  toolExchange: Array<{ role: string; content: any; tool_calls?: any[]; tool_call_id?: string }> | null
+}> {
+  let content = ""
+  let thinking: string | null = null
+  let intentName: string | null = null
+  let toolExchange: Array<{ role: string; content: any; tool_calls?: any[]; tool_call_id?: string }> | null = null
+
+  const doStream = async (
+    exchangeMessages: Array<{ role: string; content: any; tool_calls?: any[]; tool_call_id?: string }>,
+    indicatorText: string
+  ) => {
+    if (exchangeMessages.length > 0) {
+      toolExchange = exchangeMessages
+      onEvent?.({ type: "second_turn", data: {} })
+    }
+    content = indicatorText
+    setFirstTokenReceived(true)
+    setChatMessages(prev =>
+      prev.map(m =>
+        m.message.id === targetId
+          ? { ...m, message: { ...m.message, content } }
+          : m
+      )
+    )
+
+    let res2;
+    try {
+      res2 = isLocal
+        ? await fetch(`${localBaseUrl}/v1/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...localHeaders },
+            body: JSON.stringify({
+              model: chatSettings.model,
+              messages: [...messages, ...exchangeMessages],
+              temperature: chatSettings.temperature,
+              stream: true
+            })
+          })
+        : await fetch(apiEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chatSettings,
+              messages: [...messages, ...exchangeMessages.map(m => ({ ...m }))],
+              customModel,
+              apiKeys: buildApiKeys(profile)
+            })
+          })
+    } catch (e) {
+      console.error("Second turn fetch failed:", e)
+    }
+
+    if (res2 && res2.ok && res2.body) {
+      let rawAccum = ""
+      let reasoningAccum = ""
+      await consumeReadableStream(
+        res2.body,
+        chunk => {
+          if (isLocal) {
+            for (const line of chunk.split("\n")) {
+              if (!line.startsWith("data: ") || line === "data: [DONE]") continue
+              try {
+                const json = JSON.parse(line.slice(6))
+                const delta = json.choices?.[0]?.delta
+                if (!delta) continue
+                rawAccum += delta.content ?? ""
+                if (delta.reasoning_content) {
+                  reasoningAccum += delta.reasoning_content
+                  onThinkingUpdate?.(reasoningAccum)
+                }
+              } catch {}
+            }
+            content = indicatorText + rawAccum
+          } else {
+            rawAccum += chunk
+            const { displayText, thinkingText } = sanitizeStreamText(rawAccum)
+            content = indicatorText + displayText
+            if (thinkingText) {
+              thinking = thinkingText
+              onThinkingUpdate?.(thinkingText)
+            }
+          }
+          setChatMessages(prev =>
+            prev.map(m =>
+              m.message.id === targetId
+                ? { ...m, message: { ...m.message, content } }
+                : m
+            )
+          )
+        },
+        new AbortController().signal
+      )
+    } else {
+       console.error("Stream request failed")
+    }
+  }
+
+  if (tools.length === 0) {
+    await doStream([], "")
+    return { content, thinking, intentName, toolExchange }
+  }
+
+  let res: Response;
+  try {
+    res = isLocal
+      ? await fetch(`${localBaseUrl}/v1/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...localHeaders },
+          body: JSON.stringify({
+            model: chatSettings.model,
+            messages,
+            tools,
+            temperature: chatSettings.temperature,
+            stream: false
+          })
+        })
+      : await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chatSettings,
+            messages,
+            tools,
+            customModel,
+            apiKeys: buildApiKeys(profile)
+          })
+        })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: "Request failed" }))
+      throw new Error(err.message || "Chat request failed")
+    }
+  } catch (err: any) {
+    if (isLocal) {
+      console.warn("Local model failed with tools payload, falling back to streaming without tools.")
+      await doStream([], "")
+      return { content, thinking, intentName, toolExchange }
+    }
+    throw err
+  }
+
+  const data = await res.json()
+  const msg = data.choices?.[0]?.message
+    content = msg?.content ?? ""
+  
+    let toolCalls = msg?.tool_calls
+  if (!toolCalls && msg?.function_call) {
+    toolCalls = [{
+      id: "call_" + Math.random().toString(36).substring(7),
+      type: "function",
+      function: msg.function_call
+    }]
+  }
+  
+  if (toolCalls && toolCalls.length > 0 && !content) {
+        const toolExchangeMsg: any[] = []
+    const assistantMsg = {
+      role: "assistant",
+      content: msg.content ?? "",
+      tool_calls: toolCalls
+    }
+    toolExchangeMsg.push(assistantMsg)
+
+    for (const call of toolCalls) {
+      const name = call.function?.name
+      const argsStr = call.function?.arguments || "{}"
+      
+      let toolResult = "ok"
+
+      if (name === "trigger_intent") {
+        try {
+          intentName = JSON.parse(argsStr)?.intent_name ?? null
+        } catch {}
+        onEvent?.({ type: "tool_call", data: { intentName, raw: call } })
+      } else if (name === "murici__state_graph") {
+        toolResult = JSON.stringify({ graph: flowState?.graph || "No graph available" })
+      } else if (name === "murici__save_doc") {
+        toolResult = JSON.stringify({ status: "Document saved successfully." })
+      } else if (name?.startsWith("mcp__")) {
+        const parts = name.split("__")
+        const serverName = parts[1]
+        const toolName = parts[2]
+        try {
+          const executeRes = await fetch("/api/mcp/execute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ serverName, toolName, args: JSON.parse(argsStr) })
+          })
+          if (executeRes.ok) {
+            const resJson = await executeRes.json()
+            toolResult = JSON.stringify(resJson)
+          } else {
+            toolResult = "Error executing tool"
+          }
+        } catch (e: any) {
+          toolResult = e.message
+        }
+      }
+
+      toolExchangeMsg.push({ role: "tool", tool_call_id: call.id, content: toolResult })
+    }
+
+    await doStream(toolExchangeMsg, "")
+  } else {
+    if (content && !thinking) {
+      const { displayText, thinkingText, foundTool } = sanitizeStreamText(content)
+      if (thinkingText) {
+        thinking = thinkingText
+        onThinkingUpdate?.(thinkingText)
+      }
+      if (foundTool && !intentName) {
+        if (foundTool.name === "trigger_intent") {
+          intentName = foundTool.arguments?.intent_name ?? null
+          onEvent?.({ type: "tool_call", data: { intentName, raw: foundTool } })
+        }
+      }
+      content = displayText
+    }
+
+    setFirstTokenReceived(true)
+    setChatMessages(prev =>
+      prev.map(m =>
+        m.message.id === targetId
+          ? { ...m, message: { ...m.message, content } }
+          : m
+      )
+    )
+  }
+
+  return { content, thinking, intentName, toolExchange }
+}
+
+
 export const handleLocalChat = async (
   payload: ChatPayload,
   profile: Tables<"profiles">,
@@ -214,34 +525,28 @@ export const handleLocalChat = async (
   const headers: Record<string, string> = {}
   if (modelData.apiKey) headers["Authorization"] = `Bearer ${modelData.apiKey}`
 
-  const response = await fetchChatResponse(
-    `${baseUrl}/v1/chat/completions`,
-    {
-      model: chatSettings.model,
-      messages: formattedMessages,
-      temperature: payload.chatSettings.temperature,
-      stream: true
-    },
-    false,
-    newAbortController,
-    setIsGenerating,
-    setChatMessages,
-    headers
-  )
+  const tools = await getMcpAndBuiltInTools()
 
-  return await processResponse(
-    response,
+  return await executeToolLoopAndStream(
+    formattedMessages,
+    tools,
+    chatSettings,
+    true,
+    baseUrl,
+    headers,
+    "",
+    undefined,
+    profile,
     isRegeneration
-      ? payload.chatMessages[payload.chatMessages.length - 1]
-      : tempAssistantMessage,
-    false,
-    newAbortController,
+      ? payload.chatMessages[payload.chatMessages.length - 1].message.id
+      : tempAssistantMessage.message.id,
     setFirstTokenReceived,
     setChatMessages,
-    setToolInUse,
+    undefined,
     onThinkingUpdate
   )
 }
+
 
 export const handleFlowChat = async (
   payload: ChatPayload,
@@ -268,38 +573,8 @@ export const handleFlowChat = async (
     chatImages,
     onFinalMessages
   )
-  const tools: any[] = [
-    buildTriggerIntentTool(flowState.validIntents),
-    {
-      type: "function",
-      function: {
-        name: "murici__state_graph",
-        description: "Get the current state graph of the active FSM agent, showing all possible states and transitions.",
-        parameters: { type: "object", properties: {} }
-      }
-    }
-  ]
-
-  try {
-    const res = await fetch("/api/mcp/tools")
-    if (res.ok) {
-      const data = await res.json()
-      for (const server of data) {
-        for (const tool of server.tools) {
-          tools.push({
-            type: "function",
-            function: {
-              name: `mcp__${server.serverName}__${tool.name}`,
-              description: tool.description,
-              parameters: tool.inputSchema
-            }
-          })
-        }
-      }
-    }
-  } catch (e) {
-    console.error("Failed to fetch MCP tools", e)
-  }
+  
+  const tools = await getMcpAndBuiltInTools(flowState)
 
   const isLocal = modelData.provider === "local"
   const localBaseUrl =
@@ -323,212 +598,29 @@ export const handleFlowChat = async (
       ? await resolveCustomModel(modelData.hostedId)
       : undefined
 
-  // First turn: non-streaming call with tools to detect intent.
-  // Local models call their OpenAI-compat endpoint directly; hosted models go through API routes.
-  const res = isLocal
-    ? await fetch(`${localBaseUrl}/v1/chat/completions`, {
-        method: "POST",
-        headers: localHeaders,
-        body: JSON.stringify({
-          model: payload.chatSettings.model,
-          messages,
-          tools,
-          temperature: payload.chatSettings.temperature,
-          stream: false
-        })
-      })
-    : await fetch(apiEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chatSettings: payload.chatSettings,
-          messages,
-          tools,
-          customModel,
-          apiKeys: buildApiKeys(profile)
-        })
-      })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "Request failed" }))
-    throw new Error(err.message || "Flow chat request failed")
-  }
-
-  const data = await res.json()
-
-  let content = ""
-  let thinking: string | null = null
-  let intentName: string | null = null
-  let toolExchange: Array<{ role: string; content: any }> | null = null
-
   const targetId = isRegeneration
     ? payload.chatMessages[payload.chatMessages.length - 1].message.id
     : tempAssistantChatMessage.message.id
 
-  const showIndicatorAndStream = async (
-    exchangeMessages: Array<{ role: string; content: any }>,
-    indicatorText: string
-  ) => {
-    toolExchange = exchangeMessages
-    content = indicatorText
-    setFirstTokenReceived(true)
-    setChatMessages(prev =>
-      prev.map(m =>
-        m.message.id === targetId
-          ? { ...m, message: { ...m.message, content } }
-          : m
-      )
-    )
-    onEvent?.({ type: "second_turn", data: {} })
-
-    // Second turn: streaming conversational response.
-    const res2 = isLocal
-      ? await fetch(`${localBaseUrl}/v1/chat/completions`, {
-          method: "POST",
-          headers: localHeaders,
-          body: JSON.stringify({
-            model: payload.chatSettings.model,
-            messages: [...messages, ...exchangeMessages],
-            temperature: payload.chatSettings.temperature,
-            stream: true
-          })
-        })
-      : await fetch(apiEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chatSettings: payload.chatSettings,
-            messages: [...messages, ...exchangeMessages.map(m => ({ ...m }))],
-            customModel,
-            apiKeys: buildApiKeys(profile)
-          })
-        })
-
-    if (res2.ok && res2.body) {
-      let rawAccum = ""
-      let reasoningAccum = ""
-      await consumeReadableStream(
-        res2.body,
-        chunk => {
-          if (isLocal) {
-            // Parse OpenAI SSE format for local models
-            for (const line of chunk.split("\n")) {
-              if (!line.startsWith("data: ") || line === "data: [DONE]") continue
-              try {
-                const json = JSON.parse(line.slice(6))
-                const delta = json.choices?.[0]?.delta
-                if (!delta) continue
-                rawAccum += delta.content ?? ""
-                if (delta.reasoning_content) {
-                  reasoningAccum += delta.reasoning_content
-                  onThinkingUpdate?.(reasoningAccum)
-                }
-              } catch {}
-            }
-            content = indicatorText + rawAccum
-          } else {
-            rawAccum += chunk
-            const { displayText, thinkingText, foundTool } = sanitizeStreamText(rawAccum)
-            content = indicatorText + displayText
-            if (thinkingText) {
-              thinking = thinkingText
-              onThinkingUpdate?.(thinkingText)
-            }
-          }
-          setChatMessages(prev =>
-            prev.map(m =>
-              m.message.id === targetId
-                ? { ...m, message: { ...m.message, content } }
-                : m
-            )
-          )
-        },
-        new AbortController().signal
-      )
-    }
-  }
-
-  // All hosted APIs now return OpenAI-compatible JSON formats (choices[0].message)
-  const msg = data.choices?.[0]?.message
-  content = msg?.content ?? ""
-  
-  if (msg?.tool_calls?.length > 0 && !content) {
-    const toolExchangeMsg: any[] = []
-    const assistantMsg = {
-      role: "assistant",
-      content: msg.content ?? "",
-      tool_calls: msg.tool_calls
-    }
-    toolExchangeMsg.push(assistantMsg)
-
-    for (const call of msg.tool_calls) {
-      const name = call.function?.name
-      const argsStr = call.function?.arguments || "{}"
-      
-      let toolResult = "ok"
-
-      if (name === "trigger_intent") {
-        try {
-          intentName = JSON.parse(argsStr)?.intent_name ?? null
-        } catch {}
-        onEvent?.({ type: "tool_call", data: { intentName, raw: call } })
-      } else if (name === "murici__state_graph") {
-        toolResult = JSON.stringify({ graph: flowState.graph || "No graph available" })
-      } else if (name?.startsWith("mcp__")) {
-        const parts = name.split("__")
-        const serverName = parts[1]
-        const toolName = parts[2]
-        try {
-          const executeRes = await fetch("/api/mcp/execute", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ serverName, toolName, args: JSON.parse(argsStr) })
-          })
-          if (executeRes.ok) {
-            const resJson = await executeRes.json()
-            toolResult = JSON.stringify(resJson)
-          } else {
-            toolResult = "Error executing tool"
-          }
-        } catch (e: any) {
-          toolResult = e.message
-        }
-      }
-
-      toolExchangeMsg.push({ role: "tool", tool_call_id: call.id, content: toolResult })
-    }
-
-    await showIndicatorAndStream(toolExchangeMsg, "")
-  }
-
-  // Extract think blocks and fallback tools from direct (non-streaming) content paths
-  if (content && !thinking) {
-    const { displayText, thinkingText, foundTool } = sanitizeStreamText(content)
-    if (thinkingText) {
-      thinking = thinkingText
-      onThinkingUpdate?.(thinkingText)
-    }
-    if (foundTool && !intentName) {
-      if (foundTool.name === "trigger_intent") {
-        intentName = foundTool.arguments?.intent_name ?? null
-        onEvent?.({ type: "tool_call", data: { intentName, raw: foundTool } })
-      }
-    }
-    content = displayText
-  }
-
-  // Final update covers the case where content came from the first call directly
-  setFirstTokenReceived(true)
-  setChatMessages(prev =>
-    prev.map(m =>
-      m.message.id === targetId
-        ? { ...m, message: { ...m.message, content } }
-        : m
-    )
+  return await executeToolLoopAndStream(
+    messages,
+    tools,
+    payload.chatSettings,
+    isLocal,
+    localBaseUrl,
+    localHeaders,
+    apiEndpoint,
+    customModel,
+    profile,
+    targetId,
+    setFirstTokenReceived,
+    setChatMessages,
+    onEvent,
+    onThinkingUpdate,
+    flowState
   )
-
-  return { content, thinking, intentName, toolExchange }
 }
+
 
 export const handleHostedChat = async (
   payload: ChatPayload,
@@ -576,35 +668,28 @@ export const handleHostedChat = async (
       ? await resolveCustomModel(modelData.hostedId)
       : undefined
 
-  const requestBody = {
-    chatSettings: payload.chatSettings,
-    messages: formattedMessages,
-    customModel,
-    apiKeys: buildApiKeys(profile)
-  }
+  const tools = await getMcpAndBuiltInTools()
 
-  const response = await fetchChatResponse(
+  return await executeToolLoopAndStream(
+    formattedMessages,
+    tools,
+    payload.chatSettings,
+    false,
+    "",
+    {},
     apiEndpoint,
-    requestBody,
-    true,
-    newAbortController,
-    setIsGenerating,
-    setChatMessages
-  )
-
-  return await processResponse(
-    response,
+    customModel,
+    profile,
     isRegeneration
-      ? payload.chatMessages[payload.chatMessages.length - 1]
-      : tempAssistantChatMessage,
-    true,
-    newAbortController,
+      ? payload.chatMessages[payload.chatMessages.length - 1].message.id
+      : tempAssistantChatMessage.message.id,
     setFirstTokenReceived,
     setChatMessages,
-    setToolInUse,
+    undefined,
     onThinkingUpdate
   )
 }
+
 
 export const fetchChatResponse = async (
   url: string,
@@ -919,6 +1004,49 @@ export const handleCreateMessages = async (
 
     const createdMessages = await createMessages(messagesToInsert)
     const finalCreatedAssistantMessage = createdMessages[createdMessages.length - 1]
+
+        if (toolExchange && toolExchange.length > 0) {
+      for (const tMsg of toolExchange) {
+        if (tMsg.role === "assistant" && tMsg.tool_calls) {
+          for (const call of tMsg.tool_calls) {
+                        if (call.function?.name === "murici__save_doc") {
+              try {
+                const args = JSON.parse(call.function.arguments)
+                const record = {
+                  id: uuidv4(),
+                  nodeType: "knowledge" as const,
+                  originConversationId: currentChat.id,
+                  messageId: finalCreatedAssistantMessage.id,
+                  sourcePromptMessageId: createdMessages[0].id,
+                  title: args.title,
+                  summary: args.summary,
+                  outputType: args.theme || "GeneralContent",
+                  payload: {
+                    language: "md",
+                    content: args.content
+                  },
+                  derivedFrom: [],
+                  agentRuns: [],
+                  createdAt: new Date().toISOString()
+                }
+                                const { createKnowledgeRecord } = await import("@/lib/local-db/knowledge")
+                                await createKnowledgeRecord(record)
+                                if (setKnowledge) {
+                  setKnowledge(prev => {
+                    if (prev.length === 0) {
+                      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent("murici:knowledge-panel-open"))
+                    }
+                    return [...prev, record]
+                  })
+                }
+              } catch (e) {
+                console.error("Failed to save doc", e)
+              }
+            }
+          }
+        }
+      }
+    }
 
     // Upload each image (stored in newMessageImages) for the user message to message_images bucket
     const uploadPromises = newMessageImages
