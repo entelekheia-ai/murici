@@ -4,6 +4,7 @@
  */
 
 import { FC, useContext } from "react"
+import { useTranslation } from "react-i18next"
 import { ChatbotUIContext } from "@/context/context"
 import { ChatSettings } from "./chat-settings"
 import { ThemeSwitcher } from "../utility/theme-switcher"
@@ -11,14 +12,23 @@ import { IconPanelRightFigma } from "../icons/chat-icons"
 import { Button } from "../ui/button"
 import { IconInfoCircle } from "@tabler/icons-react"
 import { WithTooltip } from "../ui/with-tooltip"
+import { Switch } from "../ui/switch"
 
 interface ChatHeaderProps {}
 
 export const ChatHeader: FC<ChatHeaderProps> = ({}) => {
-  const { selectedChat, showRightSidebar, setShowRightSidebar } = useContext(ChatbotUIContext)
+  const { t } = useTranslation()
+
+  const {
+    selectedChat,
+    showRightSidebar,
+    setShowRightSidebar,
+    showDebugPanels,
+    setShowDebugPanels
+  } = useContext(ChatbotUIContext)
 
   return (
-    <div className="drag-region flex w-full items-center justify-between px-[24px] py-[12px] border-b border-[#e5e3df] dark:border-[#262626] shrink-0 bg-[#f8f3ee] dark:bg-[#0f0f0f]">
+    <div className="drag-region flex w-full items-center justify-between px-[24px] pt-[36px] pb-[12px] border-b border-[#e5e3df] dark:border-[#262626] shrink-0 bg-[#f8f3ee] dark:bg-[#0f0f0f]">
       {/* Esquerda: 100x100 space for Chat Info or empty */}
       <div className="flex w-[100px] items-center justify-start">
       </div>
@@ -29,7 +39,20 @@ export const ChatHeader: FC<ChatHeaderProps> = ({}) => {
       </div>
 
       {/* Direita: Theme & Inspector */}
-      <div className="flex items-center justify-end w-[100px] space-x-2 no-drag">
+      <div className="flex items-center justify-end w-auto min-w-[100px] space-x-2 no-drag">
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground select-none text-xs whitespace-nowrap">
+            {t("Show debug")}
+          </span>
+          <Switch
+            checked={showDebugPanels}
+            onCheckedChange={checked => {
+              localStorage.setItem("showDebugPanels", String(checked))
+              setShowDebugPanels(checked)
+            }}
+          />
+        </div>
+
         <ThemeSwitcher />
         
         <Button 

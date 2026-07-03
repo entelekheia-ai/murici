@@ -151,6 +151,8 @@ interface ChatbotUIContext {
   setShowSidebar: Dispatch<SetStateAction<boolean>>
   showRightSidebar: boolean
   setShowRightSidebar: Dispatch<SetStateAction<boolean>>
+  showDebugPanels: boolean
+  setShowDebugPanels: Dispatch<SetStateAction<boolean>>
   osPendingAgentPayload: UnpackPayload | null
   setOsPendingAgentPayload: Dispatch<SetStateAction<UnpackPayload | null>>
 
@@ -316,6 +318,8 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setShowSidebar: () => {},
   showRightSidebar: false,
   setShowRightSidebar: () => {},
+  showDebugPanels: false,
+  setShowDebugPanels: () => {},
   osPendingAgentPayload: null,
   setOsPendingAgentPayload: () => {},
 

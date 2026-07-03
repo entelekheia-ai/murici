@@ -16,7 +16,7 @@ import { Message } from "../messages/message"
 interface ChatMessagesProps {}
 
 export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
-  const { chatMessages, chatFileItems, flowDebugLog, flowEvents } =
+  const { chatMessages, chatFileItems, flowDebugLog, flowEvents, showDebugPanels } =
     useContext(ChatbotUIContext)
 
   const { handleSendEdit } = useChatHandler()
@@ -44,9 +44,10 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
 
       return (
         <Fragment key={seqNum}>
-          {eventsForSeq.map(ev => (
-            <FlowEventCard key={ev.id} event={ev} />
-          ))}
+          {showDebugPanels &&
+            eventsForSeq.map(ev => (
+              <FlowEventCard key={ev.id} event={ev} />
+            ))}
           <Message
             message={chatMessage.message}
             fileItems={messageFileItems}
@@ -56,7 +57,7 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
             onCancelEdit={() => setEditingMessage(undefined)}
             onSubmitEdit={handleSendEdit}
           />
-          {debug && (
+          {showDebugPanels && debug && (
             <details className="mx-4 mb-2">
               <summary className="text-muted-foreground/50 cursor-pointer select-none font-mono text-xs hover:opacity-70">
                 ver debug completo

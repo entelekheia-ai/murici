@@ -126,11 +126,17 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [newMessageImages, setNewMessageImages] = useState<MessageImage[]>([])
   const [showSidebar, setShowSidebar] = useState<boolean>(false)
   const [showRightSidebar, setShowRightSidebar] = useState<boolean>(false)
+  const [showDebugPanels, setShowDebugPanels] = useState<boolean>(false)
   const [osPendingAgentPayload, setOsPendingAgentPayload] = useState<UnpackPayload | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem("showSidebar")
     if (saved !== null) setShowSidebar(saved === "true")
+  }, [])
+
+  useEffect(() => {
+    const saved = localStorage.getItem("showDebugPanels")
+    if (saved !== null) setShowDebugPanels(saved === "true")
   }, [])
 
   // RETIEVAL STORE
@@ -347,6 +353,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setShowSidebar,
         showRightSidebar,
         setShowRightSidebar,
+        showDebugPanels,
+        setShowDebugPanels,
         osPendingAgentPayload,
         setOsPendingAgentPayload,
 
