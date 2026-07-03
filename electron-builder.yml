@@ -28,12 +28,11 @@ files:
   - node_modules/electron-updater/**
   - node_modules/builder-util-runtime/**
 
-# Next.js standalone server packed into resources/server
-extraResources:
-  - from: .next/standalone
-    to: server
-    filter:
-      - "**/*"
+# Next.js standalone server packed into resources/server. Not done via
+# extraResources: electron-builder's glob matcher was silently dropping
+# node_modules/.next from that copy for this project; scripts/electron-after-pack.js
+# does a plain recursive fs copy instead (see afterPack below).
+afterPack: scripts/electron-after-pack.js
 
 # WASM and kernel binaries must be outside ASAR
 asarUnpack:

@@ -44,12 +44,17 @@ export async function runHeadlessAgent(
     }
     const agentBlob = await fileRes.blob()
 
-    // 2. Unpack the bundle via API
-    const formData = new FormData()
-    formData.append("file", agentBlob, "agent.agent")
+    // 2. Unpack the bundle via API. Sent as a raw body rather than
+    // multipart/form-data — see the matching comment in right-sidebar.tsx's
+    // handleAgentFile for why.
+    const agentFileName = agentUrl.split("/").pop() || "agent.agent"
     const unpackRes = await fetch("/api/agent/unpack", {
       method: "POST",
-      body: formData
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Agent-Filename": encodeURIComponent(agentFileName)
+      },
+      body: agentBlob
     })
     if (!unpackRes.ok) throw new Error("Failed to unpack agent")
     const data = await unpackRes.json()

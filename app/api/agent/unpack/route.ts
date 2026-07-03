@@ -19,24 +19,26 @@ import { loadAgent } from "@dot-agent/sdk"
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const formData = await request.formData()
-    const file = formData.get("file") as File
+    // Sent as a raw body rather than multipart/form-data — see the matching
+    // comment in right-sidebar.tsx's handleAgentFile for why.
+    const encodedName = request.headers.get("x-agent-filename")
+    const fileName = encodedName ? decodeURIComponent(encodedName) : null
 
-    if (!file) {
+    if (!fileName) {
       return NextResponse.json(
         { error: "No file provided" },
         { status: 400 }
       )
     }
 
-    if (!file.name.endsWith(".agent")) {
+    if (!fileName.endsWith(".agent")) {
       return NextResponse.json(
         { error: "File must have .agent extension" },
         { status: 400 }
       )
     }
 
-    const buffer = await file.arrayBuffer()
+    const buffer = await request.arrayBuffer()
     const bundle = await loadAgent(buffer)
 
     const am = bundle.aboutme

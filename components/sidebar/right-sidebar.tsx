@@ -365,11 +365,19 @@ export const RightSidebar: FC = () => {
     if (!file.name.endsWith(".agent")) return
     setAgentLoading(true)
     try {
-      const formData = new FormData()
-      formData.append("file", file)
+      // Sent as a raw body instead of multipart/form-data: Node's undici-based
+      // multipart parser throws "Cannot read properties of undefined (reading
+      // 'toLowerCase')" deep inside its own header parser for some requests
+      // when running under Electron's bundled Node (reproduced with a real
+      // .agent file via both the file picker and drag-and-drop). A raw body
+      // has no multipart boundary/header parsing to trip over.
       const res = await fetch("/api/agent/unpack", {
         method: "POST",
-        body: formData
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-Agent-Filename": encodeURIComponent(file.name)
+        },
+        body: file
       })
       if (!res.ok) {
         const error = await res.json()

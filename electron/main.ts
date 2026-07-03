@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { app, BrowserWindow, shell, ipcMain } from "electron"
+import { app, BrowserWindow, shell, ipcMain, dialog } from "electron"
 import * as path from "path"
+import * as fs from "fs"
 import { startNextServer, stopNextServer } from "./next-server"
 import { setupAutoUpdater } from "./updater"
 import { readFile } from "fs/promises"
@@ -25,6 +26,25 @@ const isDev =
   process.env.NODE_ENV === "development" ||
   process.env.ELECTRON_ENV === "development" ||
   !app.isPackaged
+
+// A packaged app launched from Finder/Dock has no attached terminal, so
+// plain console.log/console.error go nowhere the user can see. Mirror them
+// to a file under the OS logs dir so a silent startup failure (e.g. the
+// bundled Next.js server failing to boot) is still diagnosable.
+const logFile = path.join(app.getPath("logs"), "main.log")
+fs.mkdirSync(path.dirname(logFile), { recursive: true })
+const logStream = fs.createWriteStream(logFile, { flags: "a" })
+for (const method of ["log", "warn", "error"] as const) {
+  const original = console[method].bind(console)
+  console[method] = (...args: any[]) => {
+    original(...args)
+    const line = args
+      .map(a => (a instanceof Error ? (a.stack ?? a.message) : typeof a === "string" ? a : JSON.stringify(a)))
+      .join(" ")
+    logStream.write(`[${new Date().toISOString()}] [${method}] ${line}\n`)
+  }
+}
+console.log(`Murici starting — version ${app.getVersion()}, log file: ${logFile}`)
 
 let mainWindow: BrowserWindow | null = null
 let serverPort = 3000
@@ -121,13 +141,22 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
-            if (!isDev) serverPort = await startNextServer()
-  await createWindow()
-  if (!isDev) setupAutoUpdater()
+  try {
+    if (!isDev) serverPort = await startNextServer()
+    await createWindow()
+    if (!isDev) setupAutoUpdater()
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  } catch (err: any) {
+    console.error("Fatal startup error, no window was created:", err)
+    dialog.showErrorBox(
+      "Murici failed to start",
+      `${err?.message ?? err}\n\nLog file: ${logFile}`
+    )
+    app.quit()
+  }
 })
 
 app.on("window-all-closed", () => {
