@@ -1,6 +1,6 @@
 {
   "name": "murici",
-  "version": "2.0.0",
+  "version": "0.0.5",
   "description": "Murici is a lightweight, responsive desktop and web Chat UI designed for running deterministic state-machine agent behaviors.",
   "private": true,
   "author": "Danilo Borges <contato@daniloborg.es>",
@@ -24,6 +24,7 @@
     "format:write": "prettier --write \"{app,lib,components,context,types}/**/*.{ts,tsx}\" --cache",
     "format:check": "prettier --check \"{app,lib,components,context,types}**/*.{ts,tsx}\" --cache",
     "test": "jest",
+    "build:agents": "node scripts/build-agents.js",
     "electron:compile": "tsc -p tsconfig.electron.json",
     "electron:dev": "npm run electron:compile && NODE_ENV=development ELECTRON_ENV=development concurrently -k -n next,electron \"next dev\" \"wait-on http://localhost:3000 && electron electron-dist/main.js\"",
     "electron:build": "ELECTRON_BUILD=1 npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && npm run electron:compile && electron-builder",

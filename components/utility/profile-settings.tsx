@@ -93,9 +93,14 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [isOpen, setIsOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("profile")
 
   useEffect(() => {
-    const handler = () => setIsOpen(true)
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent<{ tab?: string }>).detail?.tab
+      setActiveTab(tab ?? "profile")
+      setIsOpen(true)
+    }
     window.addEventListener("murici:profile-open", handler)
     return () => window.removeEventListener("murici:profile-open", handler)
   }, [])
@@ -314,7 +319,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
             <SheetTitle>Settings</SheetTitle>
           </SheetHeader>
 
-          <Tabs defaultValue="profile">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mt-4 grid w-full grid-cols-3">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="keys">API Keys</TabsTrigger>
@@ -379,7 +384,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
                 />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1" data-dot-id="auto-task-model">
                 <Label className="text-sm">
                   Modelo local para tarefas automáticas
                 </Label>

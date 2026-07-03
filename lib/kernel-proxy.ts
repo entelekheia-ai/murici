@@ -74,9 +74,10 @@ export class KernelProxy {
     text: string,
     knowledge: Array<{ path: string; content: string }> = [],
     guides: Array<{ path: string; content: string }> = [],
-    behaviors: Array<{ path: string; content: string }> = []
+    behaviors: Array<{ path: string; content: string }> = [],
+    initialMemory: Array<{ domain: string; key: string; value: string }> = []
   ): Promise<Effect[]> {
-    const state = await this._call("load", { behaviorText: text, knowledge, guides, behaviors })
+    const state = await this._call("load", { behaviorText: text, knowledge, guides, behaviors, initialMemory })
     return this._updateCache(state)
   }
 

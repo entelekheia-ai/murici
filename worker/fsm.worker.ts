@@ -115,10 +115,17 @@ async function processMessage(e: MessageEvent) {
     }
 
     if (method === "load") {
-      const { behaviorText, knowledge = [], guides = [], behaviors = [] } = payload
-      
+      const {
+        behaviorText,
+        knowledge = [],
+        guides = [],
+        behaviors = [],
+        initialMemory = []
+      } = payload
+
       const old = sessions.get(sessionId)
       if (old && old.text === behaviorText) {
+        for (const m of initialMemory) old.session.injectMemory(m.domain, m.key, m.value)
         old.session.start()
         flushPendingMemory(old)
         self.postMessage({ id, state: buildKernelState(old.session, old.sink.current) })
@@ -146,6 +153,9 @@ async function processMessage(e: MessageEvent) {
       const pendingMemory: PendingMemoryWrite[] = []
       const sink = wireHandlers(session, pendingMemory)
       sink.current = []
+      // Seed memory before start() so the init state's setup-phase dispatch
+      // (e.g. `if context.onboarding == true`) sees it on this very first tick.
+      for (const m of initialMemory) session.injectMemory(m.domain, m.key, m.value)
       session.start()
       const entry: SessionEntry = { session, sink, text: behaviorText, pendingMemory }
       sessions.set(sessionId, entry)

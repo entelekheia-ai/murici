@@ -1,0 +1,13 @@
+/* agent-styles/theme-system.css */
+
+/* Body-wide warm accent theme, active for the duration of the guided onboarding tour */
+body {
+  background-color: rgb(250, 244, 237) !important;
+  transition: background-color 0.4s ease;
+}
+
+body [data-sidebar],
+body .border-sidebar-border {
+  border-color: rgba(192, 86, 33, 0.25) !important;
+  transition: border-color 0.4s ease;
+}

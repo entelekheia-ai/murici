@@ -1,0 +1,12 @@
+/* css/agents.css */
+
+/* Warm accent theme for the Agents Panel during onboarding */
+[data-dot-id="agent-panel"],
+.right-sidebar {
+  background-color: rgb(234, 223, 213) !important;
+  border: 1px solid rgb(229, 227, 223) !important;
+  box-shadow: 0px 0px 24px rgba(192, 86, 33, 0.25), 
+              0px 0px 8px rgba(192, 86, 33, 0.25) !important;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+}

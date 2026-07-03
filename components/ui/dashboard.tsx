@@ -20,6 +20,9 @@ import dynamic from "next/dynamic"
 import { FC, useEffect, useState, useContext } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { CommandK } from "../utility/command-k"
+import { getSetting } from "@/lib/local-db/settings"
+
+const APP_VERSION = "0.0.5"
 
 // Load RightSidebar only on client to avoid WASM SSR issues
 const RightSidebar = dynamic(
@@ -52,7 +55,19 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const [contentType, setContentType] = useState<ContentType>(
     tabValue as ContentType
   )
-  const { showSidebar, setShowSidebar, showRightSidebar } = useContext(ChatbotUIContext)
+  const { showSidebar, setShowSidebar, showRightSidebar, setShowRightSidebar } = useContext(ChatbotUIContext)
+
+  // RightSidebar is only mounted once showRightSidebar is true, but that's
+  // also where the onboarding-agent first-run auto-load effect lives — a
+  // chicken-and-egg gap that left first-time users with no sidebar and
+  // nothing to open it. Just flip visibility here so RightSidebar mounts and
+  // its own effect can take it from there; the "seen" write happens there too.
+  useEffect(() => {
+    ;(async () => {
+      const seenVersion = await getSetting("onboarding_seen_version")
+      if (seenVersion !== APP_VERSION) setShowRightSidebar(true)
+    })()
+  }, [])
 
   useEffect(() => {
     const handler = (e: Event) => {

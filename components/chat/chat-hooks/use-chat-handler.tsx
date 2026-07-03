@@ -10,6 +10,7 @@ import { updateChat } from "@/db/chats"
 import { deleteMessagesIncludingAndAfter } from "@/db/messages"
 import { getAssistantFilesByAssistantId } from "@/lib/local-db/stubs"
 import { buildFinalMessages } from "@/lib/build-prompt"
+import { handleKernelEffects } from "@/lib/kernel-effects"
 import { Tables } from "@/types/database"
 import {
   ChatMessage,
@@ -532,6 +533,7 @@ export const useChatHandler = () => {
             flowError
           )
         }
+        handleKernelEffects(transitionEffects, { setShowRightSidebar })
       }
 
       setFlowDebugLog(prev => ({

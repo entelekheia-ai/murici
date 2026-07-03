@@ -1,0 +1,40 @@
+state onboarding.agent_format
+  remove css "highlight-models.css"
+  apply css "agents.css"
+  run script "open_agents_panel"
+  goal "Explain the .agent format."
+  guide "Describe the .agent format as a portable and secure packaging standard for AI Agents. State that it serves to guide the LLM precisely. Suggest using the official CLI to create them."
+  teach "knowledge/dot-agent-format.md"
+  interact
+  on intent "features_graph" transition to onboarding.features_graph
+  on offtopic transition to support_fallback
+
+state onboarding.features_graph
+  remove css "highlight-models.css"
+  remove css "agents.css"
+  run script "open_agents_panel"
+  goal "Explain the internal features."
+  guide "Explain Murici's internal features: the Knowledge Graph, the local-first saving via IndexedDB, and the powerful Enrich tool. Keep a welcoming tone."
+  teach "knowledge/features.md"
+  interact
+  on intent "mcp_setup" transition to onboarding.mcp_setup
+  on offtopic transition to support_fallback
+
+state onboarding.mcp_setup
+  remove css "highlight-models.css"
+  remove css "agents.css"
+  run script "open_mcp_config"
+  goal "Explain MCP configuration."
+  guide "Assist the user by explaining what MCP (Model Context Protocol) is and how to configure it in Murici's settings panel."
+  teach "knowledge/mcp-setup.md"
+  interact
+  on intent "finish" transition to wrap_up
+  on offtopic transition to support_fallback
+
+state wrap_up
+  set context.onboarding = false
+  goal "Wrap up the onboarding tour and hand off to free exploration."
+  guide "The guided tour is complete. Warmly congratulate the user and let them know they can now use Murici freely — mention they can reopen the Murici Helper from the agents panel anytime for a refresher on any topic."
+  interact
+  on intent "explore" transition to responsive
+  on offtopic transition to responsive
