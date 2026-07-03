@@ -8,7 +8,9 @@ import { readFile } from "fs/promises"
 import { homedir } from "os"
 import { join } from "path"
 
-const DISCOVERY_TIMEOUT_MS = 500
+export const dynamic = 'force-dynamic'
+
+const DISCOVERY_TIMEOUT_MS = 5000
 
 interface OmlxSettings {
   server?: { host?: string; port?: number }
@@ -40,7 +42,8 @@ async function probeOpenAICompat(
 
     const res = await fetch(`${baseUrl}/v1/models`, {
       signal: controller.signal,
-      headers
+      headers,
+      cache: "no-store"
     })
     if (!res.ok) return []
 
@@ -69,7 +72,7 @@ async function probeOllama(baseUrl: string): Promise<LLM[]> {
   const timer = setTimeout(() => controller.abort(), DISCOVERY_TIMEOUT_MS)
 
   try {
-    const res = await fetch(`${baseUrl}/api/tags`, { signal: controller.signal })
+    const res = await fetch(`${baseUrl}/api/tags`, { signal: controller.signal, cache: "no-store" })
     if (!res.ok) return []
 
     const json = await res.json()
