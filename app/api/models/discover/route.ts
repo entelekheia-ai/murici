@@ -104,13 +104,19 @@ export async function GET() {
   const ollamaBaseUrl =
     process.env.NEXT_PUBLIC_OLLAMA_URL ?? "http://localhost:11434"
 
-  const results = await Promise.allSettled([
-    probeOllama(ollamaBaseUrl),
+  const probes = [
+    probeOllama("http://localhost:11434"),
     probeOpenAICompat("http://localhost:1234"),           // LM Studio
     probeOpenAICompat("http://localhost:8080"),           // LocalAI / Llama.cpp
     probeOpenAICompat(omlxBaseUrl, omlxApiKey),          // oMLX / vLLM
     probeOpenAICompat("http://localhost:5000")            // Oobabooga
-  ])
+  ];
+
+  if (ollamaBaseUrl !== "http://localhost:11434") {
+    probes.push(probeOllama(ollamaBaseUrl));
+  }
+
+  const results = await Promise.allSettled(probes);
 
   const models: LLM[] = results.flatMap(r =>
     r.status === "fulfilled" ? r.value : []
