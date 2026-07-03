@@ -18,7 +18,7 @@ import {
 import { FlowEvent, FlowTurnDebug } from "@/types"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
-import { AgentAboutme } from "@/types/electron"
+import { AgentAboutme, UnpackPayload } from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { KernelProxy } from "@/lib/kernel-proxy"
 import { Dispatch, MutableRefObject, SetStateAction, createContext } from "react"
@@ -151,6 +151,8 @@ interface ChatbotUIContext {
   setShowSidebar: Dispatch<SetStateAction<boolean>>
   showRightSidebar: boolean
   setShowRightSidebar: Dispatch<SetStateAction<boolean>>
+  osPendingAgentPayload: UnpackPayload | null
+  setOsPendingAgentPayload: Dispatch<SetStateAction<UnpackPayload | null>>
 
   // RETRIEVAL STORE
   useRetrieval: boolean
@@ -314,6 +316,8 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setShowSidebar: () => {},
   showRightSidebar: false,
   setShowRightSidebar: () => {},
+  osPendingAgentPayload: null,
+  setOsPendingAgentPayload: () => {},
 
   // RETRIEVAL STORE
   useRetrieval: false,

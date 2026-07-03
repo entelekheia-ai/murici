@@ -31,6 +31,7 @@ import {
 } from "@/types"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
+import { UnpackPayload } from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
 
@@ -125,6 +126,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [newMessageImages, setNewMessageImages] = useState<MessageImage[]>([])
   const [showSidebar, setShowSidebar] = useState<boolean>(false)
   const [showRightSidebar, setShowRightSidebar] = useState<boolean>(false)
+  const [osPendingAgentPayload, setOsPendingAgentPayload] = useState<UnpackPayload | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem("showSidebar")
@@ -345,6 +347,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setShowSidebar,
         showRightSidebar,
         setShowRightSidebar,
+        osPendingAgentPayload,
+        setOsPendingAgentPayload,
 
         // RETRIEVAL STORE
         useRetrieval,

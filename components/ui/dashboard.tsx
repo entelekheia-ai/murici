@@ -14,6 +14,7 @@ import useHotkey from "@/lib/hooks/use-hotkey"
 import { cn } from "@/lib/utils"
 import { ChatbotUIContext } from "@/context/context"
 import { ContentType } from "@/types"
+import { UnpackPayload } from "@/types/electron"
 import { IconChevronCompactRight } from "@tabler/icons-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import dynamic from "next/dynamic"
@@ -21,6 +22,7 @@ import { FC, useEffect, useState, useContext } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { CommandK } from "../utility/command-k"
 import { getSetting } from "@/lib/local-db/settings"
+import { toast } from "sonner"
 
 const APP_VERSION = "0.0.5"
 
@@ -55,7 +57,20 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const [contentType, setContentType] = useState<ContentType>(
     tabValue as ContentType
   )
-  const { showSidebar, setShowSidebar, showRightSidebar, setShowRightSidebar } = useContext(ChatbotUIContext)
+  const { showSidebar, setShowSidebar, showRightSidebar, setShowRightSidebar, setOsPendingAgentPayload } = useContext(ChatbotUIContext)
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.electronAPI?.onOpenAgentFile) {
+      window.electronAPI.onOpenAgentFile((payload: UnpackPayload) => {
+        setOsPendingAgentPayload(payload)
+        setShowRightSidebar(true)
+      })
+      window.electronAPI.onOpenAgentFileError?.((errorMsg: string) => {
+        toast.error(`Falha ao abrir arquivo .agent: ${errorMsg}`)
+      })
+      window.electronAPI.appReadyForFiles?.()
+    }
+  }, [setOsPendingAgentPayload, setShowRightSidebar])
 
   // RightSidebar is only mounted once showRightSidebar is true, but that's
   // also where the onboarding-agent first-run auto-load effect lives — a

@@ -84,21 +84,40 @@ async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
 app.on("open-file", (event, filePath) => {
   event.preventDefault()
   if (filePath.endsWith(".agent")) {
+    fileToOpen = filePath
     if (mainWindow) {
       resolveAgentFile(filePath)
         .then(payload => { mainWindow!.webContents.send("open-agent-file", payload) })
-        .catch(err => { console.error("Failed to resolve agent file:", err) })
-    } else {
-      fileToOpen = filePath
+        .catch(err => { 
+          console.error("Failed to resolve agent file:", err)
+          mainWindow!.webContents.send("open-agent-file-error", err.message || err.toString())
+        })
+      fileToOpen = null
+    } else if (app.isReady()) {
+      createWindow()
     }
   }
 })
 
-// Handle file open from command line (Windows/Linux)
-if (process.platform !== "darwin" && process.argv.length >= 2) {
+// Handle file open from command line (Windows/Linux/macOS terminal)
+if (process.argv.length >= 2) {
   const filePath = process.argv[process.argv.length - 1]
   if (filePath.endsWith(".agent")) fileToOpen = filePath
 }
+
+ipcMain.on("app-ready-for-files", (event) => {
+  if (fileToOpen) {
+    resolveAgentFile(fileToOpen)
+      .then(payload => {
+        mainWindow?.webContents.send("open-agent-file", payload)
+      })
+      .catch(err => { 
+        console.error("Failed to resolve agent file:", err)
+        mainWindow?.webContents.send("open-agent-file-error", err.message || err.toString())
+      })
+    fileToOpen = null
+  }
+})
 
 async function createWindow() {
   mainWindow = new BrowserWindow({
@@ -124,12 +143,6 @@ async function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow!.show()
-    if (fileToOpen) {
-      resolveAgentFile(fileToOpen)
-        .then(payload => { mainWindow!.webContents.send("open-agent-file", payload) })
-        .catch(err => { console.error("Failed to resolve agent file:", err) })
-      fileToOpen = null
-    }
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

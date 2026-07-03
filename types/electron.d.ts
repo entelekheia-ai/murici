@@ -52,6 +52,8 @@ declare global {
       onOpenAgentFile?: (
         cb: (payload: UnpackPayload) => void
       ) => void
+      onOpenAgentFileError?: (cb: (errorMsg: string) => void) => void
+      appReadyForFiles?: () => void
     }
   }
 }

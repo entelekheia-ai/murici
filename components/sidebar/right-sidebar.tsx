@@ -64,7 +64,8 @@ export const RightSidebar: FC = () => {
     setFlowState, setFlowEngine, flowState, setAgentKnowledgeFiles, setAgentPersona,
     knowledge, setKnowledge, chatSettings, availableLocalModels, backgroundModel, selectedChat,
     setShowRightSidebar, chatAgentSessionsRef, destroyChatAgentSession, migrateChatAgentSession,
-    profile, selectedWorkspace, selectedAssistant, setSelectedChat, setChats, setChatFiles
+    profile, selectedWorkspace, selectedAssistant, setSelectedChat, setChats, setChatFiles,
+    osPendingAgentPayload, setOsPendingAgentPayload
   } = useContext(ChatbotUIContext)
   const { handleNewChat } = useChatHandler()
 
@@ -411,11 +412,13 @@ export const RightSidebar: FC = () => {
   }
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.electronAPI?.onOpenAgentFile) {
-      window.electronAPI.onOpenAgentFile((payload: UnpackPayload) => {
-        handleOpenAgentFileEventRef.current(payload)
-      })
+    if (osPendingAgentPayload) {
+      handleOpenAgentFileEventRef.current(osPendingAgentPayload)
+      setOsPendingAgentPayload(null)
     }
+  }, [osPendingAgentPayload, setOsPendingAgentPayload])
+
+  useEffect(() => {
 
     const onAgentDrop = (e: Event) => {
       const file = (e as CustomEvent<{ file: File }>).detail.file
