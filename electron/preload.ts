@@ -15,14 +15,14 @@
  */
 
 import { contextBridge, ipcRenderer } from "electron"
-import type { UnpackPayload } from "../types/electron"
+import type { OsPendingAgentFile, UnpackPayload } from "../types/electron"
 
-let openAgentFileCallback: ((payload: UnpackPayload) => void) | null = null
+let openAgentFileCallback: ((data: OsPendingAgentFile) => void) | null = null
 let openAgentFileErrorCallback: ((errorMsg: string) => void) | null = null
 
-ipcRenderer.on("open-agent-file", (_event, payload) => {
+ipcRenderer.on("open-agent-file", (_event, data) => {
   if (openAgentFileCallback) {
-    openAgentFileCallback(payload)
+    openAgentFileCallback(data)
   }
 })
 
@@ -39,7 +39,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     node: process.versions.node,
     chrome: process.versions.chrome
   },
-  onOpenAgentFile: (cb: (payload: UnpackPayload) => void) => {
+  onOpenAgentFile: (cb: (data: OsPendingAgentFile) => void) => {
     openAgentFileCallback = cb
   },
   onOpenAgentFileError: (cb: (errorMsg: string) => void) => {
@@ -47,5 +47,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   appReadyForFiles: () => {
     ipcRenderer.send("app-ready-for-files")
-  }
+  },
+  resolveAgentFile: (filePath: string): Promise<UnpackPayload> =>
+    ipcRenderer.invoke("resolve-agent-file", filePath)
 })

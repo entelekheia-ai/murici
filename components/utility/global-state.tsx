@@ -31,7 +31,7 @@ import {
 } from "@/types"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
-import { UnpackPayload } from "@/types/electron"
+import { OsPendingAgentFile, UnpackPayload } from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { saveAgentBundle } from "@/lib/local-db/agent-bundles"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
@@ -128,7 +128,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [showSidebar, setShowSidebar] = useState<boolean>(false)
   const [showRightSidebar, setShowRightSidebar] = useState<boolean>(false)
   const [showDebugPanels, setShowDebugPanels] = useState<boolean>(false)
-  const [osPendingAgentPayload, setOsPendingAgentPayload] = useState<UnpackPayload | null>(null)
+  const [osPendingAgentPayload, setOsPendingAgentPayload] = useState<OsPendingAgentFile | null>(null)
+  const [pendingNewAgentPayload, setPendingNewAgentPayload] = useState<UnpackPayload | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem("showSidebar")
@@ -374,6 +375,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setShowDebugPanels,
         osPendingAgentPayload,
         setOsPendingAgentPayload,
+        pendingNewAgentPayload,
+        setPendingNewAgentPayload,
 
         // RETRIEVAL STORE
         useRetrieval,

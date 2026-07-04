@@ -17,6 +17,7 @@ import { SidebarContent } from "./sidebar-content"
 import { ProfileMenu } from "./profile-menu"
 import { ProfileSettings } from "../utility/profile-settings"
 import { SidebarFilesContent } from "./sidebar-files"
+import { SidebarAgentsContent } from "./sidebar-agents-content"
 
 interface SidebarProps {
   contentType: ContentType
@@ -74,12 +75,8 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar, onContentT
             case "files":
               return <SidebarFilesContent />
 
-            case "assistants":
-              return renderSidebarContent(
-                "assistants",
-                assistants,
-                assistantFolders
-              )
+            case "agents":
+              return <SidebarAgentsContent />
 
             case "models":
               return renderSidebarContent("models", models, modelFolders)

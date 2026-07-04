@@ -62,7 +62,7 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
           setIsCreatingFile(true)
         }
 
-      case "assistants":
+      case "agents":
         return async () => {
           setIsCreatingAssistant(true)
         }

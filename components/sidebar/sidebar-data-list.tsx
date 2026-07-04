@@ -57,7 +57,7 @@ export const SidebarDataList: FC<SidebarDataListProps> = ({
       case "files":
         return <FileItem key={item.id} />
 
-      case "assistants":
+      case "agents":
         return <AssistantItem key={item.id} />
 
       case "models":
@@ -110,14 +110,14 @@ export const SidebarDataList: FC<SidebarDataListProps> = ({
   const updateFunctions = {
     chats: updateChat,
     files: updateFile,
-    assistants: updateAssistant,
+    agents: updateAssistant,
     models: updateModel
   }
 
   const stateUpdateFunctions = {
     chats: setChats,
     files: setFiles,
-    assistants: setAssistants,
+    agents: setAssistants,
     models: setModels
   }
 

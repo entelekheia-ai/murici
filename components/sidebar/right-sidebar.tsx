@@ -36,6 +36,8 @@ import { getMcpAndBuiltInTools, handleCreateChat } from "../chat/chat-helpers"
 import { useChatHandler } from "../chat/chat-hooks/use-chat-handler"
 import { useAgentSession } from "@/lib/hooks/use-agent-session"
 import { getSetting, setSetting } from "@/lib/local-db/settings"
+import { upsertRecentAgent } from "@/lib/local-db/recent-agents"
+import { getOnboardingAgentPayload } from "@/lib/agents/system-agents"
 
 const APP_VERSION = "0.0.5"
 
@@ -64,7 +66,8 @@ export const RightSidebar: FC = () => {
     knowledge, setKnowledge, chatSettings, availableLocalModels, backgroundModel, selectedChat,
     setShowRightSidebar, chatAgentSessionsRef, activeChatKeyRef, migrateChatAgentSession,
     profile, selectedWorkspace, selectedAssistant, setSelectedChat, setChats, setChatFiles,
-    osPendingAgentPayload, setOsPendingAgentPayload
+    osPendingAgentPayload, setOsPendingAgentPayload,
+    pendingNewAgentPayload, setPendingNewAgentPayload
   } = useContext(ChatbotUIContext)
   const { handleNewChat } = useChatHandler()
   const agentSession = useAgentSession()
@@ -140,15 +143,31 @@ export const RightSidebar: FC = () => {
   // already has an agent, route straight to a new chat; otherwise ask.
   useEffect(() => {
     if (osPendingAgentPayload) {
+      const { payload, filePath } = osPendingAgentPayload
+      upsertRecentAgent({
+        filePath: filePath ?? null,
+        aboutme: payload.aboutme
+      }).catch(err => console.error("[recent-agents] upsert failed", err))
       if (hasActiveAgent(activeChatKeyRef.current)) {
-        goToNewChatWithPayload(osPendingAgentPayload)
+        goToNewChatWithPayload(payload)
       } else {
-        setPendingAgentPayload(osPendingAgentPayload)
+        setPendingAgentPayload(payload)
       }
       setOsPendingAgentPayload(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [osPendingAgentPayload, setOsPendingAgentPayload])
+
+  // Bridge for the left-sidebar "Agentes" panel: clicking a row there always
+  // opens a brand-new chat, no this-chat-or-new-chat prompt.
+  useEffect(() => {
+    if (pendingNewAgentPayload) {
+      goToNewChatWithPayload(pendingNewAgentPayload)
+      setShowRightSidebar(true)
+      setPendingNewAgentPayload(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingNewAgentPayload, setPendingNewAgentPayload])
 
   // First-run auto-load: inject the onboarding-agent into a fresh, persisted
   // chat once per app version (settings.onboarding_seen_version), regardless
@@ -169,19 +188,7 @@ export const RightSidebar: FC = () => {
       try {
         await setSetting("onboarding_seen_version", APP_VERSION)
 
-        const fileRes = await fetch("/agents/onboarding.agent")
-        if (!fileRes.ok) return
-        const agentBlob = await fileRes.blob()
-        const unpackRes = await fetch("/api/agent/unpack", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/octet-stream",
-            "X-Agent-Filename": "onboarding.agent"
-          },
-          body: agentBlob
-        })
-        if (!unpackRes.ok) return
-        const payload: UnpackPayload = await unpackRes.json()
+        const payload = await getOnboardingAgentPayload()
 
         await loadAgentBundle(payload, "__new__", [
           { domain: "context", key: "onboarding", value: "true" }

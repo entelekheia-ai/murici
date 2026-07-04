@@ -33,6 +33,15 @@ export interface UnpackPayload {
   behaviors?: Array<{ path: string; content: string }>
 }
 
+// Carries the source filesystem path alongside the unpacked payload so it can
+// be persisted (recent-agents list) and re-resolved later via
+// electronAPI.resolveAgentFile. filePath is absent when opened from a plain
+// web build (browsers don't expose real filesystem paths).
+export interface OsPendingAgentFile {
+  payload: UnpackPayload
+  filePath?: string
+}
+
 export interface KernelState {
   currentState: string
   graph: string | null
@@ -50,10 +59,11 @@ declare global {
         chrome: string
       }
       onOpenAgentFile?: (
-        cb: (payload: UnpackPayload) => void
+        cb: (data: OsPendingAgentFile) => void
       ) => void
       onOpenAgentFileError?: (cb: (errorMsg: string) => void) => void
       appReadyForFiles?: () => void
+      resolveAgentFile?: (filePath: string) => Promise<UnpackPayload>
     }
   }
 }

@@ -87,8 +87,8 @@ app.on("open-file", (event, filePath) => {
     fileToOpen = filePath
     if (mainWindow) {
       resolveAgentFile(filePath)
-        .then(payload => { mainWindow!.webContents.send("open-agent-file", payload) })
-        .catch(err => { 
+        .then(payload => { mainWindow!.webContents.send("open-agent-file", { payload, filePath }) })
+        .catch(err => {
           console.error("Failed to resolve agent file:", err)
           mainWindow!.webContents.send("open-agent-file-error", err.message || err.toString())
         })
@@ -107,17 +107,26 @@ if (process.argv.length >= 2) {
 
 ipcMain.on("app-ready-for-files", (event) => {
   if (fileToOpen) {
-    resolveAgentFile(fileToOpen)
+    // Capture before resolveAgentFile's promise settles: fileToOpen is nulled
+    // synchronously right after this call kicks off, well before the async
+    // readFile/loadAgent work finishes, so the .then() below can't read the
+    // module-level variable directly without racing that reset.
+    const resolvedPath = fileToOpen
+    resolveAgentFile(resolvedPath)
       .then(payload => {
-        mainWindow?.webContents.send("open-agent-file", payload)
+        mainWindow?.webContents.send("open-agent-file", { payload, filePath: resolvedPath })
       })
-      .catch(err => { 
+      .catch(err => {
         console.error("Failed to resolve agent file:", err)
         mainWindow?.webContents.send("open-agent-file-error", err.message || err.toString())
       })
     fileToOpen = null
   }
 })
+
+ipcMain.handle("resolve-agent-file", (_event, filePath: string) =>
+  resolveAgentFile(filePath)
+)
 
 async function createWindow() {
   mainWindow = new BrowserWindow({

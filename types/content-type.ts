@@ -6,5 +6,5 @@
 export type ContentType =
   | "chats"
   | "files"
-  | "assistants"
+  | "agents"
   | "models"

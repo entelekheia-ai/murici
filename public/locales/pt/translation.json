@@ -41,5 +41,11 @@
   "Could not connect to the local model server at {{baseUrl}}. Check whether the engine is running.": "Não foi possível conectar ao servidor de modelo local em {{baseUrl}}. Verifique se o engine está rodando.",
   "Could not connect to {{endpoint}}.": "Não foi possível conectar a {{endpoint}}.",
   "Request failed (status {{status}}).": "Falha na requisição (status {{status}}).",
-  "Unknown failure while contacting the model.": "Falha desconhecida ao contatar o modelo."
+  "Unknown failure while contacting the model.": "Falha desconhecida ao contatar o modelo.",
+  "Agents": "Agentes",
+  "System": "Sistema",
+  "Recent": "Recentes",
+  "Alphabetical": "Alfabética",
+  "No recent agents.": "Nenhum agente recente.",
+  "Agent file could not be found. It may have been moved or deleted.": "Não foi possível encontrar o arquivo do agente. Ele pode ter sido movido ou excluído."
 }

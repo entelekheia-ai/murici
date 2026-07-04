@@ -14,7 +14,7 @@ import useHotkey from "@/lib/hooks/use-hotkey"
 import { cn } from "@/lib/utils"
 import { ChatbotUIContext } from "@/context/context"
 import { ContentType } from "@/types"
-import { UnpackPayload } from "@/types/electron"
+import { OsPendingAgentFile } from "@/types/electron"
 import { IconChevronCompactRight } from "@tabler/icons-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import dynamic from "next/dynamic"
@@ -61,8 +61,8 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.electronAPI?.onOpenAgentFile) {
-      window.electronAPI.onOpenAgentFile((payload: UnpackPayload) => {
-        setOsPendingAgentPayload(payload)
+      window.electronAPI.onOpenAgentFile((data: OsPendingAgentFile) => {
+        setOsPendingAgentPayload(data)
         setShowRightSidebar(true)
       })
       window.electronAPI.onOpenAgentFileError?.((errorMsg: string) => {

@@ -18,7 +18,7 @@ import {
 import { FlowEvent, FlowTurnDebug } from "@/types"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
-import { AgentAboutme, UnpackPayload } from "@/types/electron"
+import { AgentAboutme, OsPendingAgentFile, UnpackPayload } from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { KernelProxy } from "@/lib/kernel-proxy"
 import { Dispatch, MutableRefObject, SetStateAction, createContext } from "react"
@@ -153,8 +153,14 @@ interface ChatbotUIContext {
   setShowRightSidebar: Dispatch<SetStateAction<boolean>>
   showDebugPanels: boolean
   setShowDebugPanels: Dispatch<SetStateAction<boolean>>
-  osPendingAgentPayload: UnpackPayload | null
-  setOsPendingAgentPayload: Dispatch<SetStateAction<UnpackPayload | null>>
+  osPendingAgentPayload: OsPendingAgentFile | null
+  setOsPendingAgentPayload: Dispatch<SetStateAction<OsPendingAgentFile | null>>
+  // Bridge for "open this agent in a brand-new chat" requests originating
+  // from the left-sidebar Agentes panel — distinct from osPendingAgentPayload
+  // (OS "open with"), which goes through an ambiguous this-chat-or-new-chat
+  // prompt instead of always landing on a new chat.
+  pendingNewAgentPayload: UnpackPayload | null
+  setPendingNewAgentPayload: Dispatch<SetStateAction<UnpackPayload | null>>
 
   // RETRIEVAL STORE
   useRetrieval: boolean
@@ -323,6 +329,8 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setShowDebugPanels: () => {},
   osPendingAgentPayload: null,
   setOsPendingAgentPayload: () => {},
+  pendingNewAgentPayload: null,
+  setPendingNewAgentPayload: () => {},
 
   // RETRIEVAL STORE
   useRetrieval: false,

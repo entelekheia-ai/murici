@@ -55,7 +55,7 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
       await deleteFileFromStorage(file.file_path)
       await deleteFile(file.id)
     },
-    assistants: async (assistant: Tables<"assistants">) => {
+    agents: async (assistant: Tables<"assistants">) => {
       await deleteAssistant(assistant.id)
       setChats(prevState =>
         prevState.filter(chat => chat.assistant_id !== assistant.id)
@@ -69,7 +69,7 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
   const stateUpdateFunctions = {
     chats: setChats,
     files: setFiles,
-    assistants: setAssistants,
+    agents: setAssistants,
     models: setModels
   }
 

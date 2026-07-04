@@ -12,12 +12,12 @@ import {
   IconFile,
   IconLayoutGrid,
   IconMessage,
-  IconRobotFace,
   IconBrain
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { FC, useState, useContext } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useTranslation } from "react-i18next"
 import { WithTooltip } from "../ui/with-tooltip"
 import { ProfileSettings } from "../utility/profile-settings"
 import { Button } from "../ui/button"
@@ -32,11 +32,11 @@ export const SIDEBAR_ICON_SIZE = 22
 
 const MENU_ITEMS: {
   type: ContentType
-  icon: React.ElementType
+  icon: React.ElementType | null
   label: string
 }[] = [
   { type: "files", icon: IconFile, label: "Files" },
-  { type: "assistants", icon: IconRobotFace, label: "Assistants" }
+  { type: "agents", icon: null, label: "Agents" }
 ]
 
 interface SidebarSwitcherProps {
@@ -46,6 +46,7 @@ interface SidebarSwitcherProps {
 export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
   onContentTypeChange
 }) => {
+  const { t } = useTranslation()
   const { knowledge } = useContext(ChatbotUIContext)
   const router = useRouter()
   const pathname = usePathname()
@@ -153,8 +154,18 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
                   setMenuOpen(false)
                 }}
               >
-                <Icon size={16} className="mr-2 shrink-0" />
-                {label}
+                {Icon ? (
+                  <Icon size={16} className="mr-2 shrink-0" />
+                ) : (
+                  <Image
+                    src="/dot-agent-icon.png"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="mr-2 shrink-0 opacity-80"
+                  />
+                )}
+                {t(label)}
               </Button>
             ))}
           </div>

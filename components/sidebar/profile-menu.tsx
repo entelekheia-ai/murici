@@ -17,7 +17,8 @@
 "use client"
 
 import { ContentType } from "@/types"
-import { IconChevronUp, IconFile, IconMessage, IconRobotFace, IconSettings, IconAffiliate } from "@tabler/icons-react"
+import { IconChevronUp, IconFile, IconMessage, IconSettings, IconAffiliate } from "@tabler/icons-react"
+import Image from "next/image"
 import { FC, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useTranslation } from "react-i18next"
@@ -32,12 +33,12 @@ import {
 
 const MENU_ITEMS: {
   type: ContentType
-  icon: React.ElementType
+  icon: React.ElementType | null
   label: string
 }[] = [
   { type: "chats", icon: IconMessage, label: "Chats" },
   { type: "files", icon: IconAffiliate, label: "Conhecimento" },
-  { type: "assistants", icon: IconRobotFace, label: "Assistants" }
+  { type: "agents", icon: null, label: "Agents" }
 ]
 
 interface ProfileMenuProps {
@@ -85,7 +86,17 @@ export const ProfileMenu: FC<ProfileMenuProps> = ({ onContentTypeChange }) => {
             }}
             className="cursor-pointer"
           >
-            <Icon size={18} className="mr-2" />
+            {Icon ? (
+              <Icon size={18} className="mr-2" />
+            ) : (
+              <Image
+                src="/dot-agent-icon.png"
+                alt=""
+                width={18}
+                height={18}
+                className="mr-2 opacity-80"
+              />
+            )}
             <span>{t(label)}</span>
           </DropdownMenuItem>
         ))}

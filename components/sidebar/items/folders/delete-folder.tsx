@@ -48,7 +48,7 @@ export const DeleteFolder: FC<DeleteFolderProps> = ({
   const stateUpdateFunctions = {
     chats: setChats,
     files: setFiles,
-    assistants: setAssistants,
+    agents: setAssistants,
     models: setModels
   }
 

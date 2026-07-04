@@ -70,6 +70,16 @@ export interface AgentBundleRecord {
   updatedAt: string
 }
 
+export interface RecentAgentRecord {
+  id: string
+  // filePath when known (Electron), else `agentid:${aboutme.id}` — lets
+  // reopening the same file/agent update this record instead of duplicating.
+  dedupeKey: string
+  filePath: string | null
+  aboutme: AgentAboutme
+  openedAt: string
+}
+
 interface LocalDB extends DBSchema {
   conversations: {
     key: string
@@ -102,6 +112,11 @@ interface LocalDB extends DBSchema {
     key: string
     value: AgentBundleRecord
   }
+  recentAgents: {
+    key: string
+    value: RecentAgentRecord
+    indexes: { by_opened: string; by_dedupe_key: string }
+  }
 }
 
 let dbPromise: Promise<IDBPDatabase<LocalDB>> | null = null
@@ -111,7 +126,7 @@ export function getDB(): Promise<IDBPDatabase<LocalDB>> {
     throw new Error("IndexedDB is only available in the browser")
   }
   if (!dbPromise) {
-    dbPromise = openDB<LocalDB>("entelekheia", 3, {
+    dbPromise = openDB<LocalDB>("entelekheia", 4, {
       upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           const conv = db.createObjectStore("conversations", { keyPath: "id" })
@@ -134,6 +149,15 @@ export function getDB(): Promise<IDBPDatabase<LocalDB>> {
         }
         if (oldVersion < 3) {
           db.createObjectStore("agentBundles", { keyPath: "conversationId" })
+        }
+        if (oldVersion < 4) {
+          const recentAgents = db.createObjectStore("recentAgents", {
+            keyPath: "id"
+          })
+          recentAgents.createIndex("by_opened", "openedAt")
+          recentAgents.createIndex("by_dedupe_key", "dedupeKey", {
+            unique: true
+          })
         }
       }
     })

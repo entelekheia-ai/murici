@@ -10,6 +10,7 @@ import { ChatAgentSession, ChatbotUIContext } from "@/context/context"
 import { KernelProxy } from "@/lib/kernel-proxy"
 import { handleKernelEffects } from "@/lib/kernel-effects"
 import { getAgentBundle, saveAgentBundle } from "@/lib/local-db/agent-bundles"
+import { upsertRecentAgent } from "@/lib/local-db/recent-agents"
 import type { AgentAboutme, UnpackPayload } from "@/types/electron"
 import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
 
@@ -324,6 +325,11 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
       if (!file.name.endsWith(".agent")) return
       setAgentLoading(true)
       try {
+        // Electron exposes a non-standard `.path` on File objects picked via
+        // <input type=file> or drag-and-drop (absent in a plain web build,
+        // where browsers don't expose real filesystem paths).
+        const electronPath = (file as any).path as string | undefined
+
         // Sent as a raw body instead of multipart/form-data: Node's
         // undici-based multipart parser throws deep inside its own header
         // parser for some requests when running under Electron's bundled
@@ -344,6 +350,12 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
         }
         const payload: UnpackPayload = await res.json()
         await loadAgentBundle(payload)
+        upsertRecentAgent({
+          filePath: electronPath ?? null,
+          aboutme: payload.aboutme
+        }).catch(err =>
+          console.error("[recent-agents] upsert failed", err)
+        )
       } catch (err: any) {
         setParseError(err.message || "Failed to load agent")
       } finally {
