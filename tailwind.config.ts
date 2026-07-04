@@ -68,7 +68,8 @@ module.exports = {
       },
       fontFamily: {
         instrument: ['var(--font-instrument-sans)', 'sans-serif'],
-        ysabeau: ['var(--font-ysabeau-sc)', 'sans-serif']
+        ysabeau: ['var(--font-ysabeau-sc)', 'sans-serif'],
+        signika: ['var(--font-signika)', 'sans-serif']
       },
       borderRadius: {
         lg: 'var(--radius)',

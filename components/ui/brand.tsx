@@ -25,7 +25,7 @@ export const Brand: FC<BrandProps> = ({ theme = "dark" }) => {
           priority 
         />
       </div>
-      <div className="font-ysabeau font-medium text-[48px] leading-none text-murici-text-primary">
+      <div className="font-signika font-medium text-[48px] leading-none text-[#0B2C1A] dark:text-[#FFEAB4]">
         murici
       </div>
     </div>

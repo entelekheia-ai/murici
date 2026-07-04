@@ -58,7 +58,7 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar, onContentT
       <div className="flex h-full flex-col">
         <div className="drag-region flex h-12 items-center justify-between pl-20 pr-4 mb-4">
           <div className="flex items-center gap-2 select-none pt-1">
-            <span className="font-ysabeau font-medium text-[36px] leading-none text-murici-text-primary">murici</span>
+            <span className="font-signika font-medium text-[36px] leading-none text-[#0B2C1A] dark:text-[#FFEAB4]">murici</span>
           </div>
           <div className="no-drag">
             <WorkspaceSettings />
