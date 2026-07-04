@@ -2,7 +2,7 @@ merge "onboarding.behavior"
 
 state init
   if context.onboarding
-    transition to onboarding
+    transition to welcome
   else
     transition to responsive
   end
@@ -87,14 +87,3 @@ state support_fallback
   on intent "features_graph" transition to features_graph
   on intent "mcp_setup" transition to mcp_setup
   on intent "back_to_menu" transition to init
-
-state onboarding
-  apply css "highlight-models.css"
-  remove css "agents.css"
-  run script "open_settings_auto_task"
-  goal "Welcome the user and guide them through setting up local models."
-  guide "First time opening Murici — give a brief, warm welcome as the Murici Helper. Then explain how Murici auto-discovers local models (Ollama, LM Studio), and emphasize why setting the automated tasks model in the header matters: it powers background intelligence."
-  teach "knowledge/local-models.md"
-  interact
-  on intent "agent_format" transition to onboarding.agent_format
-  on offtopic transition to support_fallback

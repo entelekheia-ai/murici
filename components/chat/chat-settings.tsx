@@ -36,6 +36,14 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   }
 
   useEffect(() => {
+    const handleOpen = () => setOpen(true)
+    window.addEventListener("murici:model-selector-open", handleOpen)
+    return () => {
+      window.removeEventListener("murici:model-selector-open", handleOpen)
+    }
+  }, [])
+
+  useEffect(() => {
     setChatSettings(prev => {
       if (!prev) return prev
       return {
@@ -75,6 +83,7 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
       <PopoverTrigger asChild>
         <Button
           ref={buttonRef}
+          data-dot-id="model-selector"
           className="flex items-center gap-[8px] rounded-[100px] border border-[#e5e3df] dark:border-[#262626] bg-transparent px-[12px] py-[6px] hover:bg-black/5 dark:hover:bg-white/10"
           onClick={() => setOpen(prev => !prev)}
         >

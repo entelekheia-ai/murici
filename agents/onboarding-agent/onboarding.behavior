@@ -1,35 +1,69 @@
-state onboarding.agent_format
+state welcome
+  remove css "highlight-models.css"
+  run script "open_agents_panel"
+  goal "Welcome the user and shift their perspective from a standard chat to a knowledge-building ecosystem."
+  guide "Give a warm welcome as the Murici Helper. Explain that Murici is a design experiment from Entelékheia built to change how we interact with AI. Instead of focusing on disposable chats that clutter a history sidebar, emphasize that Murici is built for long-term knowledge construction."
+  teach "knowledge/welcome.md"
+  interact
+  on intent "continue" transition to welcome.agent_format
+  on offtopic transition to welcome.chatroom
+
+state welcome.agent_format
   remove css "highlight-models.css"
   apply css "agents.css"
   run script "open_agents_panel"
-  goal "Explain the .agent format."
-  guide "Describe the .agent format as a portable and secure packaging standard for AI Agents. State that it serves to guide the LLM precisely. Suggest using the official CLI to create them."
+  goal "Explain the .agent architecture and connect it to the interface."
+  guide "Explain that the magic behind this organized intelligence comes from the .agent format—a secure, portable, and modular packaging standard designed to guide language models with surgical precision, keeping them focused and avoiding hallucinations. Create a practical hook: instruct the user to look at the right sidebar (Details Panel). Point out that you, the Murici Helper, are an active agent running on this very specification, and that they can load different customized agents for new chats."
   teach "knowledge/dot-agent-format.md"
   interact
-  on intent "features_graph" transition to onboarding.features_graph
-  on offtopic transition to support_fallback
+  on intent "continue" transition to welcome.local_llm
+  on offtopic transition to welcome.chatroom
+  
+state welcome.local_llm
+  apply css "highlight-models.css"
+  remove css "agents.css"
+  run script "open_model_selector"
+  goal "Highlight local LLM autodiscovery and privacy-first seamless switching."
+  guide "Highlight Murici's commitment to privacy and technical independence. Explain that the app silently scans and autodiscovers AI engines running locally on their machine (like Ollama or LM Studio). Direct the user's attention to the model selector highlighted on the UI: let them know they can seamlessly switch between available engines whenever they want, without reconfiguring paths or updating a single line of code."
+  teach "knowledge/local-models.md"
+  interact
+  on intent "continue" transition to welcome.features_graph
+  on offtopic transition to welcome.chatroom
 
-state onboarding.features_graph
+
+
+state welcome.features_graph
   remove css "highlight-models.css"
   remove css "agents.css"
-  run script "open_agents_panel"
-  goal "Explain the internal features."
-  guide "Explain Murici's internal features: the Knowledge Graph, the local-first saving via IndexedDB, and the powerful Enrich tool. Keep a welcoming tone."
+  run script "open_settings_auto_task"
+  goal "Explain the workflow of a new chat, the system agent, and setup background automation."
+  guide "Explain the practical workflow: when clicking '+ Novo Chat', the user is not faced with a blank void, but rather their own visual knowledge base (the Graph). They can either pull from a past topic or trigger a new prompt. Reveal the app's secret engine: Murici runs a silent system agent that monitors the interaction. Whenever structured Markdown blocks appear in the chat, this agent captures them and utilizes a background support model to summarize and catalog them into the map automatically[cite: 1, 2]. Since the automated tasks configuration panel is now open, invite the user to select which model will power these background automations[cite: 2]."
   teach "knowledge/features.md"
   interact
-  on intent "mcp_setup" transition to onboarding.mcp_setup
-  on offtopic transition to support_fallback
+  on intent "continue" transition to welcome.mcp_setup
+  on offtopic transition to welcome.chatroom
 
-state onboarding.mcp_setup
+
+state welcome.mcp_setup
   remove css "highlight-models.css"
   remove css "agents.css"
   run script "open_mcp_config"
   goal "Explain MCP configuration."
-  guide "Assist the user by explaining what MCP (Model Context Protocol) is and how to configure it in Murici's settings panel."
+  guide "Assist the user by explaining what MCP (Model Context Protocol) is and how to configure it in Murici's settings panel[cite: 3]. Define MCP as the open standard that breaks the AI out of its sandbox, giving it 'hands' to securely interact with local files, terminals, and external platforms like GitHub or Figma[cite: 3]. Explain that Murici provides a clean visual panel to manage these connections by simply pasting the startup command[cite: 3]. Add a friendly security reminder to only plug in trusted servers[cite: 3]."
   teach "knowledge/mcp-setup.md"
   interact
   on intent "finish" transition to wrap_up
-  on offtopic transition to support_fallback
+  on offtopic transition to welcome.chatroom
+
+state welcome.chatroom
+  goal "Handle off-topic requests gracefully while offering clear agency to resume or skip."
+  guide "The user asked a question or gave a command outside the tour's current scope. Answer their query briefly and politely if possible, but gently remind them that you are currently acting as their onboarding guide. Present a clear menu with choices: they can choose to 'skip the tour' to explore freely, or pick a specific topic to resume: '.agent Format', 'Local Models', or 'Murici Features & Graph'."
+  interact
+  on intent "about_agent_format" transition to welcome.agent_format
+  on intent "using_local_models" transition to welcome.local_llm
+  on intent "murici_features_graph" transition to welcome.features_graph
+  on intent "mcp_setup" transition to welcome.mcp_setup
+  on intent "skip_tour" transition to init
 
 state wrap_up
   set context.onboarding = false
@@ -37,4 +71,3 @@ state wrap_up
   guide "The guided tour is complete. Warmly congratulate the user and let them know they can now use Murici freely — mention they can reopen the Murici Helper from the agents panel anytime for a refresher on any topic."
   interact
   on intent "explore" transition to responsive
-  on offtopic transition to responsive

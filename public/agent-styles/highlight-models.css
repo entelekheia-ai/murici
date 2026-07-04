@@ -1,28 +1,25 @@
 /* agent-styles/highlight-models.css */
 
-/* Narrow tooltip glow pointing at the automated-tasks model selector */
-[data-dot-id="auto-task-model"] {
+/* Narrow tooltip glow pointing at the main model selector */
+[data-dot-id="model-selector"] {
   position: relative;
   box-shadow: 0 0 0 2px rgba(192, 86, 33, 0.6);
   border-radius: 8px;
   animation: dot-highlight-pulse 1.6s ease-in-out infinite;
 }
 
-[data-dot-id="auto-task-model"]::after {
-  content: "Set this for background tasks";
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 0;
-  white-space: nowrap;
-  background: rgb(192, 86, 33);
-  color: #fff;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  pointer-events: none;
+[data-dot-id="model-selector"]:hover {
+  opacity: 1;
 }
 
 @keyframes dot-highlight-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(192, 86, 33, 0.6); }
-  50% { box-shadow: 0 0 0 4px rgba(192, 86, 33, 0.35); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(192, 86, 33, 0.6);
+  }
+
+  50% {
+    box-shadow: 0 0 10px 20px rgba(192, 86, 33, 0.35);
+  }
 }

@@ -7,6 +7,10 @@ When we interact with raw LLMs, we need to send enormous "System Prompts" every 
 
 Moreover, it is through this format that developers can design rich tours like the one you are taking right now, injecting dynamic CSS and interacting with Murici's native panels!
 
+* **Living Examples**: Right now, you are interacting with one! If you look at the right sidebar under the Details Panel, you will see the "Murici Helper"—an active agent running completely on this specification.
+
+In future conversations, you can easily load different custom agents, each tailored with its own specialized skill set, files, and behavioral guardrails.
+
 ## How do I create my own?
 To create your own AI package with extreme ease, Entelékheia built the official **Dot Agent CLI** (`@dot-agent/cli`).
 You just need to install it, use the `init` command in your terminal, and it will scaffold the entire structure for you. Furthermore, the CLI allows you to plug in MCP servers to expand your creation even further.

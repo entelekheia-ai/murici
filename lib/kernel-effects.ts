@@ -65,6 +65,9 @@ export function handleKernelEffects(
           case "open_agents_panel":
             handlers.setShowRightSidebar(true)
             break
+          case "open_model_selector":
+            window.dispatchEvent(new CustomEvent("murici:model-selector-open"))
+            break
           case "open_settings_auto_task":
             window.dispatchEvent(new CustomEvent("murici:profile-open"))
             break

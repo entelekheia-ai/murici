@@ -1,12 +1,13 @@
-# Features and Internal Tools
+# Your Workflow: New Chats & Background Automation
 
-Murici is not just a chat interface. It was designed to be your integrated "second brain", packed with advanced tools to structure your knowledge.
+Starting a new conversation in Murici looks different because the goal is different. 
 
-## 1. Local-First Storage (IndexedDB)
-Your history, settings, and conversation transcripts are stored locally in your browser via IndexedDB — no account or sync needed to get started. And because Murici also supports fully local models (Ollama, LM Studio), you have the option to run your entire workflow, including background tasks like Enrich, without any data leaving your machine.
+## The "+ New Chat" Experience
+Whenever you click "+ New Chat", you aren't staring at a blank text box. Instead, you enter your visual knowledge base—the Graph. From here, you can instantly pull from an existing, mapped topic to continue a thought, or submit a brand-new prompt to spark a new node.
 
-## 2. The Knowledge Graph
-You will soon realize that we do not rely purely on text-based search. Murici features a native **Knowledge Graph**. This allows agents to analyze the deep relationships between the topics you discuss, entities, and contexts, bringing structured answers over time.
+## The Silent System Agent
+As you converse, Murici runs a silent system .agent in the background to document your progress.
+* **Markdown Capture**: Whenever structured Markdown blocks appear within the chat, this background agent automatically captures them.
+* **Automated Cataloging**: It hands these blocks to a dedicated background support model, which summarizes the core insight and catalogs it directly into your visual Knowledge Graph without interrupting your main interaction.
 
-## 3. The "Enrich" Feature
-Throughout your conversations, whenever you feel the AI (or yourself) generated a vital piece of reasoning, snippet, or documentation, you can send it to "Enrich" your base. This process goes through an Extraction funnel (using the background automated model) and ends up cleanly structured in the Graph to be utilized later.
+To make this seamless automation happen, use the newly opened panel to select which model should be responsible for powering these background tasks.
