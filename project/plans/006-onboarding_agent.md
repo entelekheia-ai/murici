@@ -1,125 +1,90 @@
 # Murici Onboarding & Support Agent
 
-Este plano detalha a implementação de um helper agent nativo (`onboarding-agent`) para o Murici. Ele atuará como o ponto de primeiro contato para novos usuários, apresentando as funcionalidades principais com uma linguagem acessível para o público geral, mas contendo informações técnicas suficientes para guiar desenvolvedores.
+This plan details the implementation of a native helper agent (`onboarding-agent`) for Murici. It will act as the first point of contact for new users, presenting the main features with accessible language for the general public, but containing enough technical information to guide developers.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> A injeção automática no **primeiro run** ainda precisa ser definida na interface. Precisamos garantir que a UI carregue este pacote por padrão quando o IndexedDB estiver vazio, sem depender de drag-and-drop manual.
+> The automatic injection on the **first run** still needs to be defined in the UI. We need to ensure the UI loads this package by default when IndexedDB is empty, without relying on manual drag-and-drop.
+> 
+> **CSS Scope Persistance:** The current `applyKernelCss` injects styles globally. If the user is in the middle of the tutorial and switches to another conversation, the tutorial styles (like the orange background) will "leak" to the other chat. We need to tie the CSS state to the active conversation by implementing `active_css: string[]` in the database state and React context.
 
 ## Open Questions
 
-1. **Auto-carregamento:** Qual será o gatilho exato na UI para carregar o `onboarding-agent`? Faremos um `useEffect` no `agent-right-panel.tsx` que checa o IndexedDB vazio e chama a API local para extrair de uma pasta `public/default-agents`?
-2. ~~**Mecânica de behavior separado**~~ — **Resolvido (2026-07-03).** Ver Status abaixo.
+1. **Auto-loading:** What will be the exact UI trigger to load the `onboarding-agent`? Should we use a `useEffect` in the workspace layout or `use-chat-handler.tsx` that checks for an empty IndexedDB and fetches the `.agent` package from a `public/default-agents` folder?
 
 ## Status (2026-07-03)
 
-- **`main.behavior` + `onboarding.behavior` split — implementado e verificado.** `main.behavior` faz `merge "onboarding.behavior"` no topo; `init` virou um dispatcher (`if context.onboarding == true / transition to onboarding / else / transition to responsive / end`), sem `interact` — estado de setup puro. O state `onboarding` (primeiro passo do tour, que precisa referenciar `support_fallback`) ficou em `main.behavior`; `onboarding.behavior` guarda só a continuação linear (`onboarding.agent_format` → `onboarding.features_graph` → `onboarding.mcp_setup` → `wrap_up`). `wrap_up` seta `context.onboarding = false` e oferece `on intent "explore" transition to responsive` — sem lógica de "recomeçar" (fica vNext, conforme decisão original), mas nunca prende o usuário.
-  - Rodei `node dist/cli.js pack --dir murici/agents/onboarding-agent` de verdade (build do `@dot-agent/compiler`, não só o linter do IDE): **build limpo, zero erros, zero warnings.** Isso confirma que referências cross-file sem notação de ponto (`support_fallback`, `responsive`) resolvem certo no `pack` consolidado — os `E005` que aparecem no linter do IDE ao editar `onboarding.behavior` isoladamente são um artefato do live-lint (`findMergeRoot`/`consolidate` em `packages/language-server/`), não um erro real de build.
-  - Nome do estado terminal: usei `wrap_up` em vez de `end`. `end` é reconhecido literalmente pelo linter (`I002`, lista `KERNEL_LIFECYCLE_NAMES` em `linter.ts`) como nome de lifecycle do kernel — evita a ambiguidade com a doc (`dsl/reference/behavior.md` lista o native state como `ended`, mas o linter checa `end`).
-- **Privacy copy (Decisão 1) — aplicado.** `knowledge/features.md` §1 reescrita para focar na capacidade de rodar local (Ollama/LM Studio) em vez de prometer "never end up on any third-party servers". Texto espelhado também no `guide` de `features_graph` em `main.behavior`.
-- Softening de "hallucination-proof" (`dot-agent-format.md`), nota de confiança no `mcp-setup.md`, e reescrita do `main.description` — todos aplicados.
-- Comentário em PT-BR remanescente em `css/agents.css` traduzido para EN.
+- **`main.behavior` + `onboarding.behavior` split — implemented and verified.** `main.behavior` merges `"onboarding.behavior"` at the top; `init` became a dispatcher (`if context.onboarding == true / transition to onboarding / else / transition to responsive / end`). The `onboarding` state is in `main.behavior`, while `onboarding.behavior` holds the linear continuation (`onboarding.agent_format` → `onboarding.features_graph` → `onboarding.mcp_setup` → `wrap_up`). `wrap_up` sets `context.onboarding = false` and offers `on intent "explore" transition to responsive`.
+  - Ran `node dist/cli.js pack --dir murici/agents/onboarding-agent` successfully: **clean build, zero errors, zero warnings.**
+- **Privacy copy (Decision 1) — applied.** `knowledge/features.md` §1 rewritten to focus on the ability to run locally (Ollama/LM Studio).
+- Softening of "hallucination-proof", trust note in `mcp-setup.md`, and rewrite of `main.description` — all applied.
 
-### Ainda bloqueado — não inventar seletores/scripts
+### Unblocked: Frontend Hooks & CSS are Implemented
 
-Busquei no código-fonte do Murici (`grep` por `data-dot-id`, `open_settings_auto_task`, `models-btn` etc.) e **nenhum desses hooks de UI existe ainda no frontend** — os `run script "..."` no behavior continuam sendo chamadas para bindings que não têm handler no `use-chat-handler.tsx`. Isso confirma que as Decisões 3 e 4 abaixo dependem de trabalho de frontend ainda não feito; não faz sentido "chutar" seletores CSS ou nomes de função agora, isso só criaria a ilusão de que está pronto.
+Contrary to earlier assumptions, the required frontend UI hooks and CSS files are **already implemented** in the codebase:
+- `lib/kernel-effects.ts` correctly handles `run_script` for `"open_agents_panel"`, `"open_settings_auto_task"`, and `"open_mcp_config"`, routing them to the appropriate UI dispatches.
+- The UI selectors (`data-dot-id="auto-task-model"` in `profile-settings.tsx` and `data-dot-id="agent-panel"` in `right-sidebar.tsx`) exist.
+- The CSS files (`highlight-models.css` and `theme-system.css`) exist in `public/agent-styles/`.
+- `applyKernelCss` and `removeKernelCss` dynamically inject `<link>` tags pointing to these styles.
 
-3. **`apply css` precisa virar path de arquivo real.** Confirmado no compiler (`packages/compiler`) que o efeito espera um path, não um nome semântico. `"highlight-models"` e `"theme-system"` em `main.behavior`/`onboarding.behavior` continuam como strings placeholder — faltam os arquivos `css/highlight-models.css` e `css/theme-system.css` (no padrão de `css/agents.css`) **e** os seletores reais do header/app shell do Murici, que ainda não existem.
-4. **Highlight do painel de ferramentas.** `features_graph` continua reaproveitando `run script "open_agents_panel"` (decisão deliberada de escopo, ver análise abaixo). Um binding dedicado para o painel de ferramentas/grafo depende do mesmo trabalho de frontend pendente.
+What is currently missing is the React Context integration to persist these styles strictly per-conversation, as described below.
 
-## Estratégia de Conteúdo e UX
+## Content Strategy and UX
 
-- **Público-alvo:** Público geral. Linguagem simples, sem jargões de engenharia de software na superfície, mas com caminhos diretos para configuração avançada (CLI, MCP).
-- **Sem Histórico de Fork:** O agente não falará sobre "ausências" (como "não usamos Supabase"). Ele descreve o Murici como ele é hoje: um cliente autossuficiente e seguro.
-- **Formato `.agent`:** O SCXML não será detalhado. O formato será apresentado como um *padrão de empacotamento portátil para Agentes de IA*, focando em como ele ajuda e guia o LLM de forma segura.
+- **Target Audience:** General public. Simple language, no software engineering jargon on the surface, but with direct paths for advanced configuration (CLI, MCP).
+- **No Fork History:** The agent will not talk about "absences" (like "we don't use Supabase"). It describes Murici as it is today: a self-sufficient and secure client.
+- **`.agent` Format:** SCXML will not be detailed. The format will be presented as a *portable packaging standard for AI Agents*, focusing on how it helps and guides the LLM safely.
 
 ---
 
-## Análise de Viabilidade: `apply css` (Theming Dinâmico e Local ao Chat)
+## Feasibility Analysis: `apply css` (Dynamic and Chat-Local Theming)
 
 > [!NOTE]
-> **Superseded parcialmente pela Decisão 3 (2026-07-02):** `apply css` recebe um path de arquivo, não um nome de classe solto. A ideia de toggle de classe via `globals.css` abaixo (`.highlight-models`, `.theme-system`) deve ser reimplementada como arquivos CSS dedicados (`css/highlight-models.css`, `css/theme-system.css`), no mesmo padrão de `css/agents.css`.
+> `apply css` receives a file path, not a loose class name. The CSS files (`css/highlight-models.css`, `css/theme-system.css`) already exist in `public/agent-styles/`. 
 
-A ideia de usar `apply css` para injetar um tema diferenciado (ex: um dark-mode/light-mode estilizado) exclusivamente para o agente de sistema é **100% viável e excelente para a UX**. Mais importante ainda: a sua intuição de que **o efeito deve ser "local" ao chat que o invocou** (aplicando-se ao app inteiro, como fundos e sidebars, mas revertendo ao normal se o usuário clicar em outra conversa) é a arquitetura correta.
+Using `apply css` to inject a distinct theme (e.g., a stylized dark-mode/light-mode) exclusively for the system agent is **100% feasible and excellent for UX**. More importantly, the effect must be **"local" to the chat that invoked it** (applying to the whole app, but reverting to normal if the user clicks on another conversation).
 
-Para viabilizar isso de forma persistente e com transições suaves entre abas, adicionaremos os seguintes passos ao desenvolvimento:
+To make this persistent and enable smooth transitions between tabs, we will add the following steps to the development:
 
-1. **Na Camada de Dados (IndexedDB / Tipagem):**
-   - Adicionaremos uma propriedade opcional (ex: `active_css: string[]`) à interface do objeto `Conversation` salvo no banco local.
-2. **No Handler do FSM (`use-chat-handler.tsx`):**
-   - Ao receber o efeito `apply_css` da DSL (ex: `"theme-system"`), nós injetamos esse valor no array `active_css` do `selectedConversation` atual e salvamos no IndexedDB. O inverso ocorre com `remove_css`.
-3. **No Container Root do App (ex: Layout raiz ou wrapper superior):**
-   - Criamos um observer (via React Effect) que "assiste" a mudança de conversa (`selectedConversation?.active_css`).
-   - Quando o usuário entra no chat do agente, o código injeta as classes css ativas diretamente na tag `<body>` ou no `<main>` que encapsula as sidebars. Quando ele sai para um chat comum, o observer limpa essas classes, acionando a transição de volta para o tema padrão.
-4. **No CSS (`globals.css`):**
-   - Definimos a classe alvo `.theme-system` com a propriedade `transition-colors duration-[X]ms` que fará o "fade in/out" mudando as variáveis CSS raiz da aplicação.
-5. **No Agente:**
-   - O estado inicial da DSL do onboarding invocará ativamente `apply css "theme-system"`.
+1. **In the Data Layer (IndexedDB / Typing):**
+   - Add an optional property (e.g., `active_css: string[]`) to the `Chat` object interface saved in the local database.
+2. **In the FSM Handler (`use-chat-handler.tsx`):**
+   - When receiving the `apply_css` effect from the DSL, we inject this value into the `active_css` array of the current `selectedChat` and save it to IndexedDB. The reverse occurs with `remove_css`.
+3. **In the App Root Container (e.g., Root Layout or wrapper):**
+   - Create an observer (via React Effect) that "watches" the conversation change (`selectedChat?.active_css`).
+   - When the user enters the agent's chat, the code injects the active CSS links. When they switch to a normal chat, the observer clears these links, triggering the transition back to the default theme.
 
-### Análise de Viabilidade: Gatilhos de UI Interativos (`run script` e CSS Tooltips)
+### Feasibility Analysis: Interactive UI Triggers (`run script` and CSS Tooltips)
 
-A ideia de guiar o usuário visualmente apontando e abrindo elementos da interface é fantástica. Ambas as abordagens propostas são **100% viáveis** e têm impacto muito positivo:
+Guiding the user visually by pointing to and opening interface elements is a fantastic idea and is already supported by the current FSM Engine:
 
-- **CSS Tooltips com Pseudo-elementos (`apply css`):** É muito eficiente. O kernel emite `apply css "highlight-models"`. Isso adiciona a classe ao root. O `globals.css` intercepta essa classe global para modificar um botão específico (`.highlight-models #header-models-btn::after { content: "Experimente aqui!"; position: absolute; ... }`). Ao sair do estado, o agente dispara `remove css "highlight-models"` e o tooltip some perfeitamente.
-- **Abertura de Painéis Laterais (`run script`):** O kernel suporta `run script "open_agents_panel"`. Atualmente o Murici não faz o binding nativo para isso, mas o impacto de adicionar é ínfimo. Basta interceptar o efeito `run_script` no `use-chat-handler.tsx` e disparar os setters do contexto global correspondentes (ex: `setShowRightPanel(true)` ou `setActiveTab("mcp")`). Isso eleva a experiência de onboarding a um nível de tutorial interativo real.
-- **Auto-configuração do MCP via Agente:** Tecnicamente, o agente poderia configurar o MCP chamando `run script "configure_mcp" ["/path/do/mcp"]`, colhendo o path do usuário no chat e injetando no DB. Contudo, exigir que o usuário digite caminhos absolutos do sistema num chat de boas-vindas causa forte atrito de UX. Para o *onboarding*, a abordagem ideal é manter a fluidez: usamos o `run script` para abrir a UI de configuração (onde ele usa o File Explorer), delegando automações profundas de setup para agentes especializados (`settings-agent`) no futuro.
+- **CSS Tooltips with Pseudo-elements (`apply css`):** Highly efficient. The kernel emits `apply css "highlight-models.css"`. This injects the stylesheet which targets `[data-dot-id="auto-task-model"]::after` with the tooltip.
+- **Opening Side Panels (`run script`):** The kernel emits `run script "open_agents_panel"`. `lib/kernel-effects.ts` intercepts this and dispatches a React state update to open the right panel.
+- **MCP Auto-configuration via Agent:** We use `run script "open_mcp_config"` to open the configuration UI, delegating deep setup automation to specialized agents in the future.
 
 ---
 
 ## Proposed Changes
 
-O pacote do agente de onboarding será construído na raiz do projeto (ou no diretório interno de agents) para ser distribuído com a aplicação. (Nota: `aboutme.json` e arquivos estruturais iniciais serão gerados via `dot-agent cli init`, então não precisam ser criados manualmente).
+The onboarding agent package is built in `agents/onboarding-agent`. (Note: `main.behavior` and knowledge files are already present).
 
-### 1. FSM & Lógica de Roteamento
+### 1. FSM & Routing Logic (`agents/onboarding-agent/main.behavior`)
+Orchestrates the conversation through well-defined states (`init`, `local_models`, `agent_format`, `features_graph`, `mcp_setup`, `support_fallback`).
 
-#### [NEW] agents/onboarding-agent/main.behavior
-O arquivo DSL principal orquestrará a conversa através de estados bem definidos:
-
-- **State `init`:** 
-  - Dispara `apply css "theme-system"`.
-  - Mensagem de boas-vindas amigável e menu principal.
-- **State `local_models`:**
-  - Dispara `apply css "highlight-models"` para destacar o botão no header (via pseudo-elemento CSS `::after`).
-  - Dispara `run script "open_settings_auto_task"` para focar no seletor de "Modelo para Tarefas Automáticas". O agente alerta que essa configuração é recomendada para o uso de sub-rotinas (como gerar títulos e a feature Enrich).
-  - Explica a Autodescoberta de modelos locais (Ollama, LM Studio).
-  - (Futuro) Ao transitar de volta para init ou outro estado, dispara `remove css "highlight-models"`.
-- **State `agent_format`:**
-  - Dispara `run script "open_agents_panel"` para abrir a barra lateral de agentes fisicamente para o usuário.
-  - Descreve o `.agent` como formato de troca seguro e portátil. Sugere o CLI para authoring.
-- **State `features_graph`:**
-  - Dispara `run script "open_agents_panel"` (reutilizando a mecânica para focar o usuário na área correta, sem gerar um script de highlight complexo agora).
-  - Explica o Grafo de Conhecimento, salvamento via IndexedDB e Enrich.
-- **State `mcp_setup`:**
-  - Dispara `run script "open_mcp_config"` para abrir o modal/painel de configuração do MCP.
-  - Guia de configuração passo a passo.
-- **State `support_fallback`:**
-  - O fallback (`on offtopic`). Redireciona o usuário de volta ao menu principal gentilmente.
-
-### 2. Base de Conhecimento (RAG)
-
-Para que o agente tenha respostas consistentes sem estourar o limite do system prompt global, arquivos markdown específicos serão mapeados via efeito `teach`:
-
-#### [NEW] agents/onboarding-agent/knowledge/local-models.md
-Documentação descrevendo como ativar Ollama, LM Studio, e como a UI do Murici auto-conecta essas instâncias.
-
-#### [NEW] agents/onboarding-agent/knowledge/dot-agent-format.md
-Guia conceitual do pacote `.agent`. Direciona o desenvolvedor para instalar o `@dot-agent/cli` caso deseje authoring, apontando para comandos de criação e uso do MCP do próprio CLI.
-
-#### [NEW] agents/onboarding-agent/knowledge/features.md
-Manual de uso das features visuais do Murici: o funcionamento do Grafo, botão de salvar, e como acionar o "Enrich" em conversas e artefatos.
-
-#### [NEW] agents/onboarding-agent/knowledge/mcp-setup.md
-Guia de configuração passo a passo de Model Context Protocol no Murici.
+### 2. Knowledge Base (RAG)
+Specific markdown files are mapped via the `teach` effect:
+- `knowledge/local-models.md`
+- `knowledge/dot-agent-format.md`
+- `knowledge/features.md`
+- `knowledge/mcp-setup.md`
 
 ## Verification Plan
 
-### Modificações UI/Engine
-- Implementar o array de `activeStyles` no React Context para capturar `apply_css`.
-- Atualizar o tailwind/CSS para contemplar a classe `.theme-system`.
+### UI/Engine Modifications
+- Implement the `active_css` array in the React Context to capture `apply_css`.
+- Create the observer component to mount/unmount styles based on `selectedChat`.
 
-### Agente Onboarding
-- Fazer scaffold inicial com `dot-agent cli`.
-- Preencher a DSL e o conhecimento.
-- Testar drag-and-drop inicial para validar se o CSS carrega corretamente.
-- Configurar rotina de inicialização ("Zero-State") para droppar o arquivo automaticamente ao abrir o app sem histórico.
+### Onboarding Agent
+- Test initial loading (Zero-State) to drop the file automatically when opening the app with no history.
+- Switch between a regular chat and the onboarding chat to verify that styles are applied and removed smoothly without leaking.
