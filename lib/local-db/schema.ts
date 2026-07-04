@@ -16,6 +16,7 @@
 
 import { openDB, DBSchema, IDBPDatabase } from "idb"
 import { KnowledgeRecord } from "@/types/knowledge"
+import { AgentAboutme } from "@/types/electron"
 
 export type { KnowledgeRecord }
 
@@ -26,6 +27,7 @@ export interface ConversationRecord {
   provider: string
   temperature: number
   contextLength: number
+  assistantId: string | null
   createdAt: string
   updatedAt: string | null
 }
@@ -57,6 +59,17 @@ export interface SettingRecord {
   value: string
 }
 
+export interface AgentBundleRecord {
+  conversationId: string
+  aboutme: AgentAboutme
+  behaviorText: string
+  descriptionText: string
+  knowledge: Array<{ path: string; content: string }>
+  guides: Array<{ path: string; content: string }>
+  behaviors: Array<{ path: string; content: string }>
+  updatedAt: string
+}
+
 interface LocalDB extends DBSchema {
   conversations: {
     key: string
@@ -85,6 +98,10 @@ interface LocalDB extends DBSchema {
       by_type: string
     }
   }
+  agentBundles: {
+    key: string
+    value: AgentBundleRecord
+  }
 }
 
 let dbPromise: Promise<IDBPDatabase<LocalDB>> | null = null
@@ -94,7 +111,7 @@ export function getDB(): Promise<IDBPDatabase<LocalDB>> {
     throw new Error("IndexedDB is only available in the browser")
   }
   if (!dbPromise) {
-    dbPromise = openDB<LocalDB>("entelekheia", 2, {
+    dbPromise = openDB<LocalDB>("entelekheia", 3, {
       upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           const conv = db.createObjectStore("conversations", { keyPath: "id" })
@@ -114,6 +131,9 @@ export function getDB(): Promise<IDBPDatabase<LocalDB>> {
           knowledge.createIndex("by_conversation", "originConversationId")
           knowledge.createIndex("by_created", "createdAt")
           knowledge.createIndex("by_type", "nodeType")
+        }
+        if (oldVersion < 3) {
+          db.createObjectStore("agentBundles", { keyPath: "conversationId" })
         }
       }
     })

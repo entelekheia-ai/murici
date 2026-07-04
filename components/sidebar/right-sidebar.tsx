@@ -8,8 +8,8 @@
 import { FC, useState, useEffect, useRef, useContext } from "react"
 import Image from "next/image"
 import { Button } from "../ui/button"
-import { ChatAgentSession, ChatbotUIContext } from "@/context/context"
-import type { UnpackPayload, AgentAboutme } from "@/types/electron"
+import { ChatbotUIContext } from "@/context/context"
+import type { UnpackPayload } from "@/types/electron"
 import { IconCircleCheck, IconCheck, IconDots, IconX, IconFolderOpen, IconGlobe, IconFileText, IconLayout, IconCircleX, IconClock, IconDatabase, IconActivity } from "@tabler/icons-react"
 import {
   Accordion,
@@ -27,8 +27,6 @@ import {
   AlertDialogTitle
 } from "../ui/alert-dialog"
 import { DslHighlightedCode } from "../agents/dsl-highlighted-code"
-import { KernelProxy } from "@/lib/kernel-proxy"
-import { handleKernelEffects } from "@/lib/kernel-effects"
 import { KnowledgeChip } from "../knowledge/knowledge-chip"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { StateGraph, parseScxml } from "../agents/state-graph"
@@ -36,6 +34,7 @@ import { cn } from "@/lib/utils"
 import { useRouter, useParams } from "next/navigation"
 import { getMcpAndBuiltInTools, handleCreateChat } from "../chat/chat-helpers"
 import { useChatHandler } from "../chat/chat-hooks/use-chat-handler"
+import { useAgentSession } from "@/lib/hooks/use-agent-session"
 import { getSetting, setSetting } from "@/lib/local-db/settings"
 
 const APP_VERSION = "0.0.5"
@@ -61,24 +60,20 @@ export const RightSidebar: FC = () => {
   const locale = (params?.locale as string) || "local"
   const workspaceid = (params?.workspaceid as string) || "local"
   const {
-    setFlowState, setFlowEngine, flowState, setAgentKnowledgeFiles, setAgentPersona,
+    flowState,
     knowledge, setKnowledge, chatSettings, availableLocalModels, backgroundModel, selectedChat,
-    setShowRightSidebar, chatAgentSessionsRef, destroyChatAgentSession, migrateChatAgentSession,
+    setShowRightSidebar, chatAgentSessionsRef, activeChatKeyRef, migrateChatAgentSession,
     profile, selectedWorkspace, selectedAssistant, setSelectedChat, setChats, setChatFiles,
     osPendingAgentPayload, setOsPendingAgentPayload
   } = useContext(ChatbotUIContext)
   const { handleNewChat } = useChatHandler()
-
-  const [engine, setEngine] = useState<any>(null)
-  const [currentState, setCurrentState] = useState<string>("")
-  const [graphData, setGraphData] = useState<string | null>(null)
-  const [visitedOrder, setVisitedOrder] = useState<string[]>([])
-  const [parseError, setParseError] = useState<string | null>(null)
-  const [behaviorText, setBehaviorText] = useState("")
-  const [descriptionText, setDescriptionText] = useState("")
-  const [agentMeta, setAgentMeta] = useState<AgentAboutme | null>(null)
-  const [agentLoading, setAgentLoading] = useState(false)
-  const [behaviors, setBehaviors] = useState<Array<{ path: string; content: string }>>([])
+  const agentSession = useAgentSession()
+  const {
+    engine, currentState, graphData, visitedOrder, parseError, behaviorText,
+    descriptionText, agentMeta, agentLoading, behaviors,
+    setParseError, loadAgentBundle, handleAgentFile, resetSession, hasActiveAgent,
+    queueNewChatPayload
+  } = agentSession
 
   const [groupedTools, setGroupedTools] = useState<Record<string, any[]>>({})
   const [toolsLoading, setToolsLoading] = useState(true)
@@ -123,179 +118,37 @@ export const RightSidebar: FC = () => {
   }, [flowState])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const engineRef = useRef<any>(null)
-  const visitedRef = useRef<string[]>([])
-  const activeChatKeyRef = useRef<string>("__new__")
-
-  const loadAgentBundleRef = useRef<
-    (
-      payload: UnpackPayload,
-      targetChatKey?: string,
-      initialMemory?: Array<{ domain: string; key: string; value: string }>
-    ) => Promise<void>
-  >(async () => { })
-  const handleAgentFileRef = useRef<(file: File) => Promise<void>>(async () => { })
-  const handleOpenAgentFileEventRef = useRef<(payload: UnpackPayload) => void>(() => { })
-  const goToNewChatWithPayloadRef = useRef<(payload: UnpackPayload) => void>(() => { })
-  const pendingNewChatPayloadRef = useRef<UnpackPayload | null>(null)
-
   const [pendingAgentPayload, setPendingAgentPayload] = useState<UnpackPayload | null>(null)
 
-  const getOrCreateSession = (chatKey: string): ChatAgentSession => {
-    let session = chatAgentSessionsRef.current.get(chatKey)
-    if (!session) {
-      session = {
-        proxy: new KernelProxy(),
-        agentMeta: null,
-        behaviorText: "",
-        descriptionText: "",
-        currentState: "",
-        graphData: null,
-        visitedOrder: [],
-        parseError: null,
-        knowledge: [],
-        guides: [],
-        behaviors: [],
-        flowState: null
-      }
-      chatAgentSessionsRef.current.set(chatKey, session)
-    }
-    return session
-  }
-
-  const updateSession = (chatKey: string, patch: Partial<ChatAgentSession>) => {
-    const existing = chatAgentSessionsRef.current.get(chatKey)
-    if (!existing) return
-    chatAgentSessionsRef.current.set(chatKey, { ...existing, ...patch })
-  }
-
-  const applySessionToView = (session: ChatAgentSession) => {
-    engineRef.current = session.proxy
-    visitedRef.current = [...session.visitedOrder]
-    setEngine(session.proxy)
-    setFlowEngine(session.proxy)
-    setAgentMeta(session.agentMeta)
-    setAgentPersona(session.agentMeta?.persona || null)
-    setBehaviorText(session.behaviorText)
-    setDescriptionText(session.descriptionText)
-    setCurrentState(session.currentState)
-    setGraphData(session.graphData)
-    setVisitedOrder(session.visitedOrder)
-    setParseError(session.parseError)
-    setAgentKnowledgeFiles(session.knowledge)
-    setFlowState(session.flowState)
-    setBehaviors(session.behaviors)
-  }
-
-  const resolveTeach = (
-    name: string | undefined,
-    know: Array<{ path: string; content: string }>
-  ): string | undefined => {
-    if (!name) return undefined
-    const entry = know.find(
-      k => k.path === name || k.path === `knowledge/${name}` || k.path.endsWith(`/${name}`)
-    )
-    return entry ? entry.content : name
-  }
-
-  const loadBehavior = async (
-    chatKey: string,
-    eng: any,
-    text: string,
-    know: Array<{ path: string; content: string }> = [],
-    guides: Array<{ path: string; content: string }> = [],
-    behaviors: Array<{ path: string; content: string }> = [],
-    initialMemory: Array<{ domain: string; key: string; value: string }> = []
-  ) => {
-    const isActive = () => chatKey === activeChatKeyRef.current
-    if (isActive()) setParseError(null)
-
-    try {
-      const effects = await eng.load_behavior(text, know, guides, behaviors, initialMemory)
-
-      const parseErrorEffect = effects.find((e: any) => e.type === "parse_error")
-      if (parseErrorEffect) {
-        updateSession(chatKey, { parseError: parseErrorEffect.message })
-        if (isActive()) setParseError(parseErrorEffect.message)
-        return
-      }
-
-      if (isActive()) handleKernelEffects(effects, { setShowRightSidebar })
-
-      const state = eng.get_current_state()
-      const graph = eng.get_graph()
-      const goal = effects.find((e: any) => e.type === "goal")?.text
-      const guide = effects.find((e: any) => e.type === "guide")?.text
-      const teach = resolveTeach(effects.find((e: any) => e.type === "teach")?.text, know)
-      const newFlowState = {
-        currentState: state,
-        goal,
-        guide,
-        teach,
-        validIntents: Array.from(eng.get_valid_intents() || []) as string[],
-        graph
-      }
-
-      updateSession(chatKey, {
-        knowledge: know,
-        guides,
-        behaviors,
-        currentState: state,
-        visitedOrder: [state],
-        graphData: graph,
-        parseError: null,
-        flowState: newFlowState
-      })
-
-      if (isActive()) {
-        visitedRef.current = [state]
-        setCurrentState(state)
-        setVisitedOrder([state])
-        setGraphData(graph)
-        setAgentKnowledgeFiles(know)
-        setFlowState(newFlowState)
-        setBehaviors(behaviors)
-      }
-    } catch (e: any) {
-      const message = e.message || "Failed to load behavior"
-      updateSession(chatKey, { parseError: message })
-      if (isActive()) setParseError(message)
+  // "Novo chat" always needs a chat with no agent to land the payload on.
+  // If we're already sitting on the "__new__" (unsaved) bucket, calling
+  // handleNewChat() is a no-op for selectedChat, so there's nothing to
+  // navigate to - reset that bucket in place instead of leaving the
+  // payload stuck in the queue.
+  const goToNewChatWithPayload = (payload: UnpackPayload) => {
+    if (activeChatKeyRef.current === "__new__") {
+      resetSession("__new__")
+      loadAgentBundle(payload, "__new__")
+    } else {
+      queueNewChatPayload(payload)
+      handleNewChat()
     }
   }
 
+  // Opening a .agent from the OS ("abrir com") is ambiguous about which
+  // chat it targets. Enforce one-agent-per-chat: if the active chat
+  // already has an agent, route straight to a new chat; otherwise ask.
   useEffect(() => {
-    if (!flowState?.currentState || !engineRef.current) return
-    const newState = flowState.currentState
-    if (newState === currentState) return
-    if (!visitedRef.current.includes(newState)) visitedRef.current.push(newState)
-    setCurrentState(newState)
-    setVisitedOrder([...visitedRef.current])
-    const freshGraph = engineRef.current.get_graph()
-    if (freshGraph) setGraphData(freshGraph)
-
-    const chatKey = activeChatKeyRef.current
-    updateSession(chatKey, {
-      currentState: newState,
-      visitedOrder: [...visitedRef.current],
-      graphData: freshGraph || chatAgentSessionsRef.current.get(chatKey)?.graphData || null,
-      flowState
-    })
-  }, [flowState?.currentState])
-
-  // Swap the active agent session whenever the visible chat changes, so each
-  // chat keeps its own KernelProxy/sessionId instead of sharing a global one.
-  useEffect(() => {
-    const chatKey = selectedChat?.id ?? "__new__"
-    activeChatKeyRef.current = chatKey
-    const session = getOrCreateSession(chatKey)
-    applySessionToView(session)
-
-    if (pendingNewChatPayloadRef.current) {
-      const payload = pendingNewChatPayloadRef.current
-      pendingNewChatPayloadRef.current = null
-      loadAgentBundleRef.current(payload, chatKey)
+    if (osPendingAgentPayload) {
+      if (hasActiveAgent(activeChatKeyRef.current)) {
+        goToNewChatWithPayload(osPendingAgentPayload)
+      } else {
+        setPendingAgentPayload(osPendingAgentPayload)
+      }
+      setOsPendingAgentPayload(null)
     }
-  }, [selectedChat?.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [osPendingAgentPayload, setOsPendingAgentPayload])
 
   // First-run auto-load: inject the onboarding-agent into a fresh, persisted
   // chat once per app version (settings.onboarding_seen_version), regardless
@@ -330,7 +183,7 @@ export const RightSidebar: FC = () => {
         if (!unpackRes.ok) return
         const payload: UnpackPayload = await unpackRes.json()
 
-        await loadAgentBundleRef.current(payload, "__new__", [
+        await loadAgentBundle(payload, "__new__", [
           { domain: "context", key: "onboarding", value: "true" }
         ])
         setShowRightSidebar(true)
@@ -359,77 +212,17 @@ export const RightSidebar: FC = () => {
     })()
   }, [profile, selectedWorkspace, chatSettings])
 
-  loadAgentBundleRef.current = async (
-    payload: UnpackPayload,
-    targetChatKey?: string,
-    initialMemory: Array<{ domain: string; key: string; value: string }> = []
-  ) => {
-    const chatKey = targetChatKey ?? activeChatKeyRef.current
-    const session = getOrCreateSession(chatKey)
-    updateSession(chatKey, {
-      agentMeta: payload.aboutme,
-      behaviorText: payload.behaviorText,
-      descriptionText: payload.descriptionText || ""
-    })
-    if (chatKey === activeChatKeyRef.current) {
-      setAgentMeta(payload.aboutme)
-      setAgentPersona(payload.aboutme.persona || null)
-      setBehaviorText(payload.behaviorText)
-      setDescriptionText(payload.descriptionText || "")
-    }
-    await loadBehavior(chatKey, session.proxy, payload.behaviorText, payload.knowledge, payload.guides, payload.behaviors, initialMemory)
-  }
-
-  // "Novo chat" always needs a chat with no agent to land the payload on.
-  // If we're already sitting on the "__new__" (unsaved) bucket, calling
-  // handleNewChat() is a no-op for selectedChat, so there's nothing to
-  // navigate to - reset that bucket in place instead of leaving the
-  // payload stuck in pendingNewChatPayloadRef.
-  const goToNewChatWithPayload = (payload: UnpackPayload) => {
-    if (activeChatKeyRef.current === "__new__") {
-      destroyChatAgentSession("__new__")
-      const fresh = getOrCreateSession("__new__")
-      applySessionToView(fresh)
-      loadAgentBundleRef.current(payload, "__new__")
-    } else {
-      pendingNewChatPayloadRef.current = payload
-      handleNewChat()
-    }
-  }
-  goToNewChatWithPayloadRef.current = goToNewChatWithPayload
-
-  // Opening a .agent from the OS ("abrir com") is ambiguous about which
-  // chat it targets. Enforce one-agent-per-chat: if the active chat
-  // already has an agent, route straight to a new chat; otherwise ask.
-  handleOpenAgentFileEventRef.current = (payload: UnpackPayload) => {
-    const chatKey = activeChatKeyRef.current
-    const session = chatAgentSessionsRef.current.get(chatKey)
-    if (session?.agentMeta) {
-      goToNewChatWithPayload(payload)
-    } else {
-      setPendingAgentPayload(payload)
-    }
-  }
-
   useEffect(() => {
-    if (osPendingAgentPayload) {
-      handleOpenAgentFileEventRef.current(osPendingAgentPayload)
-      setOsPendingAgentPayload(null)
-    }
-  }, [osPendingAgentPayload, setOsPendingAgentPayload])
-
-  useEffect(() => {
-
     const onAgentDrop = (e: Event) => {
       const file = (e as CustomEvent<{ file: File }>).detail.file
-      handleAgentFileRef.current(file)
+      handleAgentFile(file)
     }
     window.addEventListener("agent:drop", onAgentDrop)
 
     return () => {
       window.removeEventListener("agent:drop", onAgentDrop)
     }
-  }, [])
+  }, [handleAgentFile])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -441,39 +234,6 @@ export const RightSidebar: FC = () => {
   const handleLoadAgentClick = () => {
     fileInputRef.current?.click()
   }
-
-  const handleAgentFile = async (file: File) => {
-    if (!file.name.endsWith(".agent")) return
-    setAgentLoading(true)
-    try {
-      // Sent as a raw body instead of multipart/form-data: Node's undici-based
-      // multipart parser throws "Cannot read properties of undefined (reading
-      // 'toLowerCase')" deep inside its own header parser for some requests
-      // when running under Electron's bundled Node (reproduced with a real
-      // .agent file via both the file picker and drag-and-drop). A raw body
-      // has no multipart boundary/header parsing to trip over.
-      const res = await fetch("/api/agent/unpack", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "X-Agent-Filename": encodeURIComponent(file.name)
-        },
-        body: file
-      })
-      if (!res.ok) {
-        const error = await res.json()
-        setParseError(error.error || "Failed to unpack agent")
-        return
-      }
-      const payload: UnpackPayload = await res.json()
-      await loadAgentBundleRef.current(payload)
-    } catch (err: any) {
-      setParseError(err.message || "Failed to load agent")
-    } finally {
-      setAgentLoading(false)
-    }
-  }
-  handleAgentFileRef.current = handleAgentFile
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -493,10 +253,6 @@ export const RightSidebar: FC = () => {
   const sortedKnowledge = [...knowledge].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
-
-  const validIntents = engine
-    ? (Array.from(engine.get_valid_intents() || []) as string[])
-    : []
 
   const doneStates = visitedOrder.filter(s => s !== currentState)
   const excludeForPending = new Set<string>([...doneStates, currentState].filter(Boolean))
@@ -526,7 +282,7 @@ export const RightSidebar: FC = () => {
               onClick={() => {
                 const payload = pendingAgentPayload
                 setPendingAgentPayload(null)
-                if (payload) loadAgentBundleRef.current(payload, activeChatKeyRef.current)
+                if (payload) loadAgentBundle(payload, activeChatKeyRef.current)
               }}
             >
               Nesta conversa
@@ -535,7 +291,7 @@ export const RightSidebar: FC = () => {
               onClick={() => {
                 const payload = pendingAgentPayload
                 setPendingAgentPayload(null)
-                if (payload) goToNewChatWithPayloadRef.current(payload)
+                if (payload) goToNewChatWithPayload(payload)
               }}
             >
               Nova conversa

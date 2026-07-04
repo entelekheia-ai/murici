@@ -40,6 +40,7 @@ export async function createConversation(
     provider: data.provider ?? "",
     temperature: data.temperature ?? 0.5,
     contextLength: data.contextLength ?? 4096,
+    assistantId: data.assistantId ?? null,
     createdAt: new Date().toISOString(),
     updatedAt: null
   }
@@ -66,6 +67,7 @@ export async function updateConversation(
       provider: "",
       temperature: 0.5,
       contextLength: 4096,
+      assistantId: null,
       createdAt: new Date().toISOString()
     }),
     ...definedUpdates,
@@ -84,4 +86,5 @@ export async function deleteConversation(id: string): Promise<void> {
   const tx = db.transaction("messages", "readwrite")
   await Promise.all(msgs.map(m => tx.store.delete(m.id)))
   await tx.done
+  await db.delete("agentBundles", id)
 }

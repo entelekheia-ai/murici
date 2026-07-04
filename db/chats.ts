@@ -21,7 +21,7 @@ function toChat(c: any): Chat {
     id: c.id,
     user_id: "local",
     workspace_id: "local",
-    assistant_id: null,
+    assistant_id: c.assistantId ?? null,
     title: c.title ?? "New Chat",
     name: c.title ?? "New Chat",
     model: c.model ?? "",
@@ -61,7 +61,8 @@ export async function createChat(chat: Partial<Chat>): Promise<Chat> {
     model: chat.model ?? "",
     provider: "",
     temperature: chat.temperature ?? 0.5,
-    contextLength: chat.context_length ?? 4096
+    contextLength: chat.context_length ?? 4096,
+    assistantId: chat.assistant_id ?? null
   })
   return toChat(conv)
 }
@@ -83,6 +84,9 @@ export async function updateChat(
   if (updates.temperature !== undefined) patch.temperature = updates.temperature
   if (updates.context_length !== undefined) {
     patch.contextLength = updates.context_length
+  }
+  if (updates.assistant_id !== undefined) {
+    patch.assistantId = updates.assistant_id
   }
   const conv = await updateConversation(chatId, patch)
   return toChat(conv)

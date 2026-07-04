@@ -192,6 +192,7 @@ interface ChatbotUIContext {
 
   // AGENT SESSION CACHE (per chat)
   chatAgentSessionsRef: MutableRefObject<Map<string, ChatAgentSession>>
+  activeChatKeyRef: MutableRefObject<string>
   destroyChatAgentSession: (chatId: string) => void
   migrateChatAgentSession: (fromChatId: string, toChatId: string) => void
 
@@ -343,6 +344,7 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
 
   // AGENT SESSION CACHE (per chat)
   chatAgentSessionsRef: { current: new Map() },
+  activeChatKeyRef: { current: "__new__" },
   destroyChatAgentSession: () => {},
   migrateChatAgentSession: () => {},
 

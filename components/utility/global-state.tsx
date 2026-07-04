@@ -33,6 +33,7 @@ import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { UnpackPayload } from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
+import { saveAgentBundle } from "@/lib/local-db/agent-bundles"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
 
 interface GlobalStateProps {
@@ -160,6 +161,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
   // AGENT SESSION CACHE (per chat)
   const chatAgentSessionsRef = useRef<Map<string, ChatAgentSession>>(new Map())
+  const activeChatKeyRef = useRef<string>("__new__")
   const destroyChatAgentSession = useCallback((chatId: string) => {
     const session = chatAgentSessionsRef.current.get(chatId)
     if (session) {
@@ -178,6 +180,21 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
       }
       chatAgentSessionsRef.current.delete(fromChatId)
       chatAgentSessionsRef.current.set(toChatId, fromSession)
+
+      // "__new__" (and other transient buckets) can't be persisted until
+      // they're attached to a real chat id — do it now that toChatId is one.
+      if (fromSession.agentMeta) {
+        saveAgentBundle(toChatId, {
+          aboutme: fromSession.agentMeta,
+          behaviorText: fromSession.behaviorText,
+          descriptionText: fromSession.descriptionText,
+          knowledge: fromSession.knowledge,
+          guides: fromSession.guides,
+          behaviors: fromSession.behaviors
+        }).catch(err =>
+          console.error("[agent-bundle] failed to persist migrated bundle", err)
+        )
+      }
     },
     []
   )
@@ -378,6 +395,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
         // AGENT SESSION CACHE (per chat)
         chatAgentSessionsRef,
+        activeChatKeyRef,
         destroyChatAgentSession,
         migrateChatAgentSession,
 

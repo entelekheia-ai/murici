@@ -11,6 +11,7 @@ import { deleteMessagesIncludingAndAfter } from "@/db/messages"
 import { getAssistantFilesByAssistantId } from "@/lib/local-db/stubs"
 import { buildFinalMessages } from "@/lib/build-prompt"
 import { handleKernelEffects } from "@/lib/kernel-effects"
+import { useAgentSession } from "@/lib/hooks/use-agent-session"
 import { Tables } from "@/types/database"
 import {
   ChatMessage,
@@ -65,6 +66,7 @@ export const useChatHandler = () => {
     chatSettings,
     newMessageImages,
     selectedAssistant,
+    setSelectedAssistant,
     chatMessages,
     chatImages,
     setChatImages,
@@ -95,9 +97,10 @@ export const useChatHandler = () => {
     agentPersona,
     backgroundQueue,
     setBackgroundQueue,
-    destroyChatAgentSession,
-    migrateChatAgentSession
+    migrateChatAgentSession,
+    activeChatKeyRef
   } = useContext(ChatbotUIContext)
+  const { resetSession } = useAgentSession()
 
   const resolveTeach = (name: string | undefined): string | undefined => {
     if (!name) return undefined
@@ -159,8 +162,10 @@ export const useChatHandler = () => {
 
     // "__new__" is the shared bucket for whatever unsaved chat is being
     // composed (see chatAgentSessionsRef). Starting a new chat must not
-    // inherit an agent left over from a previous abandoned/unsent one.
-    destroyChatAgentSession("__new__")
+    // inherit an agent - or an assistant persona - left over from a
+    // previous chat/abandoned unsent one.
+    resetSession("__new__")
+    setSelectedAssistant(null)
 
     setUserInput("")
     setChatMessages([])
@@ -446,7 +451,13 @@ export const useChatHandler = () => {
 
       // Post-turn: run FSM transition (flow only) then record debug info for all turns
       const transitionEffects: any[] = []
-      if (flowEngine) {
+      // Captured now so the checks below can tell whether the user has since
+      // switched to a different chat — the kernel calls still run either way
+      // (that chat's session must keep advancing), but the shared/visible
+      // state (setFlowState, showRightSidebar effects) must not bleed into
+      // whatever chat is on screen by the time this async turn resolves.
+      const flowChatKey = selectedChat?.id ?? "__new__"
+      if (flowEngine && flowState) {
         // Kernel calls can reject (e.g. a wasm panic in the shared worker).
         // Isolate them so a kernel failure degrades to "no flow transition
         // this turn" instead of aborting the send before the message is
@@ -459,7 +470,7 @@ export const useChatHandler = () => {
               const transitionEffect = fx.find(
                 (e: any) => e.type === "transition"
               )
-              if (transitionEffect) {
+              if (transitionEffect && activeChatKeyRef.current === flowChatKey) {
                 const newState = flowEngine.get_current_state()
                 setFlowState({
                   currentState: newState,
@@ -495,7 +506,7 @@ export const useChatHandler = () => {
               const transitionEffect = fx.find(
                 (e: any) => e.type === "transition"
               )
-              if (transitionEffect) {
+              if (transitionEffect && activeChatKeyRef.current === flowChatKey) {
                 const newState = flowEngine.get_current_state()
                 setFlowState({
                   currentState: newState,
@@ -533,7 +544,9 @@ export const useChatHandler = () => {
             flowError
           )
         }
-        handleKernelEffects(transitionEffects, { setShowRightSidebar })
+        if (activeChatKeyRef.current === flowChatKey) {
+          handleKernelEffects(transitionEffects, { setShowRightSidebar })
+        }
       }
 
       setFlowDebugLog(prev => ({

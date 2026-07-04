@@ -6,6 +6,7 @@
  */
 
 import { Toaster } from "@/components/ui/sonner"
+import { AgentSessionProvider } from "@/components/utility/agent-session-provider"
 import { GlobalState } from "@/components/utility/global-state"
 import { Providers } from "@/components/utility/providers"
 import TranslationsProvider from "@/components/utility/translations-provider"
@@ -88,7 +89,9 @@ export default async function RootLayout({
           >
             <Toaster richColors position="top-center" duration={3000} />
             <div className="bg-background text-foreground flex h-dvh flex-col items-center overflow-x-auto">
-              <GlobalState>{children}</GlobalState>
+              <GlobalState>
+                <AgentSessionProvider>{children}</AgentSessionProvider>
+              </GlobalState>
             </div>
           </TranslationsProvider>
         </Providers>
