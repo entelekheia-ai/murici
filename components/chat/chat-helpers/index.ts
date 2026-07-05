@@ -1110,6 +1110,8 @@ export const handleCreateMessages = async (
                         if (call.function?.name === "murici__save_doc") {
               try {
                 const args = JSON.parse(call.function.arguments)
+                const { getAgentBundle } = await import("@/lib/local-db/agent-bundles")
+                const bundle = await getAgentBundle(currentChat.id)
                 const record = {
                   id: uuidv4(),
                   nodeType: "knowledge" as const,
@@ -1124,7 +1126,9 @@ export const handleCreateMessages = async (
                     content: args.content
                   },
                   derivedFrom: [],
-                  agentRuns: [],
+                  agentRuns: bundle?.aboutme.id
+                    ? [{ agentId: bundle.aboutme.id, runAt: new Date().toISOString(), role: "produced" as const }]
+                    : [],
                   createdAt: new Date().toISOString()
                 }
                                 const { createKnowledgeRecord } = await import("@/lib/local-db/knowledge")
@@ -1218,6 +1222,8 @@ export const handleCreateMessages = async (
 
     if (setKnowledge) {
       try {
+        const { getAgentBundle } = await import("@/lib/local-db/agent-bundles")
+        const activeBundle = await getAgentBundle(currentChat.id)
         const records = buildKnowledgeRecords(
           {
             id: finalCreatedAssistantMessage.id,
@@ -1225,7 +1231,8 @@ export const handleCreateMessages = async (
             chat_id: currentChat.id
           },
           currentChat.id,
-          createdMessages[0].id
+          createdMessages[0].id,
+          activeBundle?.aboutme.id
         )
         if (records.length > 0) {
           for (const record of records) {

@@ -17,7 +17,9 @@ import { useTheme } from "next-themes"
 import { useContext, useEffect, useState } from "react"
 import { KnowledgeHomeView } from "@/components/knowledge/knowledge-home-view"
 import { KnowledgeRecord } from "@/types/knowledge"
+import { AgentBundleRecord } from "@/lib/local-db/schema"
 import { getAllKnowledgeRecords } from "@/lib/local-db/knowledge"
+import { getAllAgentBundles } from "@/lib/local-db/agent-bundles"
 
 export default function ChatPage() {
   useHotkey("o", () => handleNewChat())
@@ -28,10 +30,12 @@ export default function ChatPage() {
   const { chatMessages, setShowSidebar, setShowRightSidebar, chats } = useContext(ChatbotUIContext)
 
   const [knowledge, setKnowledge] = useState<KnowledgeRecord[]>([])
+  const [agentBundles, setAgentBundles] = useState<AgentBundleRecord[]>([])
   const [showGraphHome, setShowGraphHome] = useState(true)
 
   useEffect(() => {
     getAllKnowledgeRecords().then(setKnowledge)
+    getAllAgentBundles().then(setAgentBundles)
   }, [])
 
   useEffect(() => {
@@ -49,9 +53,10 @@ export default function ChatPage() {
     <>
       {chatMessages.length === 0 && showGraphHome ? (
         <div className="relative flex h-full w-full flex-col items-center">
-          <KnowledgeHomeView 
-            knowledge={knowledge} 
-            chats={chats} 
+          <KnowledgeHomeView
+            knowledge={knowledge}
+            chats={chats}
+            agentBundles={agentBundles}
           />
           <div 
             onClickCapture={() => {

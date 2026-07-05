@@ -24,6 +24,11 @@ export async function getAgentBundle(
   return (await db.get("agentBundles", conversationId)) ?? null
 }
 
+export async function getAllAgentBundles(): Promise<AgentBundleRecord[]> {
+  const db = await getDB()
+  return db.getAll("agentBundles")
+}
+
 export async function saveAgentBundle(
   conversationId: string,
   payload: UnpackPayload

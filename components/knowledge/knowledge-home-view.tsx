@@ -17,6 +17,7 @@
 import { FC, useState } from "react"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
+import { AgentBundleRecord } from "@/lib/local-db/schema"
 import { KnowledgeGraphCanvas } from "./knowledge-graph-canvas"
 import { KnowledgeListView } from "./knowledge-list-view"
 import { Button } from "@/components/ui/button"
@@ -25,12 +26,13 @@ import { IconPaperclip, IconSend } from "@tabler/icons-react"
 interface KnowledgeHomeViewProps {
   knowledge: KnowledgeRecord[]
   chats: Tables<"chats">[]
+  agentBundles: AgentBundleRecord[]
   onStartChat?: () => void
 }
 
 type View = "graph" | "list"
 
-export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({ knowledge, chats, onStartChat }) => {
+export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({ knowledge, chats, agentBundles, onStartChat }) => {
   const [view, setView] = useState<View>("graph")
 
   return (
@@ -65,7 +67,7 @@ export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({ knowledge, chats
             </p>
           </div>
         ) : view === "graph" ? (
-          <KnowledgeGraphCanvas knowledge={knowledge} chats={chats} />
+          <KnowledgeGraphCanvas knowledge={knowledge} chats={chats} agentBundles={agentBundles} />
         ) : (
           <div className="size-full pt-24">
             <KnowledgeListView knowledge={knowledge} chats={chats} />

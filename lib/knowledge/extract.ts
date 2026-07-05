@@ -64,7 +64,8 @@ function deriveTitle(language: string, content: string): string {
 export function buildKnowledgeRecords(
   message: { id: string; content: string; chat_id: string },
   conversationId: string,
-  sourcePromptMessageId: string | null
+  sourcePromptMessageId: string | null,
+  agentId?: string
 ): KnowledgeRecord[] {
   const blocks = extractFencedBlocks(message.content)
 
@@ -79,7 +80,9 @@ export function buildKnowledgeRecords(
     outputType: "GeneralContent",
     payload: { language: block.language, content: block.content },
     derivedFrom: [],
-    agentRuns: [],
+    agentRuns: agentId
+      ? [{ agentId, runAt: new Date().toISOString(), role: "produced" as const }]
+      : [],
     createdAt: new Date().toISOString()
   }))
 }

@@ -8,17 +8,23 @@
 import { FC, useContext, useEffect, useState } from "react"
 import { ChatbotUIContext } from "@/context/context"
 import { KnowledgeRecord } from "@/types/knowledge"
+import { AgentBundleRecord } from "@/lib/local-db/schema"
 import { getAllKnowledgeRecords } from "@/lib/local-db/knowledge"
+import { getAllAgentBundles } from "@/lib/local-db/agent-bundles"
 import { KnowledgeHomeView } from "./knowledge-home-view"
 
 export const KnowledgeGraphPage: FC = () => {
   const { chats } = useContext(ChatbotUIContext)
   const [allKnowledge, setAllKnowledge] = useState<KnowledgeRecord[]>([])
+  const [allAgentBundles, setAllAgentBundles] = useState<AgentBundleRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getAllKnowledgeRecords()
-      .then(setAllKnowledge)
+    Promise.all([getAllKnowledgeRecords(), getAllAgentBundles()])
+      .then(([knowledge, bundles]) => {
+        setAllKnowledge(knowledge)
+        setAllAgentBundles(bundles)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -34,7 +40,7 @@ export const KnowledgeGraphPage: FC = () => {
             Carregando...
           </div>
         ) : (
-          <KnowledgeHomeView knowledge={allKnowledge} chats={chats} />
+          <KnowledgeHomeView knowledge={allKnowledge} chats={chats} agentBundles={allAgentBundles} />
         )}
       </div>
     </div>
