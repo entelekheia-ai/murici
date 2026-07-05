@@ -460,13 +460,6 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
     )
     networkRef.current = network
 
-    // Debug hook: inspect live node/edge state from DevTools console.
-    // Harmless in a local-first desktop app — remove once the lens/canopy
-    // bugs are sorted out if it bothers anyone.
-    if (typeof window !== "undefined") {
-      ;(window as any).__muriciGraph = { network, nodes: nodesDataSet, edges: edgesDataSet }
-    }
-
     // Canopy drawn from hub center + actual leaf positions each frame.
     // Alta-tier is whichever type the active lens promotes — same
     // drawCanopy(), different hub/leaves fed in.
