@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next"
 import { ChatbotUIContext } from "@/context/context"
 import { ChatSettings } from "./chat-settings"
 import { ToggleTheme } from "../utility/toggle-theme"
-import { IconPanelLeftFigma, IconPanelRightFigma } from "../icons/chat-icons"
+import { IconSidebarToggle } from "../icons/chat-icons"
 import { ButtonGhost } from "../ui/button-ghost"
 import { Switch } from "../ui/switch"
 
@@ -35,7 +35,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({ }) => {
           size="16px"
           text={t("Conversas")}
           showRightIcon={false}
-          leftIcon={<IconPanelLeftFigma size={16} />}
+          leftIcon={<IconSidebarToggle side="left" type={showSidebar ? "hide" : "open"} size={16} />}
           onClick={() => setShowSidebar(!showSidebar)}
         />
       </div>
@@ -62,7 +62,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({ }) => {
           size="16px"
           text={t("Detalhes")}
           showLeftIcon={false}
-          rightIcon={<IconPanelRightFigma size={16} />}
+          rightIcon={<IconSidebarToggle side="right" type={showRightSidebar ? "hide" : "open"} size={16} />}
           onClick={() => setShowRightSidebar(!showRightSidebar)}
         />
       </div>

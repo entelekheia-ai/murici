@@ -46,17 +46,81 @@ export const IconMoonFigma = ({ className, size = 18, ...props }: React.SVGProps
 )
 
 
-export const IconPanelLeftFigma = ({ className, size = 18, strokeWidth = 2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
-    <path d="M6.75 2.25V15.75M3.75 2.25H14.25C15.0784 2.25 15.75 2.92157 15.75 3.75V14.25C15.75 15.0784 15.0784 15.75 14.25 15.75H3.75C2.92157 15.75 2.25 15.0784 2.25 14.25V3.75C2.25 2.92157 2.92157 2.25 3.75 2.25Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round"/>
-  </svg>
-)
+export interface IconSidebarToggleProps extends React.SVGProps<SVGSVGElement> {
+  side?: "left" | "right"
+  type?: "hide" | "open"
+  size?: number
+}
 
-export const IconPanelRightFigma = ({ className, size = 18, strokeWidth = 2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
-    <path d="M11.25 2.25V15.75M3.75 2.25H14.25C15.0784 2.25 15.75 2.92157 15.75 3.75V14.25C15.75 15.0784 15.0784 15.75 14.25 15.75H3.75C2.92157 15.75 2.25 15.0784 2.25 14.25V3.75C2.25 2.92157 2.92157 2.25 3.75 2.25Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round"/>
-  </svg>
-)
+export const IconSidebarToggle = ({
+  className,
+  side = "left",
+  type = "hide",
+  size = 18,
+  ...props
+}: IconSidebarToggleProps) => {
+  if (side === "left") {
+    if (type === "hide") {
+      return (
+        <svg width={size} height={size} viewBox="0 0 196 196" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+          <g clipPath="url(#clip0_65_2000)">
+            <path d="M163.334 0C181.3 0.000351637 196 14.6999 196 32.666V163.334C196 181.3 181.3 196 163.334 196H32.666C14.6999 196 0.000351658 181.3 0 163.334V32.666C0.000355798 14.6999 14.6999 0.000355819 32.666 0H163.334ZM73.5 179.666H163.334C172.317 179.666 179.666 172.317 179.666 163.334V32.666C179.666 23.6832 172.317 16.3343 163.334 16.334H73.5V179.666ZM32.666 16.334C23.6832 16.3343 16.3343 23.6832 16.334 32.666V163.334C16.3343 172.317 23.6832 179.666 32.666 179.666H57.166V16.334H32.666Z" fill="currentColor"/>
+            <path d="M133.116 67.784C136.383 64.5173 141.283 64.5173 144.55 67.784C147.815 71.0503 147.815 75.9492 144.55 79.2156L125.762 97.9988L144.55 116.784C147.815 120.05 147.815 124.949 144.55 128.216C142.916 129.849 141.282 130.667 138.833 130.667C136.383 130.667 134.749 129.849 133.116 128.216L108.616 103.716C105.349 100.449 105.349 95.5506 108.616 92.284L133.116 67.784Z" fill="currentColor"/>
+          </g>
+          <defs>
+            <clipPath id="clip0_65_2000">
+              <rect width="98" height="98" fill="white" transform="scale(2)"/>
+            </clipPath>
+          </defs>
+        </svg>
+      )
+    } else {
+      return (
+        <svg width={size} height={size} viewBox="0 0 196 196" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+          <g clipPath="url(#clip0_65_5308)">
+            <path d="M163.334 0C181.3 0.000351637 196 14.6999 196 32.666V163.334C196 181.3 181.3 196 163.334 196H32.666C14.6999 196 0.000351658 181.3 0 163.334V32.666C0.000355798 14.6999 14.6999 0.000355819 32.666 0H163.334ZM73.5 179.666H163.334C172.317 179.666 179.666 172.317 179.666 163.334V32.666C179.666 23.6832 172.317 16.3343 163.334 16.334H73.5V179.666ZM32.666 16.334C23.6832 16.3343 16.3343 23.6832 16.334 32.666V163.334C16.3343 172.317 23.6832 179.666 32.666 179.666H57.166V16.334H32.666Z" fill="currentColor"/>
+            <path d="M120.049 128.217C116.782 131.483 111.882 131.483 108.615 128.217C105.35 124.95 105.35 120.052 108.615 116.785L127.402 98.0019L108.615 79.2168C105.35 75.9505 105.35 71.0515 108.615 67.7852C110.248 66.152 111.882 65.3342 114.332 65.334C116.782 65.334 118.415 66.1518 120.049 67.7852L144.549 92.2852C147.815 95.5518 147.815 100.45 144.549 103.717L120.049 128.217Z" fill="currentColor"/>
+          </g>
+          <defs>
+            <clipPath id="clip0_65_5308">
+              <rect width="98" height="98" fill="white" transform="scale(2)"/>
+            </clipPath>
+          </defs>
+        </svg>
+      )
+    }
+  } else {
+    if (type === "hide") {
+      return (
+        <svg width={size} height={size} viewBox="0 0 196 196" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+          <g clipPath="url(#clip0_65_2140)">
+            <path d="M32.666 196C14.6999 196 0.000350952 181.3 0 163.334L0 32.666C0.000350952 14.6999 14.6999 0.000350952 32.666 0L163.334 0C181.3 0.000350952 196 14.6999 196 32.666L196 163.334C196 181.3 181.3 196 163.334 196L32.666 196ZM122.5 16.334L32.666 16.334C23.6832 16.3343 16.3343 23.6832 16.334 32.666L16.334 163.334C16.3343 172.317 23.6832 179.666 32.666 179.666L122.5 179.666L122.5 16.334ZM163.334 179.666C172.317 179.666 179.666 172.317 179.666 163.334L179.666 32.666C179.666 23.6832 172.317 16.3343 163.334 16.334H138.834L138.834 179.666H163.334Z" fill="currentColor"/>
+            <path d="M62.8835 128.217C59.6169 131.483 54.7166 131.483 51.4499 128.217C48.1834 124.95 48.1833 120.05 51.4499 116.783L70.2331 98L51.4499 79.2168C48.1834 75.9501 48.1833 71.0498 51.4499 67.7832C53.0832 66.1499 54.7168 65.334 57.1667 65.334C59.6167 65.334 61.2502 66.1499 62.8835 67.7832L87.3835 92.2832C90.6502 95.5499 90.6502 100.45 87.3835 103.717L62.8835 128.217Z" fill="currentColor"/>
+          </g>
+          <defs>
+            <clipPath id="clip0_65_2140">
+              <rect width="98" height="98" fill="white" transform="matrix(-2 0 0 -2 196 196)"/>
+            </clipPath>
+          </defs>
+        </svg>
+      )
+    } else {
+      return (
+        <svg width={size} height={size} viewBox="0 0 196 196" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+          <g clipPath="url(#clip0_65_5315)">
+            <path d="M32.666 196C14.6999 196 0.000350952 181.3 0 163.334L0 32.666C0.000350952 14.6999 14.6999 0.000350952 32.666 0L163.334 0C181.3 0.000350952 196 14.6999 196 32.666L196 163.334C196 181.3 181.3 196 163.334 196L32.666 196ZM122.5 16.334L32.666 16.334C23.6832 16.3343 16.3343 23.6832 16.334 32.666L16.334 163.334C16.3343 172.317 23.6832 179.666 32.666 179.666L122.5 179.666L122.5 16.334ZM163.334 179.666C172.317 179.666 179.666 172.317 179.666 163.334L179.666 32.666C179.666 23.6832 172.317 16.3343 163.334 16.334H138.834L138.834 179.666H163.334Z" fill="currentColor"/>
+            <path d="M75.9497 67.7836C79.2161 64.5172 84.1166 64.5177 87.3833 67.7836C90.6499 71.0503 90.6499 75.9506 87.3833 79.2172L68.6001 98.0004L87.3833 116.784C90.6499 120.05 90.6499 124.951 87.3833 128.217C85.7499 129.851 84.1165 130.668 81.6665 130.668C79.2168 130.668 77.5829 129.85 75.9497 128.217L51.4497 103.717C48.1837 100.451 48.1832 95.5501 51.4497 92.2836L75.9497 67.7836Z" fill="currentColor"/>
+          </g>
+          <defs>
+            <clipPath id="clip0_65_5315">
+              <rect width="98" height="98" fill="white" transform="matrix(-2 0 0 -2 196 196)"/>
+            </clipPath>
+          </defs>
+        </svg>
+      )
+    }
+  }
+}
 
 export const IconEditFigma = ({ className, size = 14, strokeWidth = 1.2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
   <svg width={size} height={size} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
