@@ -71,7 +71,7 @@ async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
       version: am.version,
       domain: am.domain,
       description: am.description,
-      persona: files.soul ?? am.persona,
+      persona: files.persona,
       license: am.license
     },
     behaviorText: files.behavior,
