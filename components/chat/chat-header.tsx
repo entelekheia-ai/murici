@@ -7,7 +7,7 @@ import { FC, useContext } from "react"
 import { useTranslation } from "react-i18next"
 import { ChatbotUIContext } from "@/context/context"
 import { ChatSettings } from "./chat-settings"
-import { ThemeSwitcher } from "../utility/theme-switcher"
+import { ToggleTheme } from "../utility/toggle-theme"
 import { IconPanelRightFigma } from "../icons/chat-icons"
 import { Button } from "../ui/button"
 import { IconInfoCircle } from "@tabler/icons-react"
@@ -53,7 +53,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({}) => {
           />
         </div>
 
-        <ThemeSwitcher />
+        <ToggleTheme />
         
         <Button 
           variant="ghost" 

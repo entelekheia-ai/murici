@@ -37,6 +37,15 @@ export const IconSunFigma = ({ className, size = 18, strokeWidth = 2, ...props }
   </svg>
 )
 
+export const IconMoonFigma = ({ className, size = 18, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+    <g transform="translate(2.6667, 2.6667)">
+      <path d="M5.77778 0C6.09789 0 6.39338 0.172049 6.55122 0.450521C6.709 0.729195 6.70469 1.07175 6.53993 1.34635C5.88844 2.43227 5.84777 3.83589 6.51736 4.84028C7.21023 5.87958 8.53959 6.26353 9.40191 5.86111L9.42795 5.84983C9.63525 5.76096 9.74287 5.6753 9.7908 5.62847C9.86184 5.20868 10.2267 4.88889 10.6667 4.88889C11.1576 4.88889 11.5556 5.28686 11.5556 5.77778C11.5556 8.96879 8.96879 11.5556 5.77778 11.5556C2.5868 11.5556 0 8.96879 0 5.77778C0 2.5868 2.5868 0 5.77778 0ZM1.77778 5.77778C1.77778 7.98694 3.56863 9.77778 5.77778 9.77778C7.26979 9.77778 8.56937 8.96002 9.25694 7.74913C7.66277 8.01664 5.94867 7.1921 5.03819 5.82639C4.27233 4.6776 4.10148 3.29501 4.38194 2.02865C2.86119 2.59507 1.77778 4.05967 1.77778 5.77778Z" fill="currentColor"/>
+    </g>
+  </svg>
+)
+
+
 export const IconPanelRightFigma = ({ className, size = 18, strokeWidth = 2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
   <svg width={size} height={size} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
     <path d="M11.25 2.25V15.75M3.75 2.25H14.25C15.0784 2.25 15.75 2.92157 15.75 3.75V14.25C15.75 15.0784 15.0784 15.75 14.25 15.75H3.75C2.92157 15.75 2.25 15.0784 2.25 14.25V3.75C2.25 2.92157 2.92157 2.25 3.75 2.25Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round"/>
