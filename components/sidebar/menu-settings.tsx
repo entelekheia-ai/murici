@@ -41,11 +41,11 @@ const MENU_ITEMS: {
   { type: "agents", icon: null, label: "Agents" }
 ]
 
-interface ProfileMenuProps {
+interface MenuSettingsProps {
   onContentTypeChange: (contentType: ContentType) => void
 }
 
-export const ProfileMenu: FC<ProfileMenuProps> = ({ onContentTypeChange }) => {
+export const MenuSettings: FC<MenuSettingsProps> = ({ onContentTypeChange }) => {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const router = useRouter()
@@ -62,13 +62,13 @@ export const ProfileMenu: FC<ProfileMenuProps> = ({ onContentTypeChange }) => {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full justify-start rounded-xl border border-sidebar-border bg-transparent hover:bg-sidebar-border/50 p-3 h-auto text-murici-text-primary"
+          className="w-full justify-start rounded-[12px] border border-[#e5e3df] bg-transparent hover:bg-[#e5e3df]/50 p-[12px] h-auto text-[#1c1611]"
         >
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm font-instrument">{t("Perfil")}</span>
+              <span className="font-medium text-[14px] font-instrument">{t("Configurações")}</span>
             </div>
-            <IconChevronUp size={16} className="text-murici-text-secondary" />
+            <IconChevronUp size={16} className="text-[#1c1611]" />
           </div>
         </Button>
       </DropdownMenuTrigger>

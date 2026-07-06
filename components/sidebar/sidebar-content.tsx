@@ -8,7 +8,7 @@
 import { Tables } from "@/types/database"
 import { ContentType, DataListType } from "@/types"
 import { FC, useState } from "react"
-import { SidebarCreateButtons } from "./sidebar-create-buttons"
+import { NewChat } from "./new-chat"
 import { SidebarDataList } from "./sidebar-data-list"
 import { SidebarSearch } from "./sidebar-search"
 
@@ -33,7 +33,7 @@ export const SidebarContent: FC<SidebarContentProps> = ({
     // Subtract 50px for the height of the workspace settings
     <div className="flex max-h-[calc(100%-50px)] grow flex-col">
       <div className="flex items-center mb-6">
-        <SidebarCreateButtons
+        <NewChat
           contentType={contentType}
           hasData={data.length > 0}
         />

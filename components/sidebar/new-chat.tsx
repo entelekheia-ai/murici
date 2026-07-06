@@ -18,12 +18,12 @@ import { CreateAssistant } from "./items/assistants/create-assistant"
 import { CreateFile } from "./items/files/create-file"
 import { CreateModel } from "./items/models/create-model"
 
-interface SidebarCreateButtonsProps {
+interface NewChatProps {
   contentType: ContentType
   hasData: boolean
 }
 
-export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
+export const NewChat: FC<NewChatProps> = ({
   contentType,
   hasData
 }) => {

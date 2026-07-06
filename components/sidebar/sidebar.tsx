@@ -15,7 +15,7 @@ import { SidebarContent } from "./sidebar-content"
 import { Button } from "../ui/button"
 import { IconLayoutSidebar } from "@tabler/icons-react"
 
-import { ProfileMenu } from "./profile-menu"
+import { MenuSettings } from "./menu-settings"
 import { ProfileSettings } from "../utility/profile-settings"
 import { SidebarFilesContent } from "./sidebar-files"
 import { SidebarAgentsContent } from "./sidebar-agents-content"
@@ -101,7 +101,7 @@ export const Sidebar: FC<SidebarProps> = ({
         </div>
         
         <div className="mt-auto pt-[20px]">
-          <ProfileMenu onContentTypeChange={onContentTypeChange} />
+          <MenuSettings onContentTypeChange={onContentTypeChange} />
           <div className="hidden">
             <ProfileSettings />
           </div>
