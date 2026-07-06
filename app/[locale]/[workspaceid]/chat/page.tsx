@@ -10,7 +10,7 @@ import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatInput } from "@/components/chat/chat-input"
 import { ChatHeader } from "@/components/chat/chat-header"
 import { ChatUI } from "@/components/chat/chat-ui"
-import { Brand } from "@/components/ui/brand"
+import { BrandLogo } from "@/components/ui/brand-logo"
 import { ChatbotUIContext } from "@/context/context"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { useTheme } from "next-themes"
@@ -78,7 +78,7 @@ export default function ChatPage() {
           <ChatHeader />
           <div className="flex grow flex-col items-center justify-center">
             <div className="mb-20">
-              <Brand theme={theme === "dark" ? "dark" : "light"} />
+              <BrandLogo showIcon className="scale-150" />
             </div>
           </div>
           <div className="w-full items-end p-[24px]">

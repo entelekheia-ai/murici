@@ -25,8 +25,9 @@ type BrandLogoProps<T extends ElementType = "h1"> = {
 export const BrandLogo = <T extends ElementType = "h1">({
   as,
   className,
+  showIcon = false,
   ...props
-}: BrandLogoProps<T>) => {
+}: BrandLogoProps<T> & { showIcon?: boolean }) => {
   const { t } = useTranslation()
   const Component = as || "h1"
 
@@ -44,6 +45,11 @@ export const BrandLogo = <T extends ElementType = "h1">({
       aria-label={t("murici_logo", "Logotipo do Murici")}
       {...props}
     >
+      {showIcon && (
+        <div className="flex h-[32px] w-[31px] items-center justify-center overflow-hidden rounded-[9px] bg-[#126e3d]">
+          <img src="/murici.svg" alt="" width={31} height={32} />
+        </div>
+      )}
       murici
     </Component>
   )
