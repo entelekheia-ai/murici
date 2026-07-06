@@ -70,6 +70,7 @@
     --murici-text-primary: 27 24.4% 8.8%;
     --murici-text-secondary: 31 14.7% 58.6%;
     --murici-nav-selected: 26 41% 91%;
+    --brand-text: 147 60% 11%;
   }
 
   .dark {
@@ -111,6 +112,7 @@
     --murici-text-primary: 0 0% 100%;
     --murici-text-secondary: 0 0% 45.1%;
     --murici-nav-selected: 0 0% 14.9%; /* Using accent fallback for dark mode */
+    --brand-text: 43 100% 85%;
   }
 }
 

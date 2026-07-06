@@ -64,7 +64,8 @@ module.exports = {
         'murici-green': 'hsl(var(--murici-green))',
         'murici-text-primary': 'hsl(var(--murici-text-primary))',
         'murici-text-secondary': 'hsl(var(--murici-text-secondary))',
-        'murici-nav-selected': 'hsl(var(--murici-nav-selected))'
+        'murici-nav-selected': 'hsl(var(--murici-nav-selected))',
+        'brand-text': 'hsl(var(--brand-text))'
       },
       fontFamily: {
         instrument: ['var(--font-instrument-sans)', 'sans-serif'],
