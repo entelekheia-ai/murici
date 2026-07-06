@@ -8,7 +8,7 @@
 import { ChatHelp } from "@/components/chat/chat-help"
 import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatInput } from "@/components/chat/chat-input"
-import { ChatHeader } from "@/components/chat/chat-header"
+import { Header } from "@/components/chat/header"
 import { ChatUI } from "@/components/chat/chat-ui"
 import { BrandLogo } from "@/components/ui/brand-logo"
 import { ChatbotUIContext } from "@/context/context"
@@ -27,7 +27,7 @@ export default function ChatPage() {
     handleFocusChatInput()
   })
 
-  const { chatMessages, setShowSidebar, setShowRightSidebar, chats } = useContext(ChatbotUIContext)
+  const { chatMessages, showSidebar, setShowSidebar, showRightSidebar, setShowRightSidebar, showDebugPanels, setShowDebugPanels, chats } = useContext(ChatbotUIContext)
 
   const [knowledge, setKnowledge] = useState<KnowledgeRecord[]>([])
   const [agentBundles, setAgentBundles] = useState<AgentBundleRecord[]>([])
@@ -75,7 +75,17 @@ export default function ChatPage() {
         </div>
       ) : chatMessages.length === 0 && !showGraphHome ? (
         <div className="relative flex h-full flex-col items-center">
-          <ChatHeader />
+          <Header
+            showSidebar={showSidebar}
+            showRightSidebar={showRightSidebar}
+            showDebugPanels={showDebugPanels}
+            onToggleSidebar={() => setShowSidebar(!showSidebar)}
+            onToggleRightSidebar={() => setShowRightSidebar(!showRightSidebar)}
+            onToggleDebugPanels={checked => {
+              localStorage.setItem("showDebugPanels", String(checked))
+              setShowDebugPanels(checked)
+            }}
+          />
           <div className="flex grow flex-col items-center justify-center">
             <div className="mb-20">
               <BrandLogo showIcon className="scale-150" />
