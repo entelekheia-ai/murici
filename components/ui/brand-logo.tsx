@@ -36,7 +36,7 @@ export const BrandLogo = <T extends ElementType = "h1">({
         // Layout e Posicionamento
         "flex items-center gap-2 relative select-none shrink-0",
         // Tipografia
-        "font-signika font-medium text-4xl leading-none whitespace-nowrap",
+        "font-signika font-normal text-4xl leading-none whitespace-nowrap",
         // Cores (Claro / Escuro) - gerenciado pelo token no globals.css
         "text-brand-text",
         className
