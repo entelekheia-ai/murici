@@ -18,7 +18,7 @@ import { OsPendingAgentFile } from "@/types/electron"
 import { IconChevronCompactRight } from "@tabler/icons-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import dynamic from "next/dynamic"
-import { FC, useEffect, useState, useContext } from "react"
+import { FC, useEffect, useState, useContext, useCallback } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { CommandK } from "../utility/command-k"
 import { getSetting } from "@/lib/local-db/settings"
@@ -96,6 +96,50 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
     return () => window.removeEventListener("murici:sidebar-navigate", handler)
   }, [pathname, router])
 
+  const [sidebarWidth, setSidebarWidth] = useState<number>(280)
+  const [isResizing, setIsResizing] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sidebarWidth")
+      if (saved) {
+        const parsed = parseInt(saved, 10)
+        if (parsed >= 240 && parsed <= 300) setSidebarWidth(parsed)
+      }
+    }
+  }, [])
+
+  const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
+    mouseDownEvent.preventDefault()
+    setIsResizing(true)
+  }, [])
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false)
+  }, [])
+
+  const resize = useCallback(
+    (mouseMoveEvent: MouseEvent) => {
+      if (isResizing) {
+        const newWidth = mouseMoveEvent.clientX
+        if (newWidth >= 240 && newWidth <= 300) {
+          setSidebarWidth(newWidth)
+          localStorage.setItem("sidebarWidth", String(newWidth))
+        }
+      }
+    },
+    [isResizing]
+  )
+
+  useEffect(() => {
+    window.addEventListener("mousemove", resize)
+    window.addEventListener("mouseup", stopResizing)
+    return () => {
+      window.removeEventListener("mousemove", resize)
+      window.removeEventListener("mouseup", stopResizing)
+    }
+  }, [resize, stopResizing])
+
   const [isDragging, setIsDragging] = useState(false)
 
   const onFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -136,13 +180,15 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
       <div
         className={cn(
-          "bg-sidebar-bg duration-200 dark:border-none " + (showSidebar ? "border-r border-sidebar-border" : "")
+          "bg-sidebar-bg dark:border-none relative",
+          !isResizing && "duration-200",
+          showSidebar ? "border-r border-sidebar-border" : ""
         )}
         style={{
           // Sidebar
-          minWidth: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
-          maxWidth: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
-          width: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px"
+          minWidth: showSidebar ? `${sidebarWidth}px` : "0px",
+          maxWidth: showSidebar ? `${sidebarWidth}px` : "0px",
+          width: showSidebar ? `${sidebarWidth}px` : "0px"
         }}
       >
         {showSidebar && (
@@ -155,9 +201,20 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
             }}
           >
             <div className="flex h-full w-full flex-col">
-              <Sidebar contentType={contentType} showSidebar={showSidebar} onContentTypeChange={setContentType} />
+              <Sidebar
+                contentType={contentType}
+                showSidebar={showSidebar}
+                onContentTypeChange={setContentType}
+                onToggleSidebar={handleToggleSidebar}
+              />
             </div>
           </Tabs>
+        )}
+        {showSidebar && (
+          <div
+            className="absolute right-0 top-0 bottom-0 w-[4px] cursor-col-resize hover:bg-primary/20 z-50 transition-colors"
+            onMouseDown={startResizing}
+          />
         )}
       </div>
 
@@ -178,21 +235,6 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
             {showRightSidebar && <RightSidebar />}
           </div>
         )}
-
-        <Button
-          className={cn(
-            "absolute left-[4px] top-[50%] z-10 size-[32px] cursor-pointer"
-          )}
-          style={{
-            // marginLeft: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
-            transform: showSidebar ? "rotate(180deg)" : "rotate(0deg)"
-          }}
-          variant="ghost"
-          size="icon"
-          onClick={handleToggleSidebar}
-        >
-          <IconChevronCompactRight size={24} />
-        </Button>
       </div>
     </div>
   )
