@@ -8,19 +8,19 @@ import { useTranslation } from "react-i18next"
 import { ChatbotUIContext } from "@/context/context"
 import { ChatSettings } from "./chat-settings"
 import { ToggleTheme } from "../utility/toggle-theme"
-import { IconPanelRightFigma } from "../icons/chat-icons"
-import { Button } from "../ui/button"
-import { IconInfoCircle } from "@tabler/icons-react"
-import { WithTooltip } from "../ui/with-tooltip"
+import { IconPanelLeftFigma, IconPanelRightFigma } from "../icons/chat-icons"
+import { ButtonGhost } from "../ui/button-ghost"
 import { Switch } from "../ui/switch"
 
-interface ChatHeaderProps {}
+interface ChatHeaderProps { }
 
-export const ChatHeader: FC<ChatHeaderProps> = ({}) => {
+export const ChatHeader: FC<ChatHeaderProps> = ({ }) => {
   const { t } = useTranslation()
 
   const {
     selectedChat,
+    showSidebar,
+    setShowSidebar,
     showRightSidebar,
     setShowRightSidebar,
     showDebugPanels,
@@ -29,17 +29,20 @@ export const ChatHeader: FC<ChatHeaderProps> = ({}) => {
 
   return (
     <div className="drag-region flex w-full items-center justify-between px-[24px] pt-[36px] pb-[12px] border-b border-[#e5e3df] dark:border-[#262626] shrink-0 bg-[#f8f3ee] dark:bg-[#0f0f0f]">
-      {/* Esquerda: 100x100 space for Chat Info or empty */}
-      <div className="flex w-[100px] items-center justify-start">
+      {/* Esquerda: Conversas button */}
+      <div className="flex w-[240px] items-center justify-start no-drag">
+        <ButtonGhost
+          size="16px"
+          text={t("Conversas")}
+          showRightIcon={false}
+          leftIcon={<IconPanelLeftFigma size={16} />}
+          onClick={() => setShowSidebar(!showSidebar)}
+        />
       </div>
 
-      {/* Centro: Model Selector */}
-      <div className="flex flex-1 items-center justify-center no-drag">
-        <ChatSettings />
-      </div>
 
       {/* Direita: Theme & Inspector */}
-      <div className="flex items-center justify-end w-auto min-w-[100px] space-x-2 no-drag">
+      <div className="flex items-center justify-end w-[240px] gap-4 no-drag">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground select-none text-xs whitespace-nowrap">
             {t("Show debug")}
@@ -54,15 +57,14 @@ export const ChatHeader: FC<ChatHeaderProps> = ({}) => {
         </div>
 
         <ToggleTheme />
-        
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="text-muted-foreground hover:opacity-50"
+
+        <ButtonGhost
+          size="16px"
+          text={t("Detalhes")}
+          showLeftIcon={false}
+          rightIcon={<IconPanelRightFigma size={16} />}
           onClick={() => setShowRightSidebar(!showRightSidebar)}
-        >
-          <IconPanelRightFigma size={18} />
-        </Button>
+        />
       </div>
     </div>
   )

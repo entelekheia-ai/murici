@@ -63,6 +63,7 @@
     --foreground-primary: 27 24.4% 8.8%;
     --foreground-secondary: 31 14.7% 58.6%;
     --foreground-secondary-80: 34 14.7% 40%;
+    --foreground-terciary: 0 0% 43.9%;
 
     --brand-text: 147 60% 11%;
     --background-primary: 37 25% 90.4%;
@@ -108,6 +109,7 @@
     --foreground-primary: 0 0% 100%;
     --foreground-secondary: 0 0% 45.1%;
     --foreground-secondary-80: 0 0% 45.1%;
+    --foreground-terciary: 0 0% 43.9%;
 
     --brand-text: 43 100% 85%;
     --background-primary: 60 4% 9.8%;
