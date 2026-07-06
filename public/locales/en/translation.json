@@ -48,5 +48,15 @@
   "Alphabetical": "Alphabetical",
   "No recent agents.": "No recent agents.",
   "Agent file could not be found. It may have been moved or deleted.": "Agent file could not be found. It may have been moved or deleted.",
-  "murici_logo": "Murici Logo"
+  "murici_logo": "Murici Logo",
+  "Model": "Model",
+  "Advanced Settings": "Advanced Settings",
+  "LOCAL": "LOCAL",
+  "CUSTOM": "CUSTOM",
+  "HOSTED": "HOSTED",
+  "OPENROUTER": "OPENROUTER",
+  "Updating...": "Updating...",
+  "Manage →": "Manage →",
+  "Temperature": "Temperature",
+  "Context Length": "Context Length"
 }

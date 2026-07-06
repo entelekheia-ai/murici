@@ -24,6 +24,7 @@ import {
 import { Slider } from "./slider"
 import { TextareaAutosize } from "./textarea-autosize"
 import { WithTooltip } from "./with-tooltip"
+import { useTranslation } from "react-i18next"
 
 interface ChatSettingsFormProps {
   chatSettings: ChatSettings
@@ -40,14 +41,17 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
   showTooltip = true,
   onModelSelected
 }) => {
-  const { profile, models } = useContext(ChatbotUIContext)
+  const { profile } = useContext(ChatbotUIContext)
+  const { t } = useTranslation()
 
   if (!profile) return null
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-1">
-        <Label>Model</Label>
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <div className="text-title-3 text-foreground-primary">
+          {t("Model")}
+        </div>
 
         <ModelSelect
           selectedModelId={chatSettings.model}
@@ -92,6 +96,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
 }) => {
   const { profile, selectedWorkspace, availableOpenRouterModels, models } =
     useContext(ChatbotUIContext)
+  const { t } = useTranslation()
 
   const isCustomModel = models.some(
     model => model.model_id === chatSettings.model
@@ -112,7 +117,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
     <div className="mt-5">
       <div className="space-y-3">
         <Label className="flex items-center space-x-1">
-          <div>Temperature:</div>
+          <div>{t("Temperature")}:</div>
 
           <div>{chatSettings.temperature}</div>
         </Label>
@@ -133,7 +138,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
 
       <div className="mt-6 space-y-3">
         <Label className="flex items-center space-x-1">
-          <div>Context Length:</div>
+          <div>{t("Context Length")}:</div>
 
           <div>{chatSettings.contextLength}</div>
         </Label>
@@ -168,7 +173,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
           }
         />
 
-        <Label>Chats Include Profile Context</Label>
+        <Label>{t("Chats Include Profile Context")}</Label>
 
         {showTooltip && (
           <WithTooltip
@@ -196,7 +201,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
           }
         />
 
-        <Label>Chats Include Workspace Instructions</Label>
+        <Label>{t("Chats Include Workspace Instructions")}</Label>
 
         {showTooltip && (
           <WithTooltip
@@ -215,7 +220,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
       </div>
 
       <div className="mt-5">
-        <Label>Embeddings Provider</Label>
+        <Label>{t("Embeddings Provider")}</Label>
 
         <Select
           value={chatSettings.embeddingsProvider}

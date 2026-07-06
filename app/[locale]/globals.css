@@ -69,6 +69,9 @@
     --background-secondary: 26 41% 91.4%;
     --background-app: 60 66.7% 97.6%;
     --stroke: 40 10.3% 88.6%;
+    --background-light: 0 0% 100%;
+    --background-terciary: 210 20% 98%;
+    --stroke-secondary: 220 13% 91%;
   }
 
   .dark {
@@ -111,6 +114,9 @@
     --background-secondary: 60 4.1% 10.8%;
     --background-app: 0 0% 5.9%;
     --stroke: 0 0% 14.9%;
+    --background-light: 204 8% 12%;
+    --background-terciary: 0 0% 10%;
+    --stroke-secondary: 0 0% 15%;
   }
 }
 
@@ -131,4 +137,25 @@
 }
 .no-drag {
   -webkit-app-region: no-drag;
+}
+
+@layer utilities {
+  .text-title-3 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 22px;
+  }
+  .text-small-regular {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 17px;
+  }
+  .text-small-semi-strong {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 17px;
+  }
 }

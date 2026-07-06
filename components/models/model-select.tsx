@@ -8,11 +8,11 @@ import { updateChat } from "@/db/chats"
 import { fetchLocalModels } from "@/lib/models/fetch-models"
 import { LLM, LLMID, ModelProvider } from "@/types"
 import { cn } from "@/lib/utils"
-import { IconCheck, IconChevronRight } from "@tabler/icons-react"
+import { IconChevron } from "@/components/icons/chat-icons"
+import { IconSearch } from "@tabler/icons-react"
 import { FC, useContext, useEffect, useRef, useState } from "react"
-import { Input } from "../ui/input"
-import { ModelIcon } from "./model-icon"
-import { ModelOption } from "./model-option"
+import { ListItem } from "../ui/list-item"
+import { useTranslation } from "react-i18next"
 
 const ACCORDION_KEY = "murici_accordion"
 const SELECTED_MODEL_KEY = "murici_selected_model"
@@ -55,6 +55,8 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   onSelectModel,
   onClose
 }) => {
+  const { t } = useTranslation()
+
   const {
     profile,
     models,
@@ -132,40 +134,45 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   if (!profile) return null
 
   return (
-    <div className="space-y-2">
-      <Input
-        ref={inputRef}
-        className="w-full"
-        placeholder="Search models..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
+    <div className="space-y-4">
+      <div className="flex h-11 w-full items-center gap-2 rounded-full border border-stroke bg-background-terciary px-4">
+        <IconSearch className="text-foreground-secondary shrink-0" size={18} />
+        <input
+          ref={inputRef}
+          className="h-full w-full bg-transparent text-sm placeholder:text-foreground-secondary outline-none border-none focus:ring-0 p-0 text-foreground-primary"
+          placeholder={t("Search models...")}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
 
-      <div className="space-y-1">
+      <div className="space-y-4">
 
         {/* ── LOCAL ── */}
         {(availableLocalModels.length > 0 || isDiscovering) && (
           <div>
             <GroupHeader
-              label="LOCAL"
+              label={t("LOCAL")}
               open={accordion.local}
               onToggle={() => toggle("local")}
             />
             {accordion.local && (
-              <div className="mb-1">
+              <div className="mt-1">
                 {isDiscovering && (
                   <div className="text-muted-foreground px-2 py-1 text-xs">
-                    Atualizando...
+                    {t("Updating...")}
                   </div>
                 )}
-                {availableLocalModels.filter(filter).map(m => (
-                  <ModelRow
-                    key={m.modelId}
-                    model={m}
-                    selected={selectedModelId === m.modelId}
-                    onSelect={() => handleSelectModel(m.modelId)}
-                  />
-                ))}
+                <ul role="listbox" aria-label={t("LOCAL")} className="space-y-[2px]">
+                  {availableLocalModels.filter(filter).map(m => (
+                    <ListItem
+                      key={m.modelId}
+                      label={m.modelName}
+                      selected={selectedModelId === m.modelId}
+                      onClick={() => handleSelectModel(m.modelId)}
+                    />
+                  ))}
+                </ul>
               </div>
             )}
           </div>
@@ -175,28 +182,30 @@ export const ModelSelect: FC<ModelSelectProps> = ({
         {customModels.length > 0 && (
           <div>
             <GroupHeader
-              label="CUSTOM"
+              label={t("CUSTOM")}
               open={accordion.custom}
               onToggle={() => toggle("custom")}
               action={
                 <button
                   onClick={e => { e.stopPropagation(); handleManage() }}
-                  className="text-muted-foreground hover:text-foreground text-xs"
+                  className="text-muted-foreground hover:text-foreground text-xs font-semibold"
                 >
-                  Gerenciar →
+                  {t("Manage →")}
                 </button>
               }
             />
             {accordion.custom && (
-              <div className="mb-1">
-                {customModels.filter(filter).map(m => (
-                  <ModelRow
-                    key={m.modelId}
-                    model={m}
-                    selected={selectedModelId === m.modelId}
-                    onSelect={() => handleSelectModel(m.modelId)}
-                  />
-                ))}
+              <div className="mt-1">
+                <ul role="listbox" aria-label={t("CUSTOM")} className="space-y-[2px]">
+                  {customModels.filter(filter).map(m => (
+                    <ListItem
+                      key={m.modelId}
+                      label={m.modelName}
+                      selected={selectedModelId === m.modelId}
+                      onClick={() => handleSelectModel(m.modelId)}
+                    />
+                  ))}
+                </ul>
               </div>
             )}
           </div>
@@ -206,30 +215,33 @@ export const ModelSelect: FC<ModelSelectProps> = ({
         {availableHostedModels.length > 0 && (
           <div>
             <GroupHeader
-              label="HOSTED"
+              label={t("HOSTED")}
               open={accordion.hosted}
               onToggle={() => toggle("hosted")}
             />
             {accordion.hosted && (
-              <div className="mb-1">
+              <div className="mt-1">
                 {Object.entries(hostedByProvider).map(([provider, pModels]) => {
                   const filtered = pModels.filter(filter)
                   if (!filtered.length) return null
+                  const providerLabel = provider === "openai" && profile.use_azure_openai
+                    ? "Azure OpenAI"
+                    : provider
                   return (
-                    <div key={provider}>
-                      <div className="mb-1 ml-4 text-xs font-semibold opacity-40 uppercase tracking-wide">
-                        {provider === "openai" && profile.use_azure_openai
-                          ? "Azure OpenAI"
-                          : provider}
+                    <div key={provider} className="mt-2 first:mt-0">
+                      <div className="mb-1 ml-3 text-[10px] font-bold text-foreground-secondary uppercase tracking-wider">
+                        {providerLabel}
                       </div>
-                      {filtered.map(m => (
-                        <ModelRow
-                          key={m.modelId}
-                          model={m}
-                          selected={selectedModelId === m.modelId}
-                          onSelect={() => handleSelectModel(m.modelId)}
-                        />
-                      ))}
+                      <ul role="listbox" aria-label={providerLabel} className="space-y-[2px]">
+                        {filtered.map(m => (
+                          <ListItem
+                            key={m.modelId}
+                            label={m.modelName}
+                            selected={selectedModelId === m.modelId}
+                            onClick={() => handleSelectModel(m.modelId)}
+                          />
+                        ))}
+                      </ul>
                     </div>
                   )
                 })}
@@ -242,20 +254,22 @@ export const ModelSelect: FC<ModelSelectProps> = ({
         {availableOpenRouterModels.length > 0 && (
           <div>
             <GroupHeader
-              label="OPENROUTER"
+              label={t("OPENROUTER")}
               open={accordion.openrouter}
               onToggle={() => toggle("openrouter")}
             />
             {accordion.openrouter && (
-              <div className="mb-1">
-                {availableOpenRouterModels.filter(filter).map(m => (
-                  <ModelRow
-                    key={m.modelId}
-                    model={m}
-                    selected={selectedModelId === m.modelId}
-                    onSelect={() => handleSelectModel(m.modelId)}
-                  />
-                ))}
+              <div className="mt-1">
+                <ul role="listbox" aria-label={t("OPENROUTER")} className="space-y-[2px]">
+                  {availableOpenRouterModels.filter(filter).map(m => (
+                    <ListItem
+                      key={m.modelId}
+                      label={m.modelName}
+                      selected={selectedModelId === m.modelId}
+                      onClick={() => handleSelectModel(m.modelId)}
+                    />
+                  ))}
+                </ul>
               </div>
             )}
           </div>
@@ -279,27 +293,19 @@ const GroupHeader: FC<GroupHeaderProps> = ({ label, open, onToggle, action }) =>
   <div className="flex w-full items-center justify-between px-1 py-1">
     <button
       onClick={onToggle}
-      className="flex flex-1 items-center gap-1 hover:opacity-70"
+      className="flex flex-1 items-center gap-1.5 hover:opacity-75 focus-visible:opacity-75 outline-none"
     >
-      <IconChevronRight
+      <IconChevron
         size={12}
-        className={cn("transition-transform opacity-50", open && "rotate-90")}
+        className={cn(
+          "text-foreground-secondary transition-transform duration-200",
+          open ? "rotate-0" : "-rotate-90"
+        )}
       />
-      <span className="text-xs font-bold tracking-wide opacity-50">{label}</span>
+      <span className="text-[11px] font-bold uppercase tracking-wider text-foreground-secondary">
+        {label}
+      </span>
     </button>
     {action}
-  </div>
-)
-
-interface ModelRowProps {
-  model: LLM
-  selected: boolean
-  onSelect: () => void
-}
-
-const ModelRow: FC<ModelRowProps> = ({ model, selected, onSelect }) => (
-  <div className="flex items-center space-x-1">
-    {selected && <IconCheck className="ml-2 shrink-0" size={16} />}
-    <ModelOption model={model} onSelect={onSelect} />
   </div>
 )

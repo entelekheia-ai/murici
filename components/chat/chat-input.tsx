@@ -7,10 +7,10 @@ import { ChatbotUIContext } from "@/context/context"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
-import {
-  IconPlayerStopFilled
-} from "@tabler/icons-react"
-import { IconPaperclipFigma, IconArrowUpFigma } from "../icons/chat-icons"
+import { IconPaperclip } from "../icons/chat-icons"
+import { SendButton } from "../ui/send-button"
+import { PillButton } from "../ui/button-pill"
+import { ChatSettings } from "./chat-settings"
 import Image from "next/image"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -190,14 +190,14 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
         )}
       </div>
 
-      <div className="relative mt-3 flex w-full flex-col gap-[24px] rounded-[16px] border border-[#e5e3df] dark:border-[#262626] bg-[#e8e2d9] dark:bg-[#1a1a1a] p-[16px]">
+      <div className="relative mt-3 flex w-full flex-col gap-5 rounded-[16px] border border-stroke bg-background-primary p-[16px] min-h-[100px]">
         <div className="absolute bottom-full left-0 max-h-[300px] w-full overflow-auto rounded-xl pb-2 dark:border-none">
           <ChatCommandInput />
         </div>
 
         <TextareaAutosize
           textareaRef={chatInputRef}
-          className="text-md flex w-full resize-none rounded-md border-none bg-transparent p-0 placeholder:text-[#a59686] dark:placeholder-white/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 text-[#1c1611] dark:text-white"
+          className="text-md flex w-full resize-none rounded-md border-none bg-transparent p-0 placeholder:text-foreground-secondary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 text-foreground-primary"
           placeholder={t("Como posso ajudar hoje?")}
           onValueChange={handleInputChange}
           value={userInput}
@@ -211,10 +211,9 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
 
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-[12px]">
-            <IconPaperclipFigma
-              className="cursor-pointer text-[#a59686] hover:opacity-50 dark:text-white/50"
-              size={18}
-              strokeWidth={2}
+            <IconPaperclip
+              className="cursor-pointer text-foreground-secondary hover:opacity-50"
+              size={16}
               onClick={() => fileInputRef.current?.click()}
             />
 
@@ -231,28 +230,27 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
             />
           </div>
 
-          <div className="cursor-pointer hover:opacity-50">
-            {isGenerating ? (
-              <div 
-                className="flex size-[36px] items-center justify-center rounded-[8px] bg-transparent"
-                onClick={handleStopMessage}
-              >
-                <IconPlayerStopFilled className="animate-pulse text-[#3f6212]" size={20} />
-              </div>
-            ) : (
-              <div 
-                className={cn(
-                  "flex size-[36px] items-center justify-center rounded-[8px] bg-[#3f6212] text-white",
-                  !userInput && "cursor-not-allowed opacity-50"
-                )}
-                onClick={() => {
-                  if (!userInput) return
-                  handleSendMessage(userInput, chatMessages, false)
-                }}
-              >
-                <IconArrowUpFigma size={20} />
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <ChatSettings />
+
+            <PillButton
+              label={t("Iniciar um .agent")}
+              showIcon={false}
+              className="bg-[#101214] dark:bg-[#EBE6DE]/10 text-[#E2D7C6] dark:text-[#F8F3EE] hover:opacity-90 border border-stroke"
+              onClick={() => {
+                toast.info("Iniciar .agent em breve")
+              }}
+            />
+
+            <SendButton
+              isGenerating={isGenerating}
+              onStop={handleStopMessage}
+              disabled={!userInput}
+              onClick={() => {
+                if (!userInput) return
+                handleSendMessage(userInput, chatMessages, false)
+              }}
+            />
           </div>
         </div>
       </div>

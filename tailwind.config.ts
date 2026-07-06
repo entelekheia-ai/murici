@@ -29,7 +29,9 @@ module.exports = {
           DEFAULT: 'hsl(var(--background))',
           primary: 'hsl(var(--background-primary))',
           secondary: 'hsl(var(--background-secondary))',
-          app: 'hsl(var(--background-app))'
+          app: 'hsl(var(--background-app))',
+          light: 'hsl(var(--background-light))',
+          terciary: 'hsl(var(--background-terciary))'
         },
         foreground: {
           DEFAULT: 'hsl(var(--foreground))',
@@ -66,7 +68,8 @@ module.exports = {
           foreground: 'hsl(var(--card-foreground))'
         },
         'brand-text': 'hsl(var(--brand-text))',
-        stroke: 'hsl(var(--stroke))'
+        stroke: 'hsl(var(--stroke))',
+        'stroke-secondary': 'hsl(var(--stroke-secondary))'
       },
       fontFamily: {
         instrument: ['var(--font-instrument-sans)', 'sans-serif'],

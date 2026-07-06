@@ -8,7 +8,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from "@/components/ui/collapsible"
-import { IconChevronDown, IconChevronRight } from "@tabler/icons-react"
+import { IconChevron } from "@/components/icons/chat-icons"
+import { useTranslation } from "react-i18next"
 import { FC, useState } from "react"
 
 interface AdvancedSettingsProps {
@@ -16,26 +17,28 @@ interface AdvancedSettingsProps {
 }
 
 export const AdvancedSettings: FC<AdvancedSettingsProps> = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(
-    false
-    // localStorage.getItem("advanced-settings-open") === "true"
-  )
+  const { t } = useTranslation()
+  const [isOpen, setIsOpen] = useState(false)
 
   const handleOpenChange = (isOpen: boolean) => {
     setIsOpen(isOpen)
-    // localStorage.setItem("advanced-settings-open", String(isOpen))
   }
 
   return (
-    <Collapsible className="pt-2" open={isOpen} onOpenChange={handleOpenChange}>
-      <CollapsibleTrigger className="hover:opacity-50">
-        <div className="flex items-center font-bold">
-          <div className="mr-1">Advanced Settings</div>
-          {isOpen ? (
-            <IconChevronDown size={20} stroke={3} />
-          ) : (
-            <IconChevronRight size={20} stroke={3} />
-          )}
+    <Collapsible
+      className="border-t border-stroke-secondary pt-4 mt-4"
+      open={isOpen}
+      onOpenChange={handleOpenChange}
+    >
+      <CollapsibleTrigger className="w-full outline-none focus-visible:opacity-70">
+        <div className="flex w-full items-center justify-between text-small-semi-strong text-foreground-primary">
+          <span>{t("Advanced Settings")}</span>
+          <IconChevron
+            size={16}
+            className={`text-foreground-secondary transition-transform duration-200 ${
+              isOpen ? "rotate-0" : "-rotate-90"
+            }`}
+          />
         </div>
       </CollapsibleTrigger>
 

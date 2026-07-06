@@ -48,5 +48,15 @@
   "Alphabetical": "Alfabética",
   "No recent agents.": "Nenhum agente recente.",
   "Agent file could not be found. It may have been moved or deleted.": "Não foi possível encontrar o arquivo do agente. Ele pode ter sido movido ou excluído.",
-  "murici_logo": "Logotipo do Murici"
+  "murici_logo": "Logotipo do Murici",
+  "Model": "Modelo",
+  "Advanced Settings": "Configurações Avançadas",
+  "LOCAL": "LOCAL",
+  "CUSTOM": "PERSONALIZADO",
+  "HOSTED": "HOSPEDADO",
+  "OPENROUTER": "OPENROUTER",
+  "Updating...": "Atualizando...",
+  "Manage →": "Gerenciar →",
+  "Temperature": "Temperatura",
+  "Context Length": "Tamanho do Contexto"
 }
