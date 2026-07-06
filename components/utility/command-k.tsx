@@ -75,7 +75,7 @@ export const CommandK: FC<CommandKProps> = ({}) => {
                   />
                 ) : (
                   <IconSend
-                    className="bg-primary text-secondary absolute bottom-[8px] right-3 cursor-pointer rounded p-1 hover:opacity-50"
+                    className="bg-primary text-foreground-secondary absolute bottom-[8px] right-3 cursor-pointer rounded p-1 hover:opacity-50"
                     onClick={handleCommandK}
                     size={30}
                   />

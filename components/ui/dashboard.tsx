@@ -180,9 +180,9 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
       <div
         className={cn(
-          "bg-sidebar-bg dark:border-none relative",
+          "bg-background-primary dark:border-none relative",
           !isResizing && "duration-200",
-          showSidebar ? "border-r border-sidebar-border" : ""
+          showSidebar ? "border-r border-stroke" : ""
         )}
         style={{
           // Sidebar

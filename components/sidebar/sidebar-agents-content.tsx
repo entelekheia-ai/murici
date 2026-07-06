@@ -124,7 +124,7 @@ export const SidebarAgentsContent: FC = () => {
           className="w-full border-none"
         >
           <AccordionItem value="system" className="border-none">
-            <AccordionTrigger className="py-2 text-xs font-semibold uppercase tracking-wider text-murici-text-secondary hover:no-underline">
+            <AccordionTrigger className="py-2 text-xs font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
               {t("System")}
             </AccordionTrigger>
             <AccordionContent>
@@ -137,7 +137,7 @@ export const SidebarAgentsContent: FC = () => {
           </AccordionItem>
 
           <AccordionItem value="recent" className="border-none">
-            <AccordionTrigger className="py-2 text-xs font-semibold uppercase tracking-wider text-murici-text-secondary hover:no-underline">
+            <AccordionTrigger className="py-2 text-xs font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
               {t("Recent")}
             </AccordionTrigger>
             <AccordionContent>
@@ -148,7 +148,7 @@ export const SidebarAgentsContent: FC = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 gap-1 px-2 text-xs text-murici-text-secondary"
+                        className="h-7 gap-1 px-2 text-xs text-foreground-secondary"
                       >
                         <IconArrowsSort size={14} />
                         {sortMode === "recent" ? t("Recent") : t("Alphabetical")}

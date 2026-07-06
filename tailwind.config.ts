@@ -25,8 +25,18 @@ module.exports = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        background: {
+          DEFAULT: 'hsl(var(--background))',
+          primary: 'hsl(var(--background-primary))',
+          secondary: 'hsl(var(--background-secondary))',
+          app: 'hsl(var(--background-app))'
+        },
+        foreground: {
+          DEFAULT: 'hsl(var(--foreground))',
+          primary: 'hsl(var(--foreground-primary))',
+          secondary: 'hsl(var(--foreground-secondary))',
+          'secondary-80': 'hsl(var(--foreground-secondary-80))'
+        },
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))'
@@ -55,17 +65,8 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        'app-bg': 'hsl(var(--app-bg))',
-        'sidebar-bg': 'hsl(var(--sidebar-bg))',
-        'sidebar-border': 'hsl(var(--sidebar-border))',
-        'chat-bg': 'hsl(var(--chat-bg))',
-        'inspector-bg': 'hsl(var(--inspector-bg))',
-        'murici-orange': 'hsl(var(--murici-orange))',
-        'murici-green': 'hsl(var(--murici-green))',
-        'murici-text-primary': 'hsl(var(--murici-text-primary))',
-        'murici-text-secondary': 'hsl(var(--murici-text-secondary))',
-        'murici-nav-selected': 'hsl(var(--murici-nav-selected))',
-        'brand-text': 'hsl(var(--brand-text))'
+        'brand-text': 'hsl(var(--brand-text))',
+        stroke: 'hsl(var(--stroke))'
       },
       fontFamily: {
         instrument: ['var(--font-instrument-sans)', 'sans-serif'],

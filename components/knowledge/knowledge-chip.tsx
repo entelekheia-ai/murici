@@ -99,7 +99,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
         {editing ? (
           <input
             ref={inputRef}
-            className="bg-background w-full rounded border px-1 text-[13px] font-medium outline-none text-murici-text-primary"
+            className="bg-background w-full rounded border px-1 text-[13px] font-medium outline-none text-foreground-primary"
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
             onBlur={handleTitleSave}
@@ -112,7 +112,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
           />
         ) : (
           <span
-            className="block truncate text-[13px] font-medium leading-tight text-murici-text-primary"
+            className="block truncate text-[13px] font-medium leading-tight text-foreground-primary"
             title={record.title}
             onClick={handleTitleClick}
           >
@@ -121,7 +121,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
         )}
         
         {record.summary && !compact && (
-          <span className="text-murici-text-secondary text-[11px] leading-tight line-clamp-2 mt-0.5">
+          <span className="text-foreground-secondary text-[11px] leading-tight line-clamp-2 mt-0.5">
             {record.summary}
           </span>
         )}

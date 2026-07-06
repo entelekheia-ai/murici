@@ -81,7 +81,7 @@ export const NewChat: FC<NewChatProps> = ({
     <div className="flex w-full">
       <Button
         variant="outline"
-        className="flex h-[41px] grow items-center justify-start gap-2 rounded-[10px] border border-sidebar-border bg-[#ebe6de] p-3 text-murici-text-primary font-instrument font-semibold text-sm hover:bg-[#ebe6de]/80 dark:bg-accent dark:hover:bg-accent/80"
+        className="flex h-[41px] grow items-center justify-start gap-2 rounded-[10px] border border-stroke bg-background-primary p-3 text-foreground-primary font-semibold text-sm hover:bg-background-primary/80"
         onClick={getCreateFunction()}
       >
         <IconPlusFigma size={16} />

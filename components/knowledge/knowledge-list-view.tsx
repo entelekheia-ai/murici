@@ -144,7 +144,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
                   <td className="max-w-[200px] px-4 py-2">
                     {chat ? (
                       <button
-                        className="text-primary block w-full truncate text-left hover:underline"
+                        className="text-foreground-primary block w-full truncate text-left hover:underline"
                         title={chat.name}
                         onClick={e => {
                           e.stopPropagation()

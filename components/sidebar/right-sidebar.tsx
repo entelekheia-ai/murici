@@ -308,24 +308,24 @@ export const RightSidebar: FC = () => {
       </AlertDialog>
       <div
         data-dot-id="agent-panel"
-        className="bg-inspector-bg flex h-full w-[320px] flex-col border-l border-sidebar-border"
+        className="bg-inspector-bg flex h-full w-[320px] flex-col border-l border-stroke"
         onDragOver={e => e.preventDefault()}
         onDrop={handleDrop}
       >
-        <div className="drag-region flex items-center justify-between border-b p-4 border-sidebar-border/50 shrink-0">
-          <h2 className="select-none text-[15px] font-semibold text-murici-text-primary">
+        <div className="drag-region flex items-center justify-between border-b p-4 border-stroke/50 shrink-0">
+          <h2 className="select-none text-[15px] font-semibold text-foreground-primary">
             Detalhes
           </h2>
-          <Button size="icon" variant="ghost" className="no-drag h-6 w-6 text-murici-text-primary hover:text-murici-text-primary" onClick={() => setShowRightSidebar(false)}>
+          <Button size="icon" variant="ghost" className="no-drag h-6 w-6 text-foreground-primary hover:text-foreground-primary" onClick={() => setShowRightSidebar(false)}>
             <IconX size={16} stroke={2} />
           </Button>
         </div>
 
-        <div className="flex-1 overflow-auto p-6 text-murici-text-primary">
+        <div className="flex-1 overflow-auto p-6 text-foreground-primary">
           <div className="flex flex-col space-y-6">
             <Accordion type="single" collapsible defaultValue="arquivos" className="w-full border-none">
               <AccordionItem value="arquivos" className="border-none">
-                <AccordionTrigger className="text-xs uppercase font-semibold text-murici-text-secondary py-2 hover:no-underline tracking-wider">
+                <AccordionTrigger className="text-xs uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
                   Arquivos do Chat
                 </AccordionTrigger>
                 <AccordionContent>
@@ -379,7 +379,7 @@ export const RightSidebar: FC = () => {
                   width={48}
                   height={48}
                 />
-                <h2 className="text-[20px] font-bold font-instrument-sans text-murici-text-primary text-center leading-tight">
+                <h2 className="text-[20px] font-bold font-instrument-sans text-foreground-primary text-center leading-tight">
                   Inicie um .agent
                 </h2>
                 <Button
@@ -394,11 +394,11 @@ export const RightSidebar: FC = () => {
             ) : (
               <div className="flex flex-col space-y-6">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-murici-text-primary text-[15px]">{agentMeta?.name || "Agente"}</h3>
+                  <h3 className="font-semibold text-foreground-primary text-[15px]">{agentMeta?.name || "Agente"}</h3>
                   {agentMeta?.description && (
                     <div className="space-y-2">
-                      <h3 className="font-semibold uppercase text-[10px] text-murici-text-secondary tracking-wider">Descrição do Agente</h3>
-                      <p className="text-[13px] text-murici-text-primary whitespace-pre-wrap leading-relaxed">
+                      <h3 className="font-semibold uppercase text-[10px] text-foreground-secondary tracking-wider">Descrição do Agente</h3>
+                      <p className="text-[13px] text-foreground-primary whitespace-pre-wrap leading-relaxed">
                         {agentMeta.description}
                       </p>
                     </div>
@@ -406,7 +406,7 @@ export const RightSidebar: FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="font-semibold uppercase text-[10px] text-murici-text-secondary tracking-wider">Histórico de Estados</h3>
+                  <h3 className="font-semibold uppercase text-[10px] text-foreground-secondary tracking-wider">Histórico de Estados</h3>
                   {historyRows.length === 0 ? (
                     <p className="text-muted-foreground text-xs">Aguardando início do fluxo...</p>
                   ) : (
@@ -436,8 +436,8 @@ export const RightSidebar: FC = () => {
                                 className={cn(
                                   "font-instrument truncate text-[13px]",
                                   row.status === "current"
-                                    ? "font-semibold text-murici-text-primary"
-                                    : "text-murici-text-secondary"
+                                    ? "font-semibold text-foreground-primary"
+                                    : "text-foreground-secondary"
                                 )}
                               >
                                 {row.state}
@@ -446,14 +446,14 @@ export const RightSidebar: FC = () => {
                                 <p className="mt-0.5 text-[11px] text-murici-orange">Concluído</p>
                               )}
                               {row.status === "current" && (
-                                <p className="mt-0.5 text-[11px] text-murici-text-secondary">Em andamento</p>
+                                <p className="mt-0.5 text-[11px] text-foreground-secondary">Em andamento</p>
                               )}
                             </div>
                             {row.status === "done" && (
                               <IconCircleCheck size={16} className="mt-0.5 shrink-0 text-murici-orange" />
                             )}
                             {row.status === "current" && (
-                              <IconDots size={16} className="mt-0.5 shrink-0 text-murici-text-secondary" />
+                              <IconDots size={16} className="mt-0.5 shrink-0 text-foreground-secondary" />
                             )}
                           </div>
                         )
@@ -466,18 +466,18 @@ export const RightSidebar: FC = () => {
                   <div className="space-y-3">
                     <Accordion type="single" collapsible className="w-full border-none">
                       <AccordionItem value="debug" className="border-none">
-                        <AccordionTrigger className="text-[15px] font-semibold text-murici-text-primary py-2 hover:no-underline">
+                        <AccordionTrigger className="text-[15px] font-semibold text-foreground-primary py-2 hover:no-underline">
                           DEBUG
                         </AccordionTrigger>
                         <AccordionContent>
                           <Accordion type="multiple" className="w-full border-none">
                             {descriptionText && (
                               <AccordionItem value="debug-description" className="border-none">
-                                <AccordionTrigger className="text-[12px] uppercase font-semibold text-murici-text-secondary py-2 hover:no-underline tracking-wider">
+                                <AccordionTrigger className="text-[12px] uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
                                   {`${agentMeta?.name || "Agente"}.DESCRIPTION`}
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                  <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-murici-text-primary">
+                                  <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-foreground-primary">
                                     <DslHighlightedCode language="description" value={descriptionText} />
                                   </pre>
                                 </AccordionContent>
@@ -486,11 +486,11 @@ export const RightSidebar: FC = () => {
 
                             {behaviorText && (
                               <AccordionItem value="debug-behavior-main" className="border-none">
-                                <AccordionTrigger className="text-[12px] uppercase font-semibold text-murici-text-secondary py-2 hover:no-underline tracking-wider">
+                                <AccordionTrigger className="text-[12px] uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
                                   {`${agentMeta?.name || "Agente"}.BEHAVIOR`}
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                  <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-murici-text-primary">
+                                  <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-foreground-primary">
                                     <DslHighlightedCode language="behavior" value={behaviorText} />
                                   </pre>
                                 </AccordionContent>
@@ -499,11 +499,11 @@ export const RightSidebar: FC = () => {
 
                             {behaviors.map((b, i) => (
                               <AccordionItem key={b.path || i} value={`debug-behavior-${i}`} className="border-none">
-                                <AccordionTrigger className="text-[12px] uppercase font-semibold text-murici-text-secondary py-2 hover:no-underline tracking-wider">
+                                <AccordionTrigger className="text-[12px] uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
                                   {`${agentMeta?.name || "Agente"}.BEHAVIOR (${b.path || `#${i + 1}`})`}
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                  <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-murici-text-primary">
+                                  <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-foreground-primary">
                                     <DslHighlightedCode language="behavior" value={b.content} />
                                   </pre>
                                 </AccordionContent>
@@ -520,11 +520,11 @@ export const RightSidebar: FC = () => {
                   <div className="space-y-3">
                     <Accordion type="single" collapsible className="w-full border-none">
                       <AccordionItem value="graph" className="border-none">
-                        <AccordionTrigger className="text-[10px] uppercase font-semibold text-murici-text-secondary py-2 hover:no-underline tracking-wider">
+                        <AccordionTrigger className="text-[10px] uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
                           Grafo de Execução
                         </AccordionTrigger>
                         <AccordionContent>
-                          <div className="bg-transparent overflow-auto rounded-lg border border-sidebar-border p-2 min-h-[200px]">
+                          <div className="bg-transparent overflow-auto rounded-lg border border-stroke p-2 min-h-[200px]">
                             <StateGraph
                               scxml={graphData}
                               visitedStates={new Set(visitedOrder)}
@@ -542,7 +542,7 @@ export const RightSidebar: FC = () => {
             <div className="h-px w-full bg-sidebar-border" />
 
             <div className="space-y-4">
-              <h3 className="font-semibold uppercase text-xs text-murici-text-secondary tracking-wider">Ferramentas</h3>
+              <h3 className="font-semibold uppercase text-xs text-foreground-secondary tracking-wider">Ferramentas</h3>
               {toolsLoading ? (
                 <p className="text-muted-foreground text-xs">Carregando...</p>
               ) : (
@@ -550,14 +550,14 @@ export const RightSidebar: FC = () => {
                   <Accordion type="multiple" className="w-full border-none">
                     {Object.entries(groupedTools).map(([namespace, tools]) => (
                       <AccordionItem key={namespace} value={namespace} className="border-none">
-                        <AccordionTrigger className="text-[13px] font-semibold text-murici-text-primary py-2 hover:no-underline tracking-wider">
+                        <AccordionTrigger className="text-[13px] font-semibold text-foreground-primary py-2 hover:no-underline tracking-wider">
                           {namespace}
                         </AccordionTrigger>
                         <AccordionContent>
                           <div className="flex flex-col gap-3 ml-2">
                             {tools.map((t: any) => (
-                              <div key={t.name} className="text-[13px] text-murici-text-secondary leading-snug">
-                                <span className="font-semibold text-murici-text-primary">{t.name}</span>
+                              <div key={t.name} className="text-[13px] text-foreground-secondary leading-snug">
+                                <span className="font-semibold text-foreground-primary">{t.name}</span>
                                 {t.description ? `: ${t.description}` : ""}
                               </div>
                             ))}

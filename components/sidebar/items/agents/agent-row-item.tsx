@@ -32,7 +32,7 @@ export const AgentRowItem: FC<AgentRowItemProps> = ({
 
   return (
     <div
-      className="group flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 font-instrument text-murici-text-secondary transition-colors hover:bg-accent/50 focus:outline-none"
+      className="group flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 font-instrument text-foreground-secondary transition-colors hover:bg-accent/50 focus:outline-none"
       tabIndex={0}
       role="button"
       onKeyDown={handleKeyDown}
@@ -47,11 +47,11 @@ export const AgentRowItem: FC<AgentRowItemProps> = ({
       />
 
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-murici-text-primary">
+        <div className="truncate text-sm font-medium text-foreground-primary">
           {name}
         </div>
         {description && (
-          <div className="truncate text-xs text-murici-text-secondary">
+          <div className="truncate text-xs text-foreground-secondary">
             {description}
           </div>
         )}

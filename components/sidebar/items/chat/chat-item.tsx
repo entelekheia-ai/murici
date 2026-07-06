@@ -64,10 +64,10 @@ export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
     <div
       ref={itemRef}
       className={cn(
-        "group flex w-full cursor-pointer items-center h-[37px] rounded-lg px-2 py-1 focus:outline-none font-instrument transition-colors",
+        "group flex w-full cursor-pointer items-center h-[37px] rounded-lg px-2 py-1 focus:outline-none transition-colors",
         isActive
-          ? "bg-murici-nav-selected text-murici-text-primary"
-          : "text-murici-text-secondary hover:bg-accent/50"
+          ? "bg-background-secondary text-foreground-primary"
+          : "text-foreground-secondary-80 hover:bg-background-secondary/40"
       )}
       tabIndex={0}
       onKeyDown={handleKeyDown}
@@ -75,7 +75,7 @@ export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
     >
       {/* No icon rendered next to chat name to match Figma design */}
 
-      <div className={cn("flex-1 truncate text-sm", isActive ? "font-semibold" : "font-medium")}>
+      <div className={cn("flex-1 truncate text-sm", isActive ? "font-semibold" : "font-normal")}>
         {chat.name}
       </div>
 
