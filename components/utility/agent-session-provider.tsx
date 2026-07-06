@@ -350,6 +350,7 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
         }
         const payload: UnpackPayload = await res.json()
         await loadAgentBundle(payload)
+        setShowRightSidebar(true)
         upsertRecentAgent({
           filePath: electronPath ?? null,
           aboutme: payload.aboutme
@@ -362,7 +363,7 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
         setAgentLoading(false)
       }
     },
-    [loadAgentBundle]
+    [loadAgentBundle, setShowRightSidebar]
   )
 
   return (

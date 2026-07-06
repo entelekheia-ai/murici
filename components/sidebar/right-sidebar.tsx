@@ -219,17 +219,6 @@ export const RightSidebar: FC = () => {
     })()
   }, [profile, selectedWorkspace, chatSettings])
 
-  useEffect(() => {
-    const onAgentDrop = (e: Event) => {
-      const file = (e as CustomEvent<{ file: File }>).detail.file
-      handleAgentFile(file)
-    }
-    window.addEventListener("agent:drop", onAgentDrop)
-
-    return () => {
-      window.removeEventListener("agent:drop", onAgentDrop)
-    }
-  }, [handleAgentFile])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -242,12 +231,6 @@ export const RightSidebar: FC = () => {
     fileInputRef.current?.click()
   }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const file = e.dataTransfer.files?.[0]
-    if (file) handleAgentFile(file)
-  }
 
   const modelData = chatSettings?.model
     ? availableLocalModels.find(m => m.modelId === chatSettings.model)
@@ -310,7 +293,6 @@ export const RightSidebar: FC = () => {
         data-dot-id="agent-panel"
         className="bg-inspector-bg flex h-full w-[320px] flex-col border-l border-stroke"
         onDragOver={e => e.preventDefault()}
-        onDrop={handleDrop}
       >
         <div className="drag-region flex items-center justify-between border-b p-4 border-stroke/50 shrink-0">
           <h2 className="select-none text-[15px] font-semibold text-foreground-primary">

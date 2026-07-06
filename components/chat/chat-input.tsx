@@ -23,6 +23,7 @@ import { useChatHandler } from "./chat-hooks/use-chat-handler"
 import { useChatHistoryHandler } from "./chat-hooks/use-chat-history"
 import { usePromptAndCommand } from "./chat-hooks/use-prompt-and-command"
 import { useSelectFileHandler } from "./chat-hooks/use-select-file-handler"
+import { useAgentSession } from "@/lib/hooks/use-agent-session"
 
 interface ChatInputProps {}
 
@@ -74,6 +75,9 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
   } = useChatHistoryHandler()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const agentFileInputRef = useRef<HTMLInputElement>(null)
+
+  const { handleAgentFile, agentMeta } = useAgentSession()
 
   useEffect(() => {
     setTimeout(() => {
@@ -233,14 +237,31 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
           <div className="flex items-center gap-2">
             <ChatSettings />
 
-            <PillButton
-              label={t("Iniciar um .agent")}
-              showIcon={false}
-              className="bg-foreground-primary text-background-light hover:opacity-90"
-              onClick={() => {
-                toast.info("Iniciar .agent em breve")
-              }}
-            />
+            {!agentMeta && (
+              <>
+                <PillButton
+                  label={t("Iniciar um .agent")}
+                  showIcon={false}
+                  className="bg-foreground-primary text-background-light hover:opacity-90"
+                  onClick={() => {
+                    agentFileInputRef.current?.click()
+                  }}
+                />
+
+                {/* Hidden input to select .agent files from device */}
+                <Input
+                  ref={agentFileInputRef}
+                  className="hidden"
+                  type="file"
+                  onChange={async e => {
+                    if (!e.target.files) return
+                    await handleAgentFile(e.target.files[0])
+                    if (agentFileInputRef.current) agentFileInputRef.current.value = ""
+                  }}
+                  accept=".agent"
+                />
+              </>
+            )}
 
             <SendButton
               isGenerating={isGenerating}

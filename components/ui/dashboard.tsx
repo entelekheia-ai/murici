@@ -20,6 +20,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import dynamic from "next/dynamic"
 import { FC, useEffect, useState, useContext, useCallback } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
+import { useAgentSession } from "@/lib/hooks/use-agent-session"
 import { CommandK } from "../utility/command-k"
 import { getSetting } from "@/lib/local-db/settings"
 import { toast } from "sonner"
@@ -53,6 +54,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const tabValue = searchParams.get("tab") || "chats"
 
   const { handleSelectDeviceFile } = useSelectFileHandler()
+  const { handleAgentFile } = useAgentSession()
 
   const [contentType, setContentType] = useState<ContentType>(
     tabValue as ContentType
@@ -147,7 +149,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
     const file = event.dataTransfer.files[0]
     if (file?.name.endsWith(".agent")) {
-      window.dispatchEvent(new CustomEvent("agent:drop", { detail: { file } }))
+      handleAgentFile(file)
     } else {
       handleSelectDeviceFile(file)
     }
