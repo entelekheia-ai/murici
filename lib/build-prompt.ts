@@ -9,14 +9,19 @@ import { Tables } from "@/types/database"
 import { ChatPayload, MessageImage } from "@/types"
 import { encode } from "gpt-tokenizer"
 import { getBase64FromDataURL, getMediaTypeFromDataURL } from "@/lib/utils"
-import { injectFlowContext } from "./runtime/flow-injector"
+import {
+  buildPersonaBlock,
+  buildRulesBlock,
+  injectBehaviorContext
+} from "./runtime/dot-agent-injector"
 
 const buildBasePrompt = (
   prompt: string,
   profileContext: string,
   workspaceInstructions: string,
   assistant: Tables<"assistants"> | null,
-  agentPersona?: string
+  agentPersona?: string,
+  hasBehaviorState?: boolean
 ) => {
   let fullPrompt = ""
 
@@ -24,8 +29,9 @@ const buildBasePrompt = (
     fullPrompt += `<INJECT ROLE>\nYou are not an AI. You are ${assistant.name}.\n</INJECT ROLE>\n\n`
   }
 
-  if (agentPersona) {
-    fullPrompt += `<PERSONA>\n${agentPersona}\n</PERSONA>\n\n`
+  const personaBlock = buildPersonaBlock(agentPersona)
+  if (personaBlock) {
+    fullPrompt += `${personaBlock}\n\n`
   }
 
   fullPrompt += `Today is ${new Date().toLocaleDateString()}.\n\n`
@@ -39,6 +45,13 @@ const buildBasePrompt = (
   }
 
   fullPrompt += `User Instructions:\n${prompt}`
+
+  // Rules stay at the very end of the static prompt, right before the
+  // dynamic per-turn behavior injection, for maximum salience.
+  const rulesBlock = buildRulesBlock(!!hasBehaviorState)
+  if (rulesBlock) {
+    fullPrompt += `\n\n${rulesBlock}`
+  }
 
   return fullPrompt
 }
@@ -56,7 +69,8 @@ export async function buildFinalMessages(
     assistant,
     messageFileItems,
     chatFileItems,
-    agentPersona
+    agentPersona,
+    behaviorState
   } = payload
 
   const BUILT_PROMPT = buildBasePrompt(
@@ -64,7 +78,8 @@ export async function buildFinalMessages(
     chatSettings.includeProfileContext ? profile.profile_context || "" : "",
     chatSettings.includeWorkspaceInstructions ? workspaceInstructions : "",
     assistant,
-    agentPersona
+    agentPersona,
+    !!behaviorState
   )
 
   const CHUNK_SIZE = chatSettings.contextLength
@@ -188,9 +203,9 @@ export async function buildFinalMessages(
     }
   }
 
-  // Flow Engine Integration: Uses the actual state from the UI if active
-  if (payload.flowState) {
-    finalMessages = injectFlowContext(finalMessages, payload.flowState)
+  // Dot-agent behavior integration: uses the actual FSM state from the UI if active
+  if (behaviorState) {
+    finalMessages = injectBehaviorContext(finalMessages, behaviorState)
   }
 
   onFinalMessages?.(finalMessages)

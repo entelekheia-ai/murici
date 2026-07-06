@@ -21,8 +21,8 @@ import {
 } from "@/lib/build-prompt"
 import {
   buildTriggerIntentTool,
-  FlowStateInfo
-} from "@/lib/runtime/flow-injector"
+  BehaviorStateInfo
+} from "@/lib/runtime/dot-agent-injector"
 import { consumeReadableStream } from "@/lib/consume-stream"
 import { Tables, TablesInsert } from "@/types/database"
 import {
@@ -235,7 +235,7 @@ export const createTempMessages = (
 }
 
 
-export async function getMcpAndBuiltInTools(flowState?: FlowStateInfo): Promise<any[]> {
+export async function getMcpAndBuiltInTools(behaviorState?: BehaviorStateInfo): Promise<any[]> {
   const tools: any[] = [
     {
       type: "function",
@@ -256,8 +256,8 @@ export async function getMcpAndBuiltInTools(flowState?: FlowStateInfo): Promise<
     }
   ]
 
-  if (flowState && flowState.validIntents) {
-    tools.push(buildTriggerIntentTool(flowState.validIntents))
+  if (behaviorState && behaviorState.validIntents) {
+    tools.push(buildTriggerIntentTool(behaviorState.validIntents))
     tools.push({
       type: "function",
       function: {
@@ -307,7 +307,7 @@ export async function executeToolLoopAndStream(
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
   onEvent?: (event: Pick<FlowEvent, "type" | "data">) => void,
   onThinkingUpdate?: (thinking: string) => void,
-  flowState?: FlowStateInfo
+  behaviorState?: BehaviorStateInfo
 ): Promise<{
   content: string
   thinking: string | null
@@ -531,7 +531,7 @@ export async function executeToolLoopAndStream(
         } catch {}
         onEvent?.({ type: "tool_call", data: { intentName, raw: call } })
       } else if (name === "murici__state_graph") {
-        toolResult = JSON.stringify({ graph: flowState?.graph || "No graph available" })
+        toolResult = JSON.stringify({ graph: behaviorState?.graph || "No graph available" })
       } else if (name === "murici__save_doc") {
         toolResult = JSON.stringify({ status: "Document saved successfully." })
       } else if (name?.startsWith("mcp__")) {
@@ -643,7 +643,7 @@ export const handleFlowChat = async (
   tempAssistantChatMessage: ChatMessage,
   isRegeneration: boolean,
   chatImages: MessageImage[],
-  flowState: FlowStateInfo,
+  behaviorState: BehaviorStateInfo,
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
   setFirstTokenReceived: React.Dispatch<React.SetStateAction<boolean>>,
   onFinalMessages?: (messages: any[]) => void,
@@ -662,7 +662,7 @@ export const handleFlowChat = async (
     onFinalMessages
   )
   
-  const tools = await getMcpAndBuiltInTools(flowState)
+  const tools = await getMcpAndBuiltInTools(behaviorState)
 
   const isLocal = modelData.provider === "local"
   const localBaseUrl =
@@ -705,7 +705,7 @@ export const handleFlowChat = async (
     setChatMessages,
     onEvent,
     onThinkingUpdate,
-    flowState
+    behaviorState
   )
 }
 

@@ -8,23 +8,10 @@
 import { checkApiKey, getProfileFromBody } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { createOpenAI } from "@ai-sdk/openai"
-import { streamText, generateText, tool as createTool, jsonSchema } from "ai"
+import { streamText, generateText } from "ai"
+import { toModelMessages, buildAiSdkTools } from "@/lib/server/model-message-adapter"
 
 export const runtime = "edge"
-
-function buildAiSdkTools(rawTools?: any[]): Record<string, any> | undefined {
-  if (!rawTools || rawTools.length === 0) return undefined
-  const tools: Record<string, any> = {}
-  for (const t of rawTools) {
-    if (t.type === "function") {
-      tools[t.function.name] = createTool({
-        description: t.function.description,
-        inputSchema: jsonSchema(t.function.parameters),
-      })
-    }
-  }
-  return tools
-}
 
 export async function POST(request: Request) {
   const json = await request.json()
@@ -48,11 +35,13 @@ export async function POST(request: Request) {
 
     const useStreaming = !rawTools?.length
     const tools = buildAiSdkTools(rawTools)
+    const modelMessages = toModelMessages(messages)
 
     if (!useStreaming) {
       const result = await generateText({
         model: custom(chatSettings.model),
-        messages,
+        messages: modelMessages,
+        allowSystemInMessages: true,
         temperature: chatSettings.temperature,
         tools
       })
@@ -78,7 +67,8 @@ export async function POST(request: Request) {
 
     const result = await streamText({
       model: custom(chatSettings.model),
-      messages,
+      messages: modelMessages,
+      allowSystemInMessages: true,
       temperature: chatSettings.temperature
     })
 

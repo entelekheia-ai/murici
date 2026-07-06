@@ -28,7 +28,6 @@ export const useSelectFileHandler = () => {
     chatSettings,
     setNewMessageImages,
     setNewMessageFiles,
-    setShowFilesDisplay,
     setFiles,
     setUseRetrieval
   } = useContext(ChatbotUIContext)
@@ -55,7 +54,6 @@ export const useSelectFileHandler = () => {
   const handleSelectDeviceFile = async (file: File) => {
     if (!profile || !selectedWorkspace || !chatSettings) return
 
-    setShowFilesDisplay(true)
     setUseRetrieval(true)
 
     if (file) {

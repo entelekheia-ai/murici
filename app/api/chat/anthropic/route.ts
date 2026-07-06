@@ -12,22 +12,31 @@ import {
 import { ChatSettings } from "@/types"
 import { NextRequest, NextResponse } from "next/server"
 import { createAnthropic } from "@ai-sdk/anthropic"
-import { streamText, generateText, tool as createTool, jsonSchema } from "ai"
+import { streamText, generateText } from "ai"
+import { toModelMessages, buildAiSdkTools } from "@/lib/server/model-message-adapter"
 
 export const runtime = "edge"
 
-function buildAiSdkTools(rawTools?: any[]): Record<string, any> | undefined {
-  if (!rawTools || rawTools.length === 0) return undefined
-  const tools: Record<string, any> = {}
-  for (const t of rawTools) {
-    if (t.type === "function") {
-      tools[t.function.name] = createTool({
-        description: t.function.description,
-        inputSchema: jsonSchema(t.function.parameters),
-      })
-    }
-  }
-  return tools
+// Anthropic requires an explicit prompt-cache breakpoint (unlike OpenAI/Groq,
+// which cache automatically). @ai-sdk/anthropic's convertToAnthropicPrompt
+// reads a message-level providerOptions.anthropic.cacheControl for the system
+// message. Since buildBasePrompt's static persona+rules content is always the
+// first (system-role) message, and the dynamic per-turn behavior injection is
+// spliced before the last *user* message (never before the system message),
+// this breakpoint lands exactly at the static/dynamic boundary.
+function withAnthropicCacheBreakpoint(messages: any[]): any[] {
+  if (messages[0]?.role !== "system") return messages
+  const [systemMessage, ...rest] = messages
+  return [
+    {
+      ...systemMessage,
+      providerOptions: {
+        ...(systemMessage.providerOptions ?? {}),
+        anthropic: { cacheControl: { type: "ephemeral" } }
+      }
+    },
+    ...rest
+  ]
 }
 
 export async function POST(request: NextRequest) {
@@ -49,11 +58,13 @@ export async function POST(request: NextRequest) {
 
     const useStreaming = !rawTools?.length
     const tools = buildAiSdkTools(rawTools)
+    const modelMessages = withAnthropicCacheBreakpoint(toModelMessages(messages))
 
     if (!useStreaming) {
       const result = await generateText({
         model: anthropic(chatSettings.model),
-        messages,
+        messages: modelMessages,
+        allowSystemInMessages: true,
         temperature: chatSettings.temperature,
         tools
       })
@@ -79,7 +90,8 @@ export async function POST(request: NextRequest) {
 
     const result = await streamText({
       model: anthropic(chatSettings.model),
-      messages,
+      messages: modelMessages,
+      allowSystemInMessages: true,
       temperature: chatSettings.temperature
     })
 

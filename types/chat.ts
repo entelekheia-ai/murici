@@ -26,7 +26,7 @@ export interface ChatPayload {
   messageFileItems: Tables<"file_items">[]
   chatFileItems: Tables<"file_items">[]
   agentPersona?: string
-  flowState?: {
+  behaviorState?: {
     currentState: string
     goal?: string
     guide?: string

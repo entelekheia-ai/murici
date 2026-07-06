@@ -322,7 +322,7 @@ export const useChatHandler = () => {
         messageFileItems: retrievedFileItems,
         chatFileItems: chatFileItems,
         agentPersona: agentPersona || undefined,
-        flowState: flowState || undefined
+        behaviorState: flowState || undefined
       }
 
       const preTransitionFlowState = flowState

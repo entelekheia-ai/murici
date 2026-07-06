@@ -10,6 +10,7 @@
 
 import { LLM } from "@/types"
 import { KernelProxy } from "@/lib/kernel-proxy"
+import { buildBehaviorStatePayload } from "@/lib/runtime/dot-agent-injector"
 
 export interface HeadlessResult {
   title?: string
@@ -91,7 +92,15 @@ export async function runHeadlessAgent(
 
   // 5. Build prompt with TS fallback
   // In V1, we forcefully append the JSON instruction for local models to ensure they comply.
-  const systemPrompt = `[FLOW_CONTEXT]\nGoal: ${goal}\nRules: ${guide}\n\nRespond ONLY as JSON: { "intent_name": "save_metadata", "title": "...", "summary": "..." }`
+  const behaviorPayload = buildBehaviorStatePayload({
+    currentState: preState,
+    goal,
+    guide,
+    teach: undefined,
+    validIntents: [initialIntent],
+    graph: null
+  })
+  const systemPrompt = `${JSON.stringify(behaviorPayload)}\n\nRespond ONLY as JSON: { "intent_name": "save_metadata", "title": "...", "summary": "..." }`
 
   const baseUrl = getBaseUrl(modelData)
   const headers: Record<string, string> = {
