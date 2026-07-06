@@ -236,7 +236,7 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
             <PillButton
               label={t("Iniciar um .agent")}
               showIcon={false}
-              className="bg-[#101214] dark:bg-[#EBE6DE]/10 text-[#E2D7C6] dark:text-[#F8F3EE] hover:opacity-90 border border-stroke"
+              className="bg-foreground-primary text-background-light hover:opacity-90"
               onClick={() => {
                 toast.info("Iniciar .agent em breve")
               }}

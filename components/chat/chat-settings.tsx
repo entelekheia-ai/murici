@@ -91,10 +91,10 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
           icon={
             <IconChevron
               direction={open ? "up" : "down"}
-              className="text-[#1C1611] dark:text-white shrink-0"
+              className="text-foreground-primary shrink-0"
             />
           }
-          className="bg-white dark:bg-[#1A1A18] border border-[#E5E3DF] dark:border-[#262626] text-[#1C1611] dark:text-white hover:bg-black/5 dark:hover:bg-white/5 max-w-[200px]"
+          className="bg-background-light border border-stroke text-foreground-primary hover:bg-black/5 dark:hover:bg-white/5 min-w-[142px] max-w-[240px]"
           onClick={() => setOpen(prev => !prev)}
         />
       </PopoverTrigger>
