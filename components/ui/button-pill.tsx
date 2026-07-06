@@ -24,12 +24,12 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
         )}
         {...props}
       >
+        <span className="truncate">{label}</span>
         {showIcon && icon && (
           <span className="flex items-center justify-center shrink-0">
             {icon}
           </span>
         )}
-        <span className="truncate">{label}</span>
       </button>
     )
   }
