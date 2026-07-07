@@ -1,15 +1,15 @@
+"use client"
+import { ChevronDown, ChevronRight } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
  */
 
-"use client"
-
 import { FC, useContext, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { ChatbotUIContext } from "@/context/context"
 import { KnowledgeRecord } from "@/types/knowledge"
-import { IconChevronDown, IconChevronRight } from "@tabler/icons-react"
+
 
 function languageColor(lang: string): string {
   const palette = [
@@ -47,7 +47,7 @@ export const KnowledgeSidebarSection: FC = () => {
         className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1 pb-1 text-xs font-semibold uppercase tracking-wider transition-colors"
         onClick={() => setCollapsed(v => !v)}
       >
-        {collapsed ? <IconChevronRight size={12} /> : <IconChevronDown size={12} />}
+        {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
         Conhecimento
         <span className="ml-auto font-normal normal-case tracking-normal">
           {knowledge.length}

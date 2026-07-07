@@ -1,3 +1,5 @@
+"use client"
+import { ChevronUp, File, MessageSquare, Settings, Network } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  *
@@ -14,10 +16,8 @@
  * limitations under the License.
  */
 
-"use client"
-
 import { ContentType } from "@/types"
-import { IconChevronUp, IconFile, IconMessage, IconSettings, IconAffiliate } from "@tabler/icons-react"
+
 import Image from "next/image"
 import { FC, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
@@ -36,8 +36,8 @@ const MENU_ITEMS: {
   icon: React.ElementType | null
   label: string
 }[] = [
-  { type: "chats", icon: IconMessage, label: "Chats" },
-  { type: "files", icon: IconAffiliate, label: "Conhecimento" },
+  { type: "chats", icon: MessageSquare, label: "Chats" },
+  { type: "files", icon: Network, label: "Conhecimento" },
   { type: "agents", icon: null, label: "Agents" }
 ]
 
@@ -68,7 +68,7 @@ export const MenuSettings: FC<MenuSettingsProps> = ({ onContentTypeChange }) => 
             <div className="flex items-center gap-2">
               <span className="font-medium text-[14px] font-instrument">{t("Configurações")}</span>
             </div>
-            <IconChevronUp size={16} className="text-[#1c1611]" />
+            <ChevronUp size={16} className="text-[#1c1611]" />
           </div>
         </Button>
       </DropdownMenuTrigger>
@@ -102,7 +102,7 @@ export const MenuSettings: FC<MenuSettingsProps> = ({ onContentTypeChange }) => 
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={openSettings} className="cursor-pointer">
-          <IconSettings size={18} className="mr-2" />
+          <Settings size={18} className="mr-2" />
           <span>{t("Configurações")}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

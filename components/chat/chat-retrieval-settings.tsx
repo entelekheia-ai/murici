@@ -1,10 +1,11 @@
+import { SlidersHorizontal } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
 import { ChatbotUIContext } from "@/context/context"
-import { IconAdjustmentsHorizontal } from "@tabler/icons-react"
+
 import { FC, useContext, useState } from "react"
 import { Button } from "../ui/button"
 import {
@@ -32,7 +33,7 @@ export const ChatRetrievalSettings: FC<ChatRetrievalSettingsProps> = ({}) => {
           side="top"
           display={<div>Adjust retrieval settings.</div>}
           trigger={
-            <IconAdjustmentsHorizontal
+            <SlidersHorizontal
               className="cursor-pointer pt-[4px] hover:opacity-50"
               size={24}
             />

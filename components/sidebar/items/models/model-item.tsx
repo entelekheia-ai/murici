@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MODEL_NAME_MAX } from "@/db/limits"
 import { Tables, TablesUpdate } from "@/types/database"
-import { IconSparkles } from "@tabler/icons-react"
+
 import { FC, useState } from "react"
 import { SidebarItem } from "../all/sidebar-display-item"
 
@@ -32,7 +33,7 @@ export const ModelItem: FC<ModelItemProps> = ({ model }) => {
       item={model}
       isTyping={isTyping}
       contentType="models"
-      icon={<IconSparkles height={30} width={30} />}
+      icon={<Sparkles height={30} width={30} />}
       updateState={
         {
           api_key: apiKey,

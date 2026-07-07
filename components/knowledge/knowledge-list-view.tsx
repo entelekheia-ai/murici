@@ -1,15 +1,15 @@
+"use client"
+import { ChevronDown, ChevronUp } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
  */
 
-"use client"
-
 import { FC, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
-import { IconChevronDown, IconChevronUp } from "@tabler/icons-react"
+
 import { KnowledgePreviewModal } from "./knowledge-preview-modal"
 
 type SortField = "createdAt" | "title" | "language"
@@ -69,7 +69,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return null
-    return sortDir === "asc" ? <IconChevronUp size={12} /> : <IconChevronDown size={12} />
+    return sortDir === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />
   }
 
   const handleRowClick = (record: KnowledgeRecord) => {

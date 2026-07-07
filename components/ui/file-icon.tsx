@@ -1,18 +1,10 @@
+import { File, FileText, AlertCircle, Image as ImageIcon, FileSpreadsheet, FileJson } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
-import {
-  IconFile,
-  IconFileText,
-  IconFileTypeCsv,
-  IconFileTypeDocx,
-  IconFileTypePdf,
-  IconJson,
-  IconMarkdown,
-  IconPhoto
-} from "@tabler/icons-react"
+
 import { FC } from "react"
 
 interface FileIconProps {
@@ -22,20 +14,20 @@ interface FileIconProps {
 
 export const FileIcon: FC<FileIconProps> = ({ type, size = 32 }) => {
   if (type.includes("image")) {
-    return <IconPhoto size={size} />
+    return <ImageIcon size={size} />
   } else if (type.includes("pdf")) {
-    return <IconFileTypePdf size={size} />
+    return <FileText size={size} />
   } else if (type.includes("csv")) {
-    return <IconFileTypeCsv size={size} />
+    return <FileSpreadsheet size={size} />
   } else if (type.includes("docx")) {
-    return <IconFileTypeDocx size={size} />
+    return <FileText size={size} />
   } else if (type.includes("plain")) {
-    return <IconFileText size={size} />
+    return <FileText size={size} />
   } else if (type.includes("json")) {
-    return <IconJson size={size} />
+    return <FileJson size={size} />
   } else if (type.includes("markdown")) {
-    return <IconMarkdown size={size} />
+    return <FileText size={size} />
   } else {
-    return <IconFile size={size} />
+    return <File size={size} />
   }
 }

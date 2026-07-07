@@ -1,12 +1,10 @@
+import { AlertCircle, ArrowUpCircle, ArrowDownCircle } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
-import {
-  IconCircleArrowDownFilled,
-  IconCircleArrowUpFilled
-} from "@tabler/icons-react"
+
 import { FC } from "react"
 
 interface ChatScrollButtonsProps {
@@ -27,7 +25,7 @@ export const ChatScrollButtons: FC<ChatScrollButtonsProps> = ({
   return (
     <>
       {!isAtTop && isOverflowing && (
-        <IconCircleArrowUpFilled
+        <ArrowUpCircle
           className="cursor-pointer opacity-50 hover:opacity-100"
           size={32}
           onClick={scrollToTop}
@@ -35,7 +33,7 @@ export const ChatScrollButtons: FC<ChatScrollButtonsProps> = ({
       )}
 
       {!isAtBottom && isOverflowing && (
-        <IconCircleArrowDownFilled
+        <ArrowDownCircle
           className="cursor-pointer opacity-50 hover:opacity-100"
           size={32}
           onClick={scrollToBottom}

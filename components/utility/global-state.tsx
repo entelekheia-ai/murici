@@ -1,3 +1,4 @@
+"use client"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -6,8 +7,6 @@
  */
 
 // TODO: Separate into multiple contexts, keeping simple for now
-
-"use client"
 
 import { ChatAgentSession, ChatbotUIContext } from "@/context/context"
 import { getProfileByUserId } from "@/db/profile"

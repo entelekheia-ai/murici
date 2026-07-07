@@ -1,3 +1,4 @@
+import { Paperclip, Send } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  *
@@ -21,7 +22,7 @@ import { AgentBundleRecord } from "@/lib/local-db/schema"
 import { KnowledgeGraphCanvas } from "./knowledge-graph-canvas"
 import { KnowledgeListView } from "./knowledge-list-view"
 import { Button } from "@/components/ui/button"
-import { IconPaperclip, IconSend } from "@tabler/icons-react"
+
 
 interface KnowledgeHomeViewProps {
   knowledge: KnowledgeRecord[]

@@ -1,3 +1,4 @@
+import { Edit } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -19,7 +20,7 @@ import { Label } from "@/components/ui/label"
 import { ChatbotUIContext } from "@/context/context"
 import { updateFolder } from "@/db/folders"
 import { Tables } from "@/types/database"
-import { IconEdit } from "@tabler/icons-react"
+
 import { FC, useContext, useRef, useState } from "react"
 
 interface UpdateFolderProps {
@@ -54,7 +55,7 @@ export const UpdateFolder: FC<UpdateFolderProps> = ({ folder }) => {
   return (
     <Dialog open={showFolderDialog} onOpenChange={setShowFolderDialog}>
       <DialogTrigger asChild>
-        <IconEdit className="hover:opacity-50" size={18} />
+        <Edit className="hover:opacity-50" size={18} />
       </DialogTrigger>
 
       <DialogContent onKeyDown={handleKeyDown}>

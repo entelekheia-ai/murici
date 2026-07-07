@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -8,7 +9,7 @@
 import { cn } from "@/lib/utils"
 import { Tables } from "@/types/database"
 import { ContentType } from "@/types"
-import { IconChevronDown, IconChevronRight } from "@tabler/icons-react"
+
 import { FC, useRef, useState } from "react"
 import { DeleteFolder } from "./delete-folder"
 import { UpdateFolder } from "./update-folder"
@@ -89,9 +90,9 @@ export const Folder: FC<FolderProps> = ({
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center space-x-2">
             {isExpanded ? (
-              <IconChevronDown stroke={3} />
+              <ChevronDown strokeWidth={3} />
             ) : (
-              <IconChevronRight stroke={3} />
+              <ChevronRight strokeWidth={3} />
             )}
 
             <div>{folder.name}</div>

@@ -1,3 +1,4 @@
+import { SlidersHorizontal } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
@@ -7,7 +8,7 @@ import { ChatbotUIContext } from "@/context/context"
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLMID, ModelProvider } from "@/types"
-import { IconAdjustmentsHorizontal } from "@tabler/icons-react"
+
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { ChatSettingsForm } from "../ui/chat-settings-form"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"

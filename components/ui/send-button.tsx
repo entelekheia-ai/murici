@@ -1,3 +1,4 @@
+import { Square, Send } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -5,8 +6,8 @@
 
 import { ButtonHTMLAttributes, forwardRef } from "react"
 import { cn } from "@/lib/utils"
-import { IconSend } from "../icons/chat-icons"
-import { IconPlayerStopFilled } from "@tabler/icons-react"
+
+
 
 export interface SendButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isGenerating?: boolean
@@ -27,7 +28,7 @@ export const SendButton = forwardRef<HTMLButtonElement, SendButtonProps>(
           onClick={onStop}
           {...props}
         >
-          <IconPlayerStopFilled className="animate-pulse" size={20} />
+          <Square className="animate-pulse" size={20} />
         </button>
       )
     }
@@ -45,7 +46,7 @@ export const SendButton = forwardRef<HTMLButtonElement, SendButtonProps>(
         onClick={onClick}
         {...props}
       >
-        <IconSend size={16} />
+        <Send size={16} />
       </button>
     )
   }

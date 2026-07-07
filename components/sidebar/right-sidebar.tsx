@@ -1,16 +1,16 @@
+"use client"
+import { CheckCircle, Check, MoreHorizontal, X, FolderOpen, Globe, FileText, Layout, XCircle, Clock, Database, Activity } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
  */
-
-"use client"
 
 import { FC, useState, useEffect, useRef, useContext } from "react"
 import Image from "next/image"
 import { Button } from "../ui/button"
 import { ChatbotUIContext } from "@/context/context"
 import type { UnpackPayload } from "@/types/electron"
-import { IconCircleCheck, IconCheck, IconDots, IconX, IconFolderOpen, IconGlobe, IconFileText, IconLayout, IconCircleX, IconClock, IconDatabase, IconActivity } from "@tabler/icons-react"
+
 import {
   Accordion,
   AccordionContent,
@@ -299,7 +299,7 @@ export const RightSidebar: FC = () => {
             Detalhes
           </h2>
           <Button size="icon" variant="ghost" className="no-drag h-6 w-6 text-foreground-primary hover:text-foreground-primary" onClick={() => setShowRightSidebar(false)}>
-            <IconX size={16} stroke={2} />
+            <X size={16} strokeWidth={2} />
           </Button>
         </div>
 
@@ -369,7 +369,7 @@ export const RightSidebar: FC = () => {
                   onClick={handleLoadAgentClick}
                   disabled={agentLoading}
                 >
-                  <IconFolderOpen size={16} stroke={2.5} />
+                  <FolderOpen size={16} strokeWidth={2.5} />
                   {agentLoading ? "Carregando..." : "Iniciar"}
                 </Button>
               </div>
@@ -403,7 +403,7 @@ export const RightSidebar: FC = () => {
                             <div className="relative z-10 mt-0.5 shrink-0">
                               {row.status === "done" && (
                                 <div className="flex h-[18px] w-[18px] items-center justify-center rounded-md border-[1.5px] border-murici-orange">
-                                  <IconCheck size={11} stroke={3} className="text-murici-orange" />
+                                  <Check size={11} strokeWidth={3} className="text-murici-orange" />
                                 </div>
                               )}
                               {row.status === "current" && (
@@ -432,10 +432,10 @@ export const RightSidebar: FC = () => {
                               )}
                             </div>
                             {row.status === "done" && (
-                              <IconCircleCheck size={16} className="mt-0.5 shrink-0 text-murici-orange" />
+                              <CheckCircle size={16} className="mt-0.5 shrink-0 text-murici-orange" />
                             )}
                             {row.status === "current" && (
-                              <IconDots size={16} className="mt-0.5 shrink-0 text-foreground-secondary" />
+                              <MoreHorizontal size={16} className="mt-0.5 shrink-0 text-foreground-secondary" />
                             )}
                           </div>
                         )

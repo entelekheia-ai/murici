@@ -1,9 +1,9 @@
+"use client"
+import { ArrowUpDown } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
  */
-
-"use client"
 
 import {
   Accordion,
@@ -27,7 +27,7 @@ import {
 } from "@/lib/local-db/recent-agents"
 import { RecentAgentRecord } from "@/lib/local-db/schema"
 import type { UnpackPayload } from "@/types/electron"
-import { IconArrowsSort } from "@tabler/icons-react"
+
 import { FC, useContext, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -150,7 +150,7 @@ export const SidebarAgentsContent: FC = () => {
                         size="sm"
                         className="h-7 gap-1 px-2 text-xs text-foreground-secondary"
                       >
-                        <IconArrowsSort size={14} />
+                        <ArrowUpDown size={14} />
                         {sortMode === "recent" ? t("Recent") : t("Alphabetical")}
                       </Button>
                     </DropdownMenuTrigger>

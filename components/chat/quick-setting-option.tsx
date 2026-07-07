@@ -1,3 +1,4 @@
+import { CheckCircle2, Bot } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -7,7 +8,7 @@
 
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { Tables } from "@/types/database"
-import { IconCircleCheckFilled, IconRobotFace } from "@tabler/icons-react"
+
 import Image from "next/image"
 import { FC } from "react"
 import { ModelIcon } from "../models/model-icon"
@@ -53,7 +54,7 @@ export const QuickSettingOption: FC<QuickSettingOptionProps> = ({
             height={32}
           />
         ) : (
-          <IconRobotFace
+          <Bot
             className="bg-primary text-foreground-secondary border-primary rounded border-DEFAULT p-1"
             size={32}
           />
@@ -70,7 +71,7 @@ export const QuickSettingOption: FC<QuickSettingOptionProps> = ({
 
       <div className="min-w-[40px]">
         {isSelected ? (
-          <IconCircleCheckFilled className="ml-4" size={20} />
+          <CheckCircle2 className="ml-4" size={20} />
         ) : null}
       </div>
     </DropdownMenuItem>

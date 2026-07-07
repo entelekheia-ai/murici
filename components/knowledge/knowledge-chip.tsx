@@ -1,9 +1,9 @@
+"use client"
+import { Copy, Check, Pencil } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
  */
-
-"use client"
 
 import { FC, useState, useRef } from "react"
 import { KnowledgeRecord } from "@/types/knowledge"
@@ -11,7 +11,7 @@ import { LLM } from "@/types"
 import { updateKnowledgeRecord } from "@/lib/local-db/knowledge"
 import { enrichKnowledgeRecord, triggerEnrichment } from "@/lib/knowledge/enrich"
 import { Button } from "@/components/ui/button"
-import { IconCopy, IconCheck, IconPencil } from "@tabler/icons-react"
+
 import { ChatbotUIContext } from "@/context/context"
 import { useContext } from "react"
 import { KnowledgePreviewModal } from "./knowledge-preview-modal"
@@ -149,7 +149,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
                   onClick={handleTitleClick}
                   title="Editar título"
                 >
-                  <IconPencil size={12} />
+                  <Pencil size={12} />
                 </Button>
                 <Button
                   size="icon"
@@ -158,7 +158,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
                   onClick={handleCopy}
                   title="Copiar conteúdo"
                 >
-                  {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                  {copied ? <Check size={12} /> : <Copy size={12} />}
                 </Button>
               </>
             )}

@@ -1,3 +1,4 @@
+import { Loader2, Send } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
@@ -5,7 +6,7 @@
 
 import { ChatbotUIContext } from "@/context/context"
 import useHotkey from "@/lib/hooks/use-hotkey"
-import { IconLoader2, IconSend } from "@tabler/icons-react"
+
 import { FC, useContext, useState } from "react"
 import { Dialog, DialogContent } from "../ui/dialog"
 import { TextareaAutosize } from "../ui/textarea-autosize"
@@ -69,12 +70,12 @@ export const CommandK: FC<CommandKProps> = ({}) => {
                   onValueChange={setValue}
                 />
                 {loading ? (
-                  <IconLoader2
+                  <Loader2
                     className="absolute bottom-[8px] right-3 animate-spin cursor-pointer rounded p-1 hover:opacity-50"
                     size={30}
                   />
                 ) : (
-                  <IconSend
+                  <Send
                     className="bg-primary text-foreground-secondary absolute bottom-[8px] right-3 cursor-pointer rounded p-1 hover:opacity-50"
                     onClick={handleCommandK}
                     size={30}

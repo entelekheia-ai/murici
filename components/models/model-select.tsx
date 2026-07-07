@@ -1,3 +1,4 @@
+import { Search } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
@@ -9,7 +10,7 @@ import { fetchLocalModels } from "@/lib/models/fetch-models"
 import { LLM, LLMID, ModelProvider } from "@/types"
 import { cn } from "@/lib/utils"
 import { IconChevron } from "@/components/icons/chat-icons"
-import { IconSearch } from "@tabler/icons-react"
+
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { ListItem } from "../ui/list-item"
 import { useTranslation } from "react-i18next"
@@ -136,7 +137,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex h-11 w-full items-center gap-2 rounded-full border border-stroke bg-background-terciary px-4">
-        <IconSearch className="text-foreground-secondary shrink-0" size={18} />
+        <Search className="text-foreground-secondary shrink-0" size={18} />
         <input
           ref={inputRef}
           className="h-full w-full bg-transparent text-sm placeholder:text-foreground-secondary outline-none border-none focus:ring-0 p-0 text-foreground-primary"

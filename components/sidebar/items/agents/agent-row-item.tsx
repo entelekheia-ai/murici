@@ -1,9 +1,8 @@
+"use client"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
  */
-
-"use client"
 
 import { IconTrashFigma } from "@/components/icons/chat-icons"
 import Image from "next/image"

@@ -1,3 +1,4 @@
+import { FileDown, User } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -14,7 +15,7 @@ import { fetchOpenRouterModels } from "@/lib/models/fetch-models"
 import { LLM_LIST_MAP } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
 import { OpenRouterLLM } from "@/types"
-import { IconFileDownload, IconUser } from "@tabler/icons-react"
+
 import Image from "next/image"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -304,7 +305,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
           />
         ) : (
           <Button size="icon" variant="ghost">
-            <IconUser size={SIDEBAR_ICON_SIZE} />
+            <User size={SIDEBAR_ICON_SIZE} />
           </Button>
         )}
       </SheetTrigger>
@@ -723,7 +724,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
                 </div>
               }
               trigger={
-                <IconFileDownload
+                <FileDown
                   className="cursor-pointer hover:opacity-50"
                   size={32}
                   onClick={exportLocalStorageAsJSON}

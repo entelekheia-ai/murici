@@ -1,3 +1,4 @@
+import { AlertCircle, Pencil, Circle, ChevronRight, ChevronDown } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -11,13 +12,7 @@ import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
 import { Tables } from "@/types/database"
 import { LLM, LLMID, MessageImage, ModelProvider } from "@/types"
-import {
-  IconCaretDownFilled,
-  IconCaretRightFilled,
-  IconCircleFilled,
-  IconMoodSmile,
-  IconPencil
-} from "@tabler/icons-react"
+
 import Image from "next/image"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { ModelIcon } from "../models/model-icon"
@@ -257,7 +252,7 @@ export const Message: FC<MessageProps> = ({
           <div className="flex min-w-px flex-[1_0_0] flex-col gap-[12px]">
             {message.role === "system" ? (
               <div className="flex items-center space-x-4">
-                <IconPencil
+                <Pencil
                   className="border-primary bg-primary text-foreground-secondary rounded border-DEFAULT p-1"
                   size={ICON_SIZE}
                 />
@@ -293,7 +288,7 @@ export const Message: FC<MessageProps> = ({
             isGenerating &&
             isLast &&
             message.role === "assistant" ? (
-              <IconCircleFilled className="animate-pulse" size={20} />
+              <Circle className="animate-pulse" size={20} />
             ) : isEditing ? (
               <TextareaAutosize
                 textareaRef={editInputRef}
@@ -319,7 +314,7 @@ export const Message: FC<MessageProps> = ({
                 {fileItems.length > 1 ? " Sources " : " Source "}
                 from {Object.keys(fileSummary).length}{" "}
                 {Object.keys(fileSummary).length > 1 ? "Files" : "File"}{" "}
-                <IconCaretRightFilled className="ml-1" />
+                <ChevronRight className="ml-1" />
               </div>
             ) : (
               <>
@@ -331,7 +326,7 @@ export const Message: FC<MessageProps> = ({
                   {fileItems.length > 1 ? " Sources " : " Source "}
                   from {Object.keys(fileSummary).length}{" "}
                   {Object.keys(fileSummary).length > 1 ? "Files" : "File"}{" "}
-                  <IconCaretDownFilled className="ml-1" />
+                  <ChevronDown className="ml-1" />
                 </div>
 
                 <div className="mt-3 space-y-4">

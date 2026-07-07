@@ -1,3 +1,4 @@
+import { Trash } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -20,7 +21,7 @@ import { deleteFolder } from "@/db/folders"
 import { supabase } from "@/lib/supabase/browser-client"
 import { Tables } from "@/types/database"
 import { ContentType } from "@/types"
-import { IconTrash } from "@tabler/icons-react"
+
 import { FC, useContext, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -101,7 +102,7 @@ export const DeleteFolder: FC<DeleteFolderProps> = ({
   return (
     <Dialog open={showFolderDialog} onOpenChange={setShowFolderDialog}>
       <DialogTrigger asChild>
-        <IconTrash className="hover:opacity-50" size={18} />
+        <Trash className="hover:opacity-50" size={18} />
       </DialogTrigger>
 
       <DialogContent className="min-w-[550px]">

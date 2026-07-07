@@ -1,3 +1,4 @@
+import { File } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -8,7 +9,7 @@
 import { cn } from "@/lib/utils"
 import { Tables } from "@/types/database"
 import { ChatFile, MessageImage } from "@/types"
-import { IconFileFilled } from "@tabler/icons-react"
+
 import Image from "next/image"
 import { FC } from "react"
 import { DrawingCanvas } from "../utility/drawing-canvas"
@@ -64,7 +65,7 @@ export const FilePreview: FC<FilePreviewProps> = ({
           } else if (type === "file") {
             return (
               <div className="rounded bg-blue-500 p-2">
-                <IconFileFilled />
+                <File />
               </div>
             )
           }

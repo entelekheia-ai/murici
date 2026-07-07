@@ -1,14 +1,14 @@
+"use client"
+import { Info } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
-"use client"
-
 import { ChatbotUIContext } from "@/context/context"
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { ChatSettings } from "@/types"
-import { IconInfoCircle } from "@tabler/icons-react"
+
 import { FC, useContext } from "react"
 import { ModelSelect } from "../models/model-select"
 import { AdvancedSettings } from "./advanced-settings"
@@ -184,7 +184,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
               </div>
             }
             trigger={
-              <IconInfoCircle className="cursor-hover:opacity-50" size={16} />
+              <Info className="cursor-hover:opacity-50" size={16} />
             }
           />
         )}
@@ -213,7 +213,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
               </div>
             }
             trigger={
-              <IconInfoCircle className="cursor-hover:opacity-50" size={16} />
+              <Info className="cursor-hover:opacity-50" size={16} />
             }
           />
         )}

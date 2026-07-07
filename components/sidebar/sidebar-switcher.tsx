@@ -1,3 +1,5 @@
+"use client"
+import { File, AlertCircle, MessageSquare, Brain, LayoutGrid } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -5,15 +7,8 @@
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
-"use client"
-
 import { ContentType } from "@/types"
-import {
-  IconFile,
-  IconLayoutGrid,
-  IconMessage,
-  IconBrain
-} from "@tabler/icons-react"
+
 import Image from "next/image"
 import { FC, useState, useContext } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
@@ -35,7 +30,7 @@ const MENU_ITEMS: {
   icon: React.ElementType | null
   label: string
 }[] = [
-  { type: "files", icon: IconFile, label: "Files" },
+  { type: "files", icon: File, label: "Files" },
   { type: "agents", icon: null, label: "Agents" }
 ]
 
@@ -86,7 +81,7 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
             size="icon"
             onClick={() => onContentTypeChange("chats")}
           >
-            <IconMessage size={SIDEBAR_ICON_SIZE} />
+            <MessageSquare size={SIDEBAR_ICON_SIZE} />
           </Button>
         }
       />
@@ -121,7 +116,7 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
               size="icon"
               onClick={toggleKnowledgePanel}
             >
-              <IconBrain size={SIDEBAR_ICON_SIZE} />
+              <Brain size={SIDEBAR_ICON_SIZE} />
             </Button>
             {!isKnowledgeOpen && knowledge.length > 0 && (
               <span className="bg-primary text-primary-foreground pointer-events-none absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full text-[10px] font-bold leading-none">
@@ -138,7 +133,7 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
           <Button variant="ghost" size="icon">
             <WithTooltip
               display={<div>Menu</div>}
-              trigger={<IconLayoutGrid size={SIDEBAR_ICON_SIZE} />}
+              trigger={<LayoutGrid size={SIDEBAR_ICON_SIZE} />}
             />
           </Button>
         </PopoverTrigger>

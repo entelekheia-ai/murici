@@ -1,11 +1,11 @@
+"use client"
+import { ChevronRight } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
  *
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
-
-"use client"
 
 import { Sidebar } from "@/components/sidebar/sidebar"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils"
 import { ChatbotUIContext } from "@/context/context"
 import { ContentType } from "@/types"
 import { OsPendingAgentFile } from "@/types/electron"
-import { IconChevronCompactRight } from "@tabler/icons-react"
+
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import dynamic from "next/dynamic"
 import { FC, useEffect, useState, useContext, useCallback } from "react"

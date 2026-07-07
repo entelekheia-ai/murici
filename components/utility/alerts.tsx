@@ -1,3 +1,4 @@
+import { Bell } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
@@ -8,7 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover"
-import { IconBell } from "@tabler/icons-react"
+
 import { FC } from "react"
 import { SIDEBAR_ICON_SIZE } from "../sidebar/sidebar-switcher"
 
@@ -19,7 +20,7 @@ export const Alerts: FC<AlertsProps> = () => {
     <Popover>
       <PopoverTrigger asChild>
         <div className="relative cursor-pointer hover:opacity-50">
-          <IconBell size={SIDEBAR_ICON_SIZE} />
+          <Bell size={SIDEBAR_ICON_SIZE} />
           {1 > 0 && (
             <span className="notification-indicator absolute right-[-4px] top-[-4px] flex size-4 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">
               1

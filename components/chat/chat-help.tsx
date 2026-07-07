@@ -1,10 +1,11 @@
+import { HelpCircle } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
 import useHotkey from "@/lib/hooks/use-hotkey"
-import { IconHelpCircle, IconQuestionMark } from "@tabler/icons-react"
+
 import Link from "next/link"
 import { FC, useState } from "react"
 import {
@@ -27,7 +28,7 @@ export const ChatHelp: FC<ChatHelpProps> = ({}) => {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <IconQuestionMark className="bg-primary text-foreground-secondary size-[24px] cursor-pointer rounded-full p-0.5 opacity-60 hover:opacity-50 lg:size-[30px] lg:p-1" />
+        <HelpCircle className="bg-primary text-foreground-secondary size-[24px] cursor-pointer rounded-full p-0.5 opacity-60 hover:opacity-50 lg:size-[30px] lg:p-1" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
@@ -43,7 +44,7 @@ export const ChatHelp: FC<ChatHelpProps> = ({}) => {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <IconHelpCircle size={24} />
+              <HelpCircle size={24} />
             </Link>
           </div>
         </DropdownMenuLabel>

@@ -1,3 +1,4 @@
+import { ExternalLink, Megaphone } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
@@ -10,7 +11,7 @@ import {
   PopoverTrigger
 } from "@/components/ui/popover"
 import { Announcement } from "@/types/announcement"
-import { IconExternalLink, IconSpeakerphone } from "@tabler/icons-react"
+
 import { FC, useEffect, useState } from "react"
 import { SIDEBAR_ICON_SIZE } from "../sidebar/sidebar-switcher"
 
@@ -86,7 +87,7 @@ export const Announcements: FC<AnnouncementsProps> = () => {
     <Popover>
       <PopoverTrigger asChild>
         <div className="relative cursor-pointer hover:opacity-50">
-          <IconSpeakerphone size={SIDEBAR_ICON_SIZE} />
+          <Megaphone size={SIDEBAR_ICON_SIZE} />
           {unreadCount > 0 && (
             <div className="notification-indicator absolute right-[-4px] top-[-4px] flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
               {unreadCount}
@@ -132,7 +133,7 @@ export const Announcements: FC<AnnouncementsProps> = () => {
                           <a href={a.link} target="_blank" rel="noreferrer">
                             <Button className="h-[26px] text-xs" size="sm">
                               Demo{" "}
-                              <IconExternalLink className="ml-1" size={14} />
+                              <ExternalLink className="ml-1" size={14} />
                             </Button>
                           </a>
                         )}

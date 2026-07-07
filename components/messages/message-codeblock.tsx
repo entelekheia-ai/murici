@@ -1,3 +1,4 @@
+import { Check, Copy, Download } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { DslHighlightedCode } from "@/components/agents/dsl-highlighted-code"
 import { useCopyToClipboard } from "@/lib/hooks/use-copy-to-clipboard"
 import type { DslLangId } from "@/lib/dsl-highlight"
-import { IconCheck, IconCopy, IconDownload } from "@tabler/icons-react"
+
 import { FC, memo } from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism"
@@ -108,7 +109,7 @@ export const MessageCodeBlock: FC<MessageCodeBlockProps> = memo(
               className="hover:bg-zinc-800 focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
               onClick={downloadAsFile}
             >
-              <IconDownload size={16} />
+              <Download size={16} />
             </Button>
 
             <Button
@@ -117,7 +118,7 @@ export const MessageCodeBlock: FC<MessageCodeBlockProps> = memo(
               className="text-xs hover:bg-zinc-800 focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
               onClick={onCopy}
             >
-              {isCopied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+              {isCopied ? <Check size={16} /> : <Copy size={16} />}
             </Button>
           </div>
         </div>
