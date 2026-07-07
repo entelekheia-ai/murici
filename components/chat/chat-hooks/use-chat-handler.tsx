@@ -22,7 +22,6 @@ import {
 } from "@/types"
 import { useRouter } from "next/navigation"
 import { useContext, useEffect, useRef } from "react"
-import { v4 as uuidv4 } from "uuid"
 import { LLM_LIST } from "../../../lib/models/llm/llm-list"
 import {
   createTempMessages,
@@ -350,7 +349,7 @@ export const useChatHandler = () => {
       // Dispatch flow_context event at turn start
       if (preTransitionFlowState) {
         addFlowEvent({
-          id: uuidv4(),
+          id: crypto.randomUUID(),
           seqNum,
           type: "flow_context",
           timestamp: Date.now(),
@@ -383,7 +382,7 @@ export const useChatHandler = () => {
           msgs => {
             sentMessages = msgs
             addFlowEvent({
-              id: uuidv4(),
+              id: crypto.randomUUID(),
               seqNum,
               type: "llm_request",
               timestamp: Date.now(),
@@ -397,7 +396,7 @@ export const useChatHandler = () => {
             setThinkingLog(prev => ({ ...prev, [seqNum]: thinking }))
           },
           ev => {
-            addFlowEvent({ id: uuidv4(), seqNum, timestamp: Date.now(), ...ev })
+            addFlowEvent({ id: crypto.randomUUID(), seqNum, timestamp: Date.now(), ...ev })
           }
         )
         generatedText = result.content
@@ -483,7 +482,7 @@ export const useChatHandler = () => {
                   graph: flowEngine.get_graph()
                 })
                 addFlowEvent({
-                  id: uuidv4(),
+                  id: crypto.randomUUID(),
                   seqNum,
                   type: "fsm_transition",
                   timestamp: Date.now(),
@@ -519,7 +518,7 @@ export const useChatHandler = () => {
                   graph: flowEngine.get_graph()
                 })
                 addFlowEvent({
-                  id: uuidv4(),
+                  id: crypto.randomUUID(),
                   seqNum,
                   type: "fsm_transition",
                   timestamp: Date.now(),

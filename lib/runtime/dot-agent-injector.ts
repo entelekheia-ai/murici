@@ -20,8 +20,6 @@
 // for any consumer (interactive chat, headless one-shot runs, future agent
 // surfaces) should be added here rather than re-derived per call site.
 
-import { v4 as uuidv4 } from "uuid"
-
 export interface BehaviorStateInfo {
   currentState: string
   goal?: string
@@ -106,7 +104,7 @@ export function injectBehaviorContext(
   if (!state || !state.currentState) return messages
 
   const payload = buildBehaviorStatePayload(state)
-  const toolCallId = uuidv4()
+  const toolCallId = crypto.randomUUID()
 
   const fakeAssistantMsg = {
     role: "assistant",

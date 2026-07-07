@@ -14,7 +14,6 @@ import {
 } from "@/lib/local-db/conversations"
 import { ConversationRecord } from "@/lib/local-db/schema"
 import { Chat } from "@/types/database"
-import { v4 as uuidv4 } from "uuid"
 
 function toChat(c: any): Chat {
   return {
@@ -56,7 +55,7 @@ export async function getChatById(chatId: string): Promise<Chat | null> {
 
 export async function createChat(chat: Partial<Chat>): Promise<Chat> {
   const conv = await createConversation({
-    id: chat.id ?? uuidv4(),
+    id: chat.id ?? crypto.randomUUID(),
     title: chat.title ?? chat.name ?? "New Chat",
     model: chat.model ?? "",
     provider: "",

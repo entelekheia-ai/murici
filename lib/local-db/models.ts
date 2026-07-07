@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { v4 as uuidv4 } from "uuid"
 import { getDB, CustomModelRecord } from "./schema"
 
 export async function getAllCustomModels(): Promise<CustomModelRecord[]> {
@@ -34,7 +33,7 @@ export async function createCustomModel(
 ): Promise<CustomModelRecord> {
   const db = await getDB()
   const record: CustomModelRecord = {
-    id: data.id ?? uuidv4(),
+    id: data.id ?? crypto.randomUUID(),
     name: data.name ?? "",
     apiKey: data.apiKey ?? "",
     baseUrl: data.baseUrl ?? "",

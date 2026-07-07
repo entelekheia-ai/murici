@@ -41,7 +41,6 @@ import { triggerEnrichment } from "@/lib/knowledge/enrich"
 import { t } from "@/lib/i18n-instance"
 import React from "react"
 import { toast } from "sonner"
-import { v4 as uuidv4 } from "uuid"
 
 // Local inference servers (oMLX, LM Studio, Ollama, LocalAI, vLLM...) surface
 // failures as plain HTTP status codes with engine-specific bodies. Map the
@@ -184,7 +183,7 @@ export const createTempMessages = (
       assistant_id: null,
       content: messageContent,
       created_at: "",
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       image_paths: b64Images,
       model: chatSettings.model,
       role: "user",
@@ -201,7 +200,7 @@ export const createTempMessages = (
       assistant_id: selectedAssistant?.id || null,
       content: "",
       created_at: "",
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       image_paths: [],
       model: chatSettings.model,
       role: "assistant",
@@ -1113,7 +1112,7 @@ export const handleCreateMessages = async (
                 const { getAgentBundle } = await import("@/lib/local-db/agent-bundles")
                 const bundle = await getAgentBundle(currentChat.id)
                 const record = {
-                  id: uuidv4(),
+                  id: crypto.randomUUID(),
                   nodeType: "knowledge" as const,
                   originConversationId: currentChat.id,
                   messageId: finalCreatedAssistantMessage.id,
@@ -1156,7 +1155,7 @@ export const handleCreateMessages = async (
       .map(obj => {
         let filePath = `${profile.user_id}/${currentChat.id}/${
           createdMessages[0].id
-        }/${uuidv4()}`
+        }/${crypto.randomUUID()}`
 
         return uploadMessageImage(filePath, obj.file as File).catch(error => {
           console.error(`Failed to upload image at ${filePath}:`, error)

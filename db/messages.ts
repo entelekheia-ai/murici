@@ -12,7 +12,6 @@ import {
   deleteMessagesIncludingAndAfter as dbDeleteMessages
 } from "@/lib/local-db/messages"
 import { Message } from "@/types/database"
-import { v4 as uuidv4 } from "uuid"
 
 function toMessage(m: any): Message {
   return {
@@ -42,7 +41,7 @@ export async function createMessages(
 ): Promise<Message[]> {
   const records = await dbCreateMessages(
     messages.map(m => ({
-      id: m.id ?? uuidv4(),
+      id: m.id ?? crypto.randomUUID(),
       conversationId: m.chat_id ?? "",
       role: m.role ?? "user",
       content: m.content ?? "",

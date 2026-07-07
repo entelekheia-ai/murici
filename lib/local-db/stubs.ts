@@ -19,7 +19,6 @@
 // Phase 1 will replace these with real IndexedDB implementations.
 
 import { Chat, Message, Model, Folder, Prompt } from "@/types/database"
-import { v4 as uuidv4 } from "uuid"
 
 const now = () => new Date().toISOString()
 
@@ -158,7 +157,7 @@ export async function deletePrompt(promptId: string): Promise<void> {}
 
 function defaultChat(): Chat {
   return {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     user_id: "local",
     workspace_id: "local",
     assistant_id: null,
@@ -182,7 +181,7 @@ function defaultChat(): Chat {
 
 function defaultMessage(): Message {
   return {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     chat_id: "",
     user_id: "local",
     assistant_id: null,
@@ -198,7 +197,7 @@ function defaultMessage(): Message {
 
 function defaultFolder(): Folder {
   return {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     user_id: "local",
     workspace_id: "local",
     name: "",
@@ -211,7 +210,7 @@ function defaultFolder(): Folder {
 
 function defaultPrompt(): Prompt {
   return {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     user_id: "local",
     workspace_id: null,
     name: "",

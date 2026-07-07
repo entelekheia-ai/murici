@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { v4 as uuidv4 } from "uuid"
 import { getDB, MessageRecord } from "./schema"
 
 export async function getMessagesByConversationId(
@@ -34,7 +33,7 @@ export async function createMessage(
 ): Promise<MessageRecord> {
   const db = await getDB()
   const record: MessageRecord = {
-    id: data.id ?? uuidv4(),
+    id: data.id ?? crypto.randomUUID(),
     conversationId: data.conversationId ?? "",
     role: data.role ?? "user",
     content: data.content ?? "",

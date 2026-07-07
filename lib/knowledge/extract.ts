@@ -9,7 +9,6 @@
  */
 
 import { KnowledgeRecord } from "@/types/knowledge"
-import { v4 as uuidv4 } from "uuid"
 
 const FENCE_RE = /```(\w*)\n([\s\S]*?)```/g
 const MIN_LINES = 3
@@ -70,7 +69,7 @@ export function buildKnowledgeRecords(
   const blocks = extractFencedBlocks(message.content)
 
   return blocks.map(block => ({
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     nodeType: "knowledge" as const,
     originConversationId: conversationId,
     messageId: message.id,

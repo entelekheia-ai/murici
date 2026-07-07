@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { v4 as uuidv4 } from "uuid"
 import { getDB, RecentAgentRecord } from "./schema"
 import { AgentAboutme } from "@/types/electron"
 
@@ -35,7 +34,7 @@ export async function upsertRecentAgent(entry: {
     dedupeKey
   )
   const record: RecentAgentRecord = {
-    id: existing?.id ?? uuidv4(),
+    id: existing?.id ?? crypto.randomUUID(),
     dedupeKey,
     filePath: entry.filePath,
     aboutme: entry.aboutme,
