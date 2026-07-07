@@ -61,7 +61,7 @@ export const Sidebar: FC<SidebarProps> = ({
 
   return (
     <TabsContent
-      className="m-0 w-full flex-1 overflow-hidden bg-[#f8f3ee] border-r border-[#e5e3df] border-solid"
+      className="m-0 w-full flex-1 overflow-hidden bg-background-app border-r border-stroke border-solid"
       value={contentType}
     >
       <div className="flex h-full flex-col p-[20px] relative">

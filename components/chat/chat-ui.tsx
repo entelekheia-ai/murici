@@ -134,7 +134,7 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
   }
 
   return (
-    <div className="bg-[#f8f3ee] dark:bg-[#0f0f0f] relative flex h-full flex-col items-center">
+    <div className="bg-background-app relative flex h-full flex-col items-center">
       <Header
         showSidebar={showSidebar}
         showRightSidebar={showRightSidebar}
