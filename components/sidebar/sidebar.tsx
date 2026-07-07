@@ -5,11 +5,19 @@
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
-// @ts-nocheck
 import { ChatbotUIContext } from "@/context/context"
 import { Tables } from "@/types/database"
-import { ContentType } from "@/types"
-import { FC, useContext } from "react"
+import { ContentType, DataItemType } from "@/types"
+import { FC, useContext, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { useParams, useRouter } from "next/navigation"
+
+import { updateAssistant } from "@/db/assistants"
+import { updateChat } from "@/db/chats"
+import { updateFile } from "@/db/files"
+import { updateModel } from "@/db/models"
+import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
+
 import { TabsContent } from "../ui/tabs"
 import { SidebarContent } from "./sidebar-content"
 import { Button } from "../ui/button"
@@ -20,6 +28,10 @@ import { ProfileSettings } from "../utility/profile-settings"
 import { SidebarFilesContent } from "./sidebar-files"
 import { SidebarAgentsContent } from "./sidebar-agents-content"
 import { BrandLogo } from "../ui/brand-logo"
+
+import { CreateModel } from "./items/models/create-model"
+import { UpdateChat } from "./items/chat/update-chat"
+import { DeleteChat } from "./items/chat/delete-chat"
 
 interface SidebarProps {
   contentType: ContentType
@@ -34,13 +46,28 @@ export const Sidebar: FC<SidebarProps> = ({
   onContentTypeChange,
   onToggleSidebar
 }) => {
+  const { t } = useTranslation()
+  const router = useRouter()
+  const params = useParams()
+
   const {
     folders,
     chats,
     files,
     assistants,
-    models
+    models,
+    setChats,
+    setFiles,
+    setAssistants,
+    setModels,
+    selectedWorkspace,
+    selectedChat
   } = useContext(ChatbotUIContext)
+
+  // Creation dialog states
+  const [isCreatingModel, setIsCreatingModel] = useState(false)
+
+  const { handleNewChat } = useChatHandler()
 
   // OS detection for macOS
   const isMac =
@@ -55,13 +82,109 @@ export const Sidebar: FC<SidebarProps> = ({
   )
   const modelFolders = folders.filter(folder => folder.type === "models")
 
+  // Event handlers
+  const handleSelectItem = (item: DataItemType) => {
+    if (!selectedWorkspace) return
+    if (contentType === "chats") {
+      router.push(`/${selectedWorkspace.id}/chat/${item.id}`)
+    }
+  }
+
+  const handleUpdateItemFolder = async (
+    itemId: string,
+    folderId: string | null
+  ) => {
+    const item: any = [...chats, ...files, ...assistants, ...models].find(
+      i => i.id === itemId
+    )
+
+    if (!item) return
+
+    const updateFunctions = {
+      chats: updateChat,
+      files: updateFile,
+      agents: updateAssistant,
+      models: updateModel
+    }
+
+    const stateUpdateFunctions = {
+      chats: setChats,
+      files: setFiles,
+      agents: setAssistants,
+      models: setModels
+    }
+
+    const updateFunction = updateFunctions[contentType]
+    const setStateFunction = stateUpdateFunctions[contentType]
+
+    if (!updateFunction || !setStateFunction) return
+
+    const updatedItem = await updateFunction(item.id, {
+      folder_id: folderId
+    })
+
+    setStateFunction((items: any) =>
+      items.map((i: any) => (i.id === updatedItem.id ? updatedItem : i))
+    )
+  }
+
+  const handleNewChatClick = () => {
+    switch (contentType) {
+      case "chats":
+        handleNewChat()
+        break
+      case "models":
+        setIsCreatingModel(true)
+        break
+      default:
+        break
+    }
+  }
+
+  const getNewChatButtonLabel = () => {
+    switch (contentType) {
+      case "chats":
+        return t("Novo chat")
+      case "models":
+        return t("Novo modelo")
+      default:
+        return t("Novo")
+    }
+  }
+
+  const renderItemActions = (item: DataItemType) => {
+    if (contentType === "chats") {
+      return (
+        <>
+          <UpdateChat chat={item as Tables<"chats">} />
+          <DeleteChat chat={item as Tables<"chats">} />
+        </>
+      )
+    }
+    return null
+  }
+
   const renderSidebarContent = (
     contentType: ContentType,
     data: any[],
     folders: Tables<"folders">[]
   ) => {
     return (
-      <SidebarContent contentType={contentType} data={data} folders={folders} />
+      <SidebarContent
+        contentType={contentType}
+        data={data}
+        folders={folders}
+        activeItemId={
+          selectedChat?.id ||
+          (Array.isArray(params.chatid) ? params.chatid[0] : params.chatid) ||
+          null
+        }
+        onSelectItem={handleSelectItem}
+        onUpdateItemFolder={handleUpdateItemFolder}
+        renderItemActions={renderItemActions}
+        newChatLabel={getNewChatButtonLabel()}
+        onNewChatClick={handleNewChatClick}
+      />
     )
   }
 
@@ -112,7 +235,7 @@ export const Sidebar: FC<SidebarProps> = ({
             }
           })()}
         </div>
-        
+
         {/* Footer settings menu */}
         <div className="mt-auto">
           <MenuSettings onContentTypeChange={onContentTypeChange} />
@@ -121,6 +244,15 @@ export const Sidebar: FC<SidebarProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Render dialogs in parent container scope */}
+
+      {isCreatingModel && (
+        <CreateModel
+          isOpen={isCreatingModel}
+          onOpenChange={setIsCreatingModel}
+        />
+      )}
     </TabsContent>
   )
 }

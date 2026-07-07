@@ -416,6 +416,23 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
             </TabsContent>
 
             <TabsContent className="mt-4 space-y-4" value="keys">
+              <div className="mb-4">
+                <Button
+                  className="w-full text-xs font-semibold"
+                  variant="outline"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("murici:sidebar-navigate", {
+                        detail: "models"
+                      })
+                    )
+                    setIsOpen(false)
+                  }}
+                >
+                  Gerenciar Modelos Personalizados
+                </Button>
+              </div>
+
               <div className="mt-5 space-y-2">
                 <Label className="flex items-center">
                   {useAzureOpenai

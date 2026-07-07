@@ -1,4 +1,3 @@
-import { Bot } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -6,43 +5,24 @@ import { Bot } from "lucide-react"
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
-import { ModelIcon } from "@/components/models/model-icon"
-import { WithTooltip } from "@/components/ui/with-tooltip"
-import { ChatbotUIContext } from "@/context/context"
-import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
 import { Tables } from "@/types/database"
-import { LLM } from "@/types"
-
-import Image from "next/image"
-import { useParams, useRouter } from "next/navigation"
-import { FC, useContext, useRef } from "react"
-import { DeleteChat } from "./delete-chat"
-import { UpdateChat } from "./update-chat"
+import { FC, useRef } from "react"
 
 interface ChatItemProps {
   chat: Tables<"chats">
+  isActive: boolean
+  onClick: () => void
+  actions?: React.ReactNode
 }
 
-export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
-  const {
-    selectedWorkspace,
-    selectedChat,
-    availableLocalModels,
-    assistantImages,
-    availableOpenRouterModels
-  } = useContext(ChatbotUIContext)
-
-  const router = useRouter()
-  const params = useParams()
-  const isActive = params.chatid === chat.id || selectedChat?.id === chat.id
-
+export const ChatItem: FC<ChatItemProps> = ({
+  chat,
+  isActive,
+  onClick,
+  actions
+}) => {
   const itemRef = useRef<HTMLDivElement>(null)
-
-  const handleClick = () => {
-    if (!selectedWorkspace) return
-    return router.push(`/${selectedWorkspace.id}/chat/${chat.id}`)
-  }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter") {
@@ -50,16 +30,6 @@ export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
       itemRef.current?.click()
     }
   }
-
-  const MODEL_DATA = [
-    ...LLM_LIST,
-    ...availableLocalModels,
-    ...availableOpenRouterModels
-  ].find(llm => llm.modelId === chat.model) as LLM
-
-  const assistantImage = assistantImages.find(
-    image => image.assistantId === chat.assistant_id
-  )?.base64
 
   return (
     <div
@@ -72,25 +42,23 @@ export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
       )}
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      onClick={handleClick}
+      onClick={onClick}
     >
-      {/* No icon rendered next to chat name to match Figma design */}
-
       <div className={cn("flex-1 truncate text-sm", isActive ? "font-semibold" : "font-normal")}>
         {chat.name}
       </div>
 
-      <div
-        onClick={e => {
-          e.stopPropagation()
-          e.preventDefault()
-        }}
-        className="ml-2 flex space-x-2 opacity-0 group-hover:opacity-100"
-      >
-        <UpdateChat chat={chat} />
-
-        <DeleteChat chat={chat} />
-      </div>
+      {actions && (
+        <div
+          onClick={e => {
+            e.stopPropagation()
+            e.preventDefault()
+          }}
+          className="ml-2 flex space-x-2 opacity-0 group-hover:opacity-100"
+        >
+          {actions}
+        </div>
+      )}
     </div>
   )
 }

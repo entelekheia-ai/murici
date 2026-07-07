@@ -6,15 +6,10 @@
  */
 
 import { useTranslation } from "react-i18next"
-import { ChatbotUIContext } from "@/context/context"
-import { updateAssistant } from "@/db/assistants"
-import { updateChat } from "@/db/chats"
-import { updateFile } from "@/db/files"
-import { updateModel } from "@/db/models"
 import { cn } from "@/lib/utils"
 import { Tables } from "@/types/database"
 import { ContentType, DataItemType, DataListType } from "@/types"
-import { FC, useContext, useEffect, useRef, useState } from "react"
+import { FC, useEffect, useRef, useState } from "react"
 import { Separator } from "../ui/separator"
 import { AssistantItem } from "./items/assistants/assistant-item"
 import { ChatItem } from "./items/chat/chat-item"
@@ -26,21 +21,22 @@ interface SidebarDataListProps {
   contentType: ContentType
   data: DataListType
   folders: Tables<"folders">[]
+  activeItemId?: string | null
+  onSelectItem: (item: DataItemType) => void
+  onUpdateItemFolder: (itemId: string, folderId: string | null) => Promise<void>
+  renderItemActions?: (item: DataItemType) => React.ReactNode
 }
 
 export const SidebarDataList: FC<SidebarDataListProps> = ({
   contentType,
   data,
-  folders
+  folders,
+  activeItemId,
+  onSelectItem,
+  onUpdateItemFolder,
+  renderItemActions
 }) => {
   const { t } = useTranslation()
-  const {
-    setChats,
-    setFiles,
-    setAssistants,
-    setModels
-  } = useContext(ChatbotUIContext)
-
   const divRef = useRef<HTMLDivElement>(null)
 
   const [isOverflowing, setIsOverflowing] = useState(false)
@@ -52,7 +48,15 @@ export const SidebarDataList: FC<SidebarDataListProps> = ({
   ) => {
     switch (contentType) {
       case "chats":
-        return <ChatItem key={item.id} chat={item as Tables<"chats">} />
+        return (
+          <ChatItem
+            key={item.id}
+            chat={item as Tables<"chats">}
+            isActive={activeItemId === item.id}
+            onClick={() => onSelectItem(item)}
+            actions={renderItemActions ? renderItemActions(item) : undefined}
+          />
+        )
 
       case "files":
         return <FileItem key={item.id} />
@@ -107,39 +111,8 @@ export const SidebarDataList: FC<SidebarDataListProps> = ({
       )
   }
 
-  const updateFunctions = {
-    chats: updateChat,
-    files: updateFile,
-    agents: updateAssistant,
-    models: updateModel
-  }
-
-  const stateUpdateFunctions = {
-    chats: setChats,
-    files: setFiles,
-    agents: setAssistants,
-    models: setModels
-  }
-
   const updateFolder = async (itemId: string, folderId: string | null) => {
-    const item: any = data.find(item => item.id === itemId)
-
-    if (!item) return null
-
-    const updateFunction = updateFunctions[contentType]
-    const setStateFunction = stateUpdateFunctions[contentType]
-
-    if (!updateFunction || !setStateFunction) return
-
-    const updatedItem = await updateFunction(item.id, {
-      folder_id: folderId
-    })
-
-    setStateFunction((items: any) =>
-      items.map((item: any) =>
-        item.id === updatedItem.id ? updatedItem : item
-      )
-    )
+    await onUpdateItemFolder(itemId, folderId)
   }
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
@@ -262,7 +235,7 @@ export const SidebarDataList: FC<SidebarDataListProps> = ({
                               <div
                                 key={item.id}
                                 draggable
-                                onDragStart={e => handleDragStart(e, item.id)}
+                                	onDragStart={e => handleDragStart(e, item.id)}
                               >
                                 {getDataListComponent(contentType, item)}
                               </div>

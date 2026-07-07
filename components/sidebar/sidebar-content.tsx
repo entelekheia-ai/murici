@@ -6,7 +6,7 @@
  */
 
 import { Tables } from "@/types/database"
-import { ContentType, DataListType } from "@/types"
+import { ContentType, DataItemType, DataListType } from "@/types"
 import { FC, useState } from "react"
 import { NewChat } from "./new-chat"
 import { SidebarDataList } from "./sidebar-data-list"
@@ -16,12 +16,24 @@ interface SidebarContentProps {
   contentType: ContentType
   data: DataListType
   folders: Tables<"folders">[]
+  activeItemId?: string | null
+  onSelectItem: (item: DataItemType) => void
+  onUpdateItemFolder: (itemId: string, folderId: string | null) => Promise<void>
+  renderItemActions?: (item: DataItemType) => React.ReactNode
+  newChatLabel: string
+  onNewChatClick: () => void
 }
 
 export const SidebarContent: FC<SidebarContentProps> = ({
   contentType,
   data,
-  folders
+  folders,
+  activeItemId,
+  onSelectItem,
+  onUpdateItemFolder,
+  renderItemActions,
+  newChatLabel,
+  onNewChatClick
 }) => {
   const [searchTerm, setSearchTerm] = useState("")
 
@@ -34,8 +46,8 @@ export const SidebarContent: FC<SidebarContentProps> = ({
     <div className="flex max-h-[calc(100%-50px)] grow flex-col">
       <div className="flex items-center mb-6">
         <NewChat
-          contentType={contentType}
-          hasData={data.length > 0}
+          label={newChatLabel}
+          onClick={onNewChatClick}
         />
       </div>
 
@@ -51,6 +63,10 @@ export const SidebarContent: FC<SidebarContentProps> = ({
         contentType={contentType}
         data={filteredData}
         folders={folders}
+        activeItemId={activeItemId}
+        onSelectItem={onSelectItem}
+        onUpdateItemFolder={onUpdateItemFolder}
+        renderItemActions={renderItemActions}
       />
     </div>
   )
