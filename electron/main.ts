@@ -134,9 +134,9 @@ async function createWindow() {
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
+    titleBarStyle: "hidden",
     ...(process.platform === "darwin" && {
-      trafficLightPosition: { x: 12, y: 18 }
+      trafficLightPosition: { x: 16, y: 13 }
     }),
     show: false,
     icon: path.join(__dirname, "../icon/Murici-liquid-glass@2x.png"),

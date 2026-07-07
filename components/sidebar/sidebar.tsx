@@ -13,7 +13,7 @@ import { FC, useContext } from "react"
 import { TabsContent } from "../ui/tabs"
 import { SidebarContent } from "./sidebar-content"
 import { Button } from "../ui/button"
-import { IconLayoutSidebar } from "@tabler/icons-react"
+import { IconSidebarToggle } from "../icons/chat-icons"
 
 import { MenuSettings } from "./menu-settings"
 import { ProfileSettings } from "../utility/profile-settings"
@@ -42,6 +42,12 @@ export const Sidebar: FC<SidebarProps> = ({
     models
   } = useContext(ChatbotUIContext)
 
+  // OS detection for macOS
+  const isMac =
+    typeof window !== "undefined" &&
+    (window.electronAPI?.platform === "darwin" ||
+      /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent))
+
   const chatFolders = folders.filter(folder => folder.type === "chats")
   const filesFolders = folders.filter(folder => folder.type === "files")
   const assistantFolders = folders.filter(
@@ -61,46 +67,54 @@ export const Sidebar: FC<SidebarProps> = ({
 
   return (
     <TabsContent
-      className="m-0 w-full flex-1 overflow-hidden bg-background-app border-r border-stroke border-solid"
+      className="m-0 w-full flex-1 overflow-hidden bg-background-app relative"
       value={contentType}
     >
-      <div className="flex h-full flex-col p-[20px] relative">
-        <div className="drag-region flex items-center justify-between pl-20 pt-[2px]">
-          <BrandLogo />
-          <div className="no-drag">
-            <Button
-              className="h-8 w-8 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
-              variant="ghost"
-              size="icon"
-              onClick={onToggleSidebar}
-            >
-              <IconLayoutSidebar size={20} />
-            </Button>
-          </div>
+      <div
+        className="flex h-full flex-col px-[16px] pb-[20px] relative gap-[24px]"
+        style={{ paddingTop: isMac ? "40px" : "12px" }}
+      >
+        {/* Absolute-positioned toggle button matching Figma layout */}
+        <div className="absolute top-[12px] right-[12px] z-50 no-drag">
+          <Button
+            className="h-8 w-8 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 flex items-center justify-center rounded-lg"
+            variant="ghost"
+            size="icon"
+            onClick={onToggleSidebar}
+          >
+            <IconSidebarToggle side="left" type="hide" size={16} />
+          </Button>
         </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden pt-[32px]">
-        {(() => {
-          switch (contentType) {
-            case "chats":
-              return renderSidebarContent("chats", chats, chatFolders)
+        {/* Draggable header region */}
+        <div className="drag-region flex items-center">
+          <BrandLogo />
+        </div>
 
-            case "files":
-              return <SidebarFilesContent />
+        {/* Main switcher content list */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {(() => {
+            switch (contentType) {
+              case "chats":
+                return renderSidebarContent("chats", chats, chatFolders)
 
-            case "agents":
-              return <SidebarAgentsContent />
+              case "files":
+                return <SidebarFilesContent />
 
-            case "models":
-              return renderSidebarContent("models", models, modelFolders)
+              case "agents":
+                return <SidebarAgentsContent />
 
-            default:
-              return null
-          }
-        })()}
+              case "models":
+                return renderSidebarContent("models", models, modelFolders)
+
+              default:
+                return null
+            }
+          })()}
         </div>
         
-        <div className="mt-auto pt-[20px]">
+        {/* Footer settings menu */}
+        <div className="mt-auto">
           <MenuSettings onContentTypeChange={onContentTypeChange} />
           <div className="hidden">
             <ProfileSettings />

@@ -182,7 +182,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
       <div
         className={cn(
-          "bg-background-primary dark:border-none relative",
+          "bg-background-primary relative",
           !isResizing && "duration-200",
           showSidebar ? "border-r border-stroke" : ""
         )}
