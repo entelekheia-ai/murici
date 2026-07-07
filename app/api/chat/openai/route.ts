@@ -12,17 +12,21 @@ import {
 import { ChatSettings } from "@/types"
 import { ServerRuntime } from "next"
 import { createOpenAI } from "@ai-sdk/openai"
-import { streamText, generateText } from "ai"
-import { toModelMessages, buildAiSdkTools } from "@/lib/server/model-message-adapter"
+import { streamText, convertToModelMessages } from "ai"
+import { buildAiSdkTools } from "@/lib/server/model-message-adapter"
+import { getBuiltInTools, mapMcpTools } from "@/lib/tools/registry"
+import { logger } from "@/lib/logger"
 
 export const runtime: ServerRuntime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, tools: rawTools } = json as {
+  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools } = json as {
     chatSettings: ChatSettings
     messages: any[]
     tools?: any[]
+    behaviorState?: any
+    mcpTools?: any[]
   }
 
   try {
@@ -35,52 +39,28 @@ export async function POST(request: Request) {
       organization: profile.openai_organization_id || undefined
     })
 
-    const useStreaming = !rawTools?.length
-    const tools = buildAiSdkTools(rawTools)
-    const modelMessages = toModelMessages(messages)
+    const tools = {
+      ...buildAiSdkTools(rawTools),
+      ...getBuiltInTools(behaviorState),
+      ...mapMcpTools(mcpTools || [])
+    }
+    const modelMessages = await convertToModelMessages(messages, { tools })
     const maxTokens =
       chatSettings.model === "gpt-4-vision-preview" || chatSettings.model === "gpt-4o"
         ? 4096
         : undefined
 
-    if (!useStreaming) {
-      const result = await generateText({
-        model: openai(chatSettings.model),
-        messages: modelMessages,
-        allowSystemInMessages: true,
-        temperature: chatSettings.temperature,
-        tools
-      })
-
-      // Map back to OpenAI-compatible format expected by chat-helpers
-      return Response.json({
-        choices: [
-          {
-            message: {
-              content: result.text || "",
-              tool_calls: result.toolCalls?.map(call => ({
-                id: call.toolCallId,
-                type: "function",
-                function: {
-                  name: call.toolName,
-                  arguments: JSON.stringify(call.input)
-                }
-              }))
-            }
-          }
-        ]
-      })
-    }
-
     const result = await streamText({
       model: openai(chatSettings.model),
       messages: modelMessages,
       allowSystemInMessages: true,
-      temperature: chatSettings.temperature
+      temperature: chatSettings.temperature,
+      tools
     })
 
-    return result.toTextStreamResponse()
+    return result.toUIMessageStreamResponse()
   } catch (error: any) {
+    logger.error("chat route failed", { provider: "openai", model: chatSettings?.model, error: error.message })
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
 

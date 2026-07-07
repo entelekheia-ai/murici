@@ -6,662 +6,224 @@
  */
 
 import { ChatbotUIContext } from "@/context/context"
-import { updateChat } from "@/db/chats"
-import { deleteMessagesIncludingAndAfter } from "@/db/messages"
-import { getAssistantFilesByAssistantId } from "@/lib/local-db/stubs"
-import { buildFinalMessages } from "@/lib/build-prompt"
-import { handleKernelEffects } from "@/lib/kernel-effects"
+import { updateChat, createChat } from "@/db/chats"
+import { createMessages } from "@/db/messages"
 import { useAgentSession } from "@/lib/hooks/use-agent-session"
-import { Tables } from "@/types/database"
-import {
-  ChatMessage,
-  ChatPayload,
-  FlowEvent,
-  LLMID,
-  ModelProvider
-} from "@/types"
+import { ChatMessage, ChatPayload, LLMID } from "@/types"
 import { useRouter } from "next/navigation"
 import { useContext, useEffect, useRef } from "react"
-import { LLM_LIST } from "../../../lib/models/llm/llm-list"
-import {
-  createTempMessages,
-  handleCreateChat,
-  handleCreateMessages,
-  handleFlowChat,
-  handleHostedChat,
-  handleLocalChat,
-  handleRetrieval,
-  processResponse,
-  validateChatSettings
-} from "../chat-helpers"
-
-// useChatHandler() is called from many components (one per rendered message,
-// one per sidebar chat item, plus chat-ui/chat-input/etc.), so any per-call
-// useRef guard here is NOT shared — every mounted instance would race to
-// process the same head-of-queue task independently. This lock lives at
-// module scope so it's a true singleton across every hook instance.
-let isProcessingBackgroundQueue = false
+import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport } from "ai"
+import { executeClientTool } from "@/lib/tools/orchestrator"
+import { useDebugSync } from "@/lib/hooks/use-debug"
+import { LLM_LIST } from "@/lib/models/llm/llm-list"
+import { getMessageText } from "@/lib/ai/ui-message-parts"
+import { resolveCustomModel } from "@/lib/models/resolve-custom-model"
+import { logger } from "@/lib/logger"
 
 export const useChatHandler = () => {
   const router = useRouter()
+  const context = useContext(ChatbotUIContext)
+  const builtInModel = LLM_LIST.find(
+    m => m.modelId === context.chatSettings?.model
+  )
+  const currentProvider = builtInModel?.provider || "custom"
+  const { resetSession } = useAgentSession()
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
+  const chatMessagesRef = useRef(context.chatMessages)
+
+  // Sync ref
+  useEffect(() => {
+    chatMessagesRef.current = context.chatMessages
+  }, [context.chatMessages])
 
   const {
-    userInput,
-    chatFiles,
-    setUserInput,
-    setNewMessageImages,
-    profile,
-    setIsGenerating,
-    setChatMessages,
-    setFirstTokenReceived,
-    selectedChat,
-    selectedWorkspace,
-    setSelectedChat,
-    setChats,
-    availableLocalModels,
-    availableOpenRouterModels,
-    abortController,
-    setAbortController,
-    chatSettings,
-    newMessageImages,
-    selectedAssistant,
-    setSelectedAssistant,
-    chatMessages,
-    chatImages,
-    setChatImages,
-    setChatFiles,
-    setNewMessageFiles,
-    setShowRightSidebar,
-    newMessageFiles,
-    chatFileItems,
-    setChatFileItems,
-    useRetrieval,
-    sourceCount,
-    setIsPromptPickerOpen,
-    setIsFilePickerOpen,
-    setChatSettings,
-    models,
-    isPromptPickerOpen,
-    isFilePickerOpen,
-    isToolPickerOpen,
-    flowState,
-    flowEngine,
-    setFlowState,
-    setFlowDebugLog,
-    setThinkingLog,
-    addFlowEvent,
-    setKnowledge,
-    backgroundModel,
-    agentKnowledgeFiles,
-    agentPersona,
-    backgroundQueue,
-    setBackgroundQueue,
-    migrateChatAgentSession,
-    activeChatKeyRef
-  } = useContext(ChatbotUIContext)
-  const { resetSession } = useAgentSession()
+    messages: vercelMessages,
+    sendMessage: append,
+    regenerate: reload,
+    stop,
+    status,
+    setMessages
+  } = useChat({
+    transport: new DefaultChatTransport({ api: `/api/chat/${currentProvider}` }),
+    id: context.selectedChat?.id || "__new__",
+    async onToolCall({ toolCall }) {
+      if (!context.flowState || !context.selectedChat) return
 
-  const resolveTeach = (name: string | undefined): string | undefined => {
-    if (!name) return undefined
-    const entry = agentKnowledgeFiles.find(
-      k => k.path === name || k.path === `knowledge/${name}` || k.path.endsWith(`/${name}`)
-    )
-    return entry ? entry.content : name
-  }
+      return await executeClientTool(toolCall as any, {
+        chatId: context.selectedChat?.id || "__new__",
+        messageId: toolCall.toolCallId,
+        promptMessageId: "", 
+        behaviorState: context.flowState || undefined
+      })
+    },
+    async onFinish(message: any) {
+      if (!context.selectedChat) return
+      // Persist the final message to the database
+      const seqNum = chatMessagesRef.current.length > 0 
+        ? chatMessagesRef.current[chatMessagesRef.current.length - 1].message.sequence_number + 1 
+        : 1
+        
+      const savedMsgs = await createMessages([{
+        chat_id: context.selectedChat.id,
+        content: getMessageText(message),
+        role: message.role as any,
+        model: context.chatSettings?.model || "custom",
+        user_id: context.profile!.id,
+        sequence_number: seqNum
+      }])
+      
+      context.setChatMessages(prev => {
+        // Remove the temporary streaming message if it exists
+        const filtered = prev.filter(p => p.message.id !== "temp-assistant")
+        return [...filtered, { message: savedMsgs[0], fileItems: [] }]
+      })
+      
+      await updateChat(context.selectedChat.id, {
+        updated_at: new Date().toISOString()
+      })
+    },
+    onError(error) {
+      logger.error("Vercel AI SDK onError", { error: error.message })
+      context.setIsGenerating(false)
+      context.setChatMessages(prev => prev.filter(p => p.message.id !== "temp-assistant"))
+    }
+  })
 
-  const chatInputRef = useRef<HTMLTextAreaElement>(null)
+  // Synchronize Vercel's real-time events to the visual debug layer
+  useDebugSync(vercelMessages, status === 'streaming' || status === 'submitted')
 
+  // Stream text into UI
   useEffect(() => {
-    if (backgroundQueue.length > 0 && !isProcessingBackgroundQueue) {
-      const task = backgroundQueue[0]
-      isProcessingBackgroundQueue = true
+    if (status !== 'streaming' && status !== 'submitted') return
+    const lastVercelMessage = vercelMessages[vercelMessages.length - 1]
+    if (!lastVercelMessage || lastVercelMessage.role !== 'assistant') return
 
-      const runTask = async () => {
-        if (task.type === "enrich_knowledge") {
-          const { record, modelData } = task.payload
-          try {
-            const { runHeadlessAgent } = await import("@/lib/runtime/headless-runner")
-            const { updateKnowledgeRecord } = await import("@/lib/local-db/knowledge")
-            const result = await runHeadlessAgent(
-              record.payload.content,
-              modelData,
-              "/agents/memory.agent",
-              "run_enrichment"
-            )
-            if (result && result.title && result.summary) {
-              const update: any = { summary: result.summary }
-              if (/^.+ · \d{2}:\d{2}$/.test(record.title)) {
-                update.title = result.title
-              }
-              setKnowledge(prev =>
-                prev.map(k => (k.id === record.id ? { ...k, ...update } : k))
-              )
-              await updateKnowledgeRecord(record.id, update)
-            }
-          } catch (e) {
-            console.error("Headless agent failed:", e)
-          }
-        }
-        setBackgroundQueue(prev => prev.slice(1))
-        isProcessingBackgroundQueue = false
+    context.setChatMessages(prev => {
+      const newArr = [...prev]
+      const lastChatMsg = newArr[newArr.length - 1]
+      
+      const textContent = getMessageText(lastVercelMessage)
+      
+      if (lastChatMsg && lastChatMsg.message.id === "temp-assistant") {
+        lastChatMsg.message.content = textContent
+        return newArr
+      } else {
+        const seqNum = prev.length > 0 ? prev[prev.length - 1].message.sequence_number + 1 : 1
+        return [...prev, {
+          message: {
+            id: "temp-assistant",
+            chat_id: context.selectedChat?.id || "",
+            role: "assistant",
+            content: textContent,
+            sequence_number: seqNum,
+            created_at: new Date().toISOString(),
+            model: "custom",
+            user_id: "local"
+          } as any,
+          fileItems: []
+        }]
       }
-
-      runTask()
-    }
-  }, [backgroundQueue, setKnowledge, setBackgroundQueue])
-
-  useEffect(() => {
-    if (!isPromptPickerOpen || !isFilePickerOpen || !isToolPickerOpen) {
-      chatInputRef.current?.focus()
-    }
-  }, [isPromptPickerOpen, isFilePickerOpen, isToolPickerOpen])
+    })
+  }, [vercelMessages, status])
 
   const handleNewChat = async () => {
-    if (!selectedWorkspace) return
-
-    // "__new__" is the shared bucket for whatever unsaved chat is being
-    // composed (see chatAgentSessionsRef). Starting a new chat must not
-    // inherit an agent - or an assistant persona - left over from a
-    // previous chat/abandoned unsent one.
+    if (!context.selectedWorkspace) return
     resetSession("__new__")
-    setSelectedAssistant(null)
-
-    setUserInput("")
-    setChatMessages([])
-    setSelectedChat(null)
-    setChatFileItems([])
-
-    setIsGenerating(false)
-    setFirstTokenReceived(false)
-
-    setChatFiles([])
-    setChatImages([])
-    setNewMessageFiles([])
-    setNewMessageImages([])
-    setShowRightSidebar(false)
-    setIsPromptPickerOpen(false)
-    setIsFilePickerOpen(false)
-
-    if (selectedAssistant) {
-      setChatSettings({
-        model: selectedAssistant.model as LLMID,
-        prompt: selectedAssistant.prompt,
-        temperature: selectedAssistant.temperature,
-        contextLength: selectedAssistant.context_length,
-        includeProfileContext: selectedAssistant.include_profile_context,
-        includeWorkspaceInstructions:
-          selectedAssistant.include_workspace_instructions,
-        embeddingsProvider: selectedAssistant.embeddings_provider as
-          | "openai"
-          | "local"
-      })
-
-      const allFiles = (
-        await getAssistantFilesByAssistantId(selectedAssistant.id)
-      ).files
-
-      setChatFiles(
-        allFiles.map(file => ({
-          id: file.id,
-          name: file.name,
-          type: file.type,
-          file: null
-        }))
-      )
-
-      if (allFiles.length > 0) setShowRightSidebar(true)
-    } else if (selectedWorkspace) {
-      // setChatSettings({
-      //   model: (selectedWorkspace.default_model ||
-      //     "gpt-4-1106-preview") as LLMID,
-      //   prompt:
-      //     selectedWorkspace.default_prompt ||
-      //     "You are a friendly, helpful AI assistant.",
-      //   temperature: selectedWorkspace.default_temperature || 0.5,
-      //   contextLength: selectedWorkspace.default_context_length || 4096,
-      //   includeProfileContext:
-      //     selectedWorkspace.include_profile_context || true,
-      //   includeWorkspaceInstructions:
-      //     selectedWorkspace.include_workspace_instructions || true,
-      //   embeddingsProvider:
-      //     (selectedWorkspace.embeddings_provider as "openai" | "local") ||
-      //     "openai"
-      // })
-    }
-
-    return router.push(`/${selectedWorkspace.id}/chat`)
+    context.setSelectedAssistant(null)
+    context.setUserInput("")
+    context.setChatMessages([])
+    setMessages([])
+    context.setSelectedChat(null)
+    context.setIsGenerating(false)
+    router.push(`/${context.selectedWorkspace.id}/chat`)
   }
 
   const handleFocusChatInput = () => {
     chatInputRef.current?.focus()
   }
-
-  const handleStopMessage = () => {
-    if (abortController) {
-      abortController.abort()
-    }
-  }
+  const handleStopMessage = () => stop()
+  const handleSendEdit = async () => {}
 
   const handleSendMessage = async (
     messageContent: string,
     chatMessages: ChatMessage[],
     isRegeneration: boolean
   ) => {
-    const startingInput = messageContent
-
     try {
-      setUserInput("")
-      setIsGenerating(true)
-      setIsPromptPickerOpen(false)
-      setIsFilePickerOpen(false)
-      setNewMessageImages([])
-
-      const newAbortController = new AbortController()
-      setAbortController(newAbortController)
-
-      const modelData = [
-        ...availableLocalModels,
-        ...models.map(model => ({
-          modelId: model.model_id as LLMID,
-          modelName: model.name,
-          provider: "custom" as ModelProvider,
-          hostedId: model.id,
-          platformLink: "",
-          imageInput: false
-        })),
-        ...LLM_LIST,
-        ...availableOpenRouterModels
-      ].find(llm => llm.modelId === chatSettings?.model)
-
-      validateChatSettings(
-        chatSettings,
-        modelData,
-        profile,
-        selectedWorkspace,
-        messageContent
-      )
-
-      let currentChat = selectedChat ? { ...selectedChat } : null
-
-      const b64Images = newMessageImages.map(image => image.base64)
-
-      let retrievedFileItems: Tables<"file_items">[] = []
-
-      if (
-        (newMessageFiles.length > 0 || chatFiles.length > 0) &&
-        useRetrieval
-      ) {
-        retrievedFileItems = await handleRetrieval(
-          userInput,
-          newMessageFiles,
-          chatFiles,
-          chatSettings!.embeddingsProvider,
-          sourceCount
-        )
-      }
-
-      const { tempUserChatMessage, tempAssistantChatMessage } =
-        createTempMessages(
-          messageContent,
-          chatMessages,
-          chatSettings!,
-          b64Images,
-          isRegeneration,
-          setChatMessages,
-          selectedAssistant
-        )
-
-      let payload: ChatPayload = {
-        chatSettings: chatSettings!,
-        workspaceInstructions: selectedWorkspace!.instructions || "",
-        chatMessages: isRegeneration
-          ? [...chatMessages]
-          : [...chatMessages, tempUserChatMessage],
-        assistant: selectedChat?.assistant_id ? selectedAssistant : null,
-        messageFileItems: retrievedFileItems,
-        chatFileItems: chatFileItems,
-        agentPersona: agentPersona || undefined,
-        behaviorState: flowState || undefined
-      }
-
-      const preTransitionFlowState = flowState
-        ? {
-            currentState: flowState.currentState,
-            goal: flowState.goal ?? null,
-            guide: flowState.guide ?? null,
-            teach: flowState.teach ?? null,
-            validIntents: [...(flowState.validIntents ?? [])],
-            graph: flowState.graph ?? null
-          }
-        : null
-
-      let generatedText = ""
-      let sentMessages: any[] = []
-      let flowIntentName: string | null = null
-      let flowToolExchange: Array<{ role: string; content: any }> | null = null
-
-      const seqNum = isRegeneration
-        ? payload.chatMessages[payload.chatMessages.length - 1].message
-            .sequence_number
-        : tempAssistantChatMessage.message.sequence_number
-
-
-      // Dispatch flow_context event at turn start
-      if (preTransitionFlowState) {
-        addFlowEvent({
-          id: crypto.randomUUID(),
-          seqNum,
-          type: "flow_context",
-          timestamp: Date.now(),
-          data: {
-            state: preTransitionFlowState.currentState,
-            goal: preTransitionFlowState.goal,
-            guide: preTransitionFlowState.guide,
-            teach: preTransitionFlowState.teach,
-            validIntents: preTransitionFlowState.validIntents
-          }
-        })
-      }
-
-      if (
-        flowEngine &&
-        flowState &&
-        flowState.validIntents.length > 0
-      ) {
-        // Flow-controlled turn: non-streaming with tool calling
-        const result = await handleFlowChat(
-          payload,
-          profile!,
-          modelData!,
-          tempAssistantChatMessage,
-          isRegeneration,
-          chatImages,
-          flowState,
-          setChatMessages,
-          setFirstTokenReceived,
-          msgs => {
-            sentMessages = msgs
-            addFlowEvent({
-              id: crypto.randomUUID(),
-              seqNum,
-              type: "llm_request",
-              timestamp: Date.now(),
-              data: {
-                messageCount: msgs.length,
-                hasTools: true
-              }
-            })
-          },
-          thinking => {
-            setThinkingLog(prev => ({ ...prev, [seqNum]: thinking }))
-          },
-          ev => {
-            addFlowEvent({ id: crypto.randomUUID(), seqNum, timestamp: Date.now(), ...ev })
-          }
-        )
-        generatedText = result.content
-        flowIntentName = result.intentName
-        flowToolExchange = result.toolExchange
-      } else {
-        let result;
-        if (modelData!.provider === "local") {
-          result = await handleLocalChat(
-            payload,
-            profile!,
-            chatSettings!,
-            modelData!,
-            tempAssistantChatMessage,
-            isRegeneration,
-            newAbortController,
-            setIsGenerating,
-            setFirstTokenReceived,
-            setChatMessages,
-            () => {},
-            thinking => {
-              setThinkingLog(prev => ({ ...prev, [seqNum]: thinking }))
-            }
-          )
-        } else {
-          result = await handleHostedChat(
-            payload,
-            profile!,
-            modelData!,
-            tempAssistantChatMessage,
-            isRegeneration,
-            newAbortController,
-            newMessageImages,
-            chatImages,
-            setIsGenerating,
-            setFirstTokenReceived,
-            setChatMessages,
-            () => {},
-            msgs => {
-              sentMessages = msgs
-            },
-            thinking => {
-              setThinkingLog(prev => ({ ...prev, [seqNum]: thinking }))
-            }
-          )
-        }
-        generatedText = result.content
-        flowIntentName = result.intentName || null
-        flowToolExchange = result.toolExchange || null
-      }
-
-      // Post-turn: run FSM transition (flow only) then record debug info for all turns
-      const transitionEffects: any[] = []
-      // Captured now so the checks below can tell whether the user has since
-      // switched to a different chat — the kernel calls still run either way
-      // (that chat's session must keep advancing), but the shared/visible
-      // state (setFlowState, showRightSidebar effects) must not bleed into
-      // whatever chat is on screen by the time this async turn resolves.
-      const flowChatKey = selectedChat?.id ?? "__new__"
-      if (flowEngine && flowState) {
-        // Kernel calls can reject (e.g. a wasm panic in the shared worker).
-        // Isolate them so a kernel failure degrades to "no flow transition
-        // this turn" instead of aborting the send before the message is
-        // persisted to IndexedDB.
-        try {
-          if (flowIntentName === "offtopic") {
-            const fx = await flowEngine.send_offtopic()
-            if (Array.isArray(fx)) {
-              transitionEffects.push(...fx)
-              const transitionEffect = fx.find(
-                (e: any) => e.type === "transition"
-              )
-              if (transitionEffect && activeChatKeyRef.current === flowChatKey) {
-                const newState = flowEngine.get_current_state()
-                setFlowState({
-                  currentState: newState,
-                  goal: fx.find((e: any) => e.type === "goal")?.text,
-                  guide: fx.find((e: any) => e.type === "guide")?.text,
-                  teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
-                  validIntents: Array.from(
-                    flowEngine.get_valid_intents() || []
-                  ) as string[],
-                  graph: flowEngine.get_graph()
-                })
-                addFlowEvent({
-                  id: crypto.randomUUID(),
-                  seqNum,
-                  type: "fsm_transition",
-                  timestamp: Date.now(),
-                  data: {
-                    intent: "offtopic",
-                    from: transitionEffect.from,
-                    to: transitionEffect.to,
-                    effects: fx,
-                    newGoal: fx.find((e: any) => e.type === "goal")?.text ?? null,
-                    newGuide:
-                      fx.find((e: any) => e.type === "guide")?.text ?? null
-                  }
-                })
-              }
-            }
-          } else if (flowIntentName) {
-            const fx = await flowEngine.send_intent(flowIntentName)
-            if (Array.isArray(fx)) {
-              transitionEffects.push(...fx)
-              const transitionEffect = fx.find(
-                (e: any) => e.type === "transition"
-              )
-              if (transitionEffect && activeChatKeyRef.current === flowChatKey) {
-                const newState = flowEngine.get_current_state()
-                setFlowState({
-                  currentState: newState,
-                  goal: fx.find((e: any) => e.type === "goal")?.text,
-                  guide: fx.find((e: any) => e.type === "guide")?.text,
-                  teach: resolveTeach(fx.find((e: any) => e.type === "teach")?.text),
-                  validIntents: Array.from(
-                    flowEngine.get_valid_intents() || []
-                  ) as string[],
-                  graph: flowEngine.get_graph()
-                })
-                addFlowEvent({
-                  id: crypto.randomUUID(),
-                  seqNum,
-                  type: "fsm_transition",
-                  timestamp: Date.now(),
-                  data: {
-                    intent: flowIntentName,
-                    from: transitionEffect.from,
-                    to: transitionEffect.to,
-                    effects: fx,
-                    newGoal: fx.find((e: any) => e.type === "goal")?.text ?? null,
-                    newGuide:
-                      fx.find((e: any) => e.type === "guide")?.text ?? null
-                  }
-                })
-              }
-            }
-          }
-          const tickFx = await flowEngine.tick_prompt()
-          if (Array.isArray(tickFx)) transitionEffects.push(...tickFx)
-        } catch (flowError) {
-          console.error(
-            "[flowEngine] kernel call failed; continuing without flow transition",
-            flowError
-          )
-        }
-        if (activeChatKeyRef.current === flowChatKey) {
-          handleKernelEffects(transitionEffects, { setShowRightSidebar })
-        }
-      }
-
-      setFlowDebugLog(prev => ({
-        ...prev,
-        [seqNum]: {
-          sequenceNumber: seqNum,
-          stateAtSend: preTransitionFlowState?.currentState ?? "",
-          goal: preTransitionFlowState?.goal ?? null,
-          guide: preTransitionFlowState?.guide ?? null,
-          teach: preTransitionFlowState?.teach ?? null,
-          validIntents: preTransitionFlowState?.validIntents ?? [],
-          sentMessages,
-          rawResponse: generatedText,
-          intentFound: flowIntentName,
-          transitionEffects,
-          toolExchange: flowToolExchange
-        }
-      }))
-
+      context.setUserInput("")
+      context.setIsGenerating(true)
+      
+      // 1. Initial Persist (User Message)
+      let currentChat = context.selectedChat
       if (!currentChat) {
-        // The message was composed while selectedChat was still null, so the
-        // agent session (if any) for it lives under the "__new__" bucket.
-        // Migrate it onto the just-persisted chat id before setSelectedChat
-        // triggers RightSidebar's chat-switch effect, otherwise that effect
-        // would create a brand new empty session for the new chat id and
-        // orphan the one that was actually driving this conversation.
-        const chatKeyBeforeCreate = selectedChat?.id ?? "__new__"
-        const setSelectedChatAndMigrateSession: typeof setSelectedChat = value => {
-          const nextChat =
-            typeof value === "function" ? value(selectedChat) : value
-          if (nextChat) migrateChatAgentSession(chatKeyBeforeCreate, nextChat.id)
-          setSelectedChat(value)
-        }
-        currentChat = await handleCreateChat(
-          chatSettings!,
-          profile!,
-          selectedWorkspace!,
-          messageContent,
-          selectedAssistant!,
-          newMessageFiles,
-          setSelectedChatAndMigrateSession,
-          setChats,
-          setChatFiles
-        )
-      } else {
-        const updatedChat = await updateChat(currentChat.id, {
-          updated_at: new Date().toISOString()
+        currentChat = await createChat({
+          workspace_id: context.selectedWorkspace!.id,
+          user_id: context.profile!.id,
+          name: messageContent.substring(0, 50),
+          model: context.chatSettings?.model || "custom",
+          prompt: context.chatSettings?.prompt || "",
+          temperature: context.chatSettings?.temperature || 0.5,
+          context_length: context.chatSettings?.contextLength || 4000,
+          embeddings_provider: "openai"
         })
-
-        setChats(prevChats => {
-          const updatedChats = prevChats.map(prevChat =>
-            prevChat.id === updatedChat.id ? updatedChat : prevChat
-          )
-
-          return updatedChats
-        })
+        context.setSelectedChat(currentChat)
+        context.setChats(prev => [currentChat!, ...prev])
       }
 
-      await handleCreateMessages(
-        chatMessages,
-        currentChat,
-        profile!,
-        modelData!,
-        messageContent,
-        generatedText,
-        newMessageImages,
-        isRegeneration,
-        retrievedFileItems,
-        setChatMessages,
-        setChatFileItems,
-        setChatImages,
-        selectedAssistant,
-        setKnowledge,
-        backgroundModel,
-        setBackgroundQueue,
-        flowToolExchange
+      const seqNum = chatMessagesRef.current.length > 0 
+        ? chatMessagesRef.current[chatMessagesRef.current.length - 1].message.sequence_number + 1 
+        : 1
+
+      const userMsgs = await createMessages([{
+        chat_id: currentChat.id,
+        content: messageContent,
+        role: "user",
+        model: context.chatSettings?.model || "custom",
+        user_id: context.profile!.id,
+        sequence_number: seqNum
+      }])
+
+      context.setChatMessages(prev => [...prev, { message: userMsgs[0], fileItems: [] }])
+
+      // 2. Fetch MCP Tools
+      const mcpRes = await fetch("/api/mcp/tools")
+      const mcpToolsData = mcpRes.ok ? await mcpRes.json() : []
+
+      // 3. Append to Vercel AI SDK
+      const customModel = resolveCustomModel(
+        context.models,
+        context.availableLocalModels,
+        context.chatSettings?.model
       )
 
-      setIsGenerating(false)
-      setFirstTokenReceived(false)
-    } catch (error) {
-      console.error("[handleSendMessage] send failed:", error)
-      setIsGenerating(false)
-      setFirstTokenReceived(false)
-      setUserInput(startingInput)
+      append(
+        { text: messageContent },
+        {
+          body: {
+            chatSettings: context.chatSettings,
+            customModel,
+            // Tool objects (Zod schemas, closures) don't survive JSON — the
+            // server builds the actual tool set from these raw ingredients
+            // via lib/tools/registry.ts (see app/api/chat/*/route.ts).
+            behaviorState: context.flowState || undefined,
+            mcpTools: mcpToolsData
+          }
+        }
+      )
+
+    } catch (err: any) {
+      logger.error("handleSendMessage failed", { error: err.message })
+      context.setIsGenerating(false)
     }
   }
 
-  const handleSendEdit = async (
-    editedContent: string,
-    sequenceNumber: number
-  ) => {
-    if (!selectedChat) return
-
-    await deleteMessagesIncludingAndAfter(
-      selectedChat.user_id,
-      selectedChat.id,
-      sequenceNumber
-    )
-
-    const filteredMessages = chatMessages.filter(
-      chatMessage => chatMessage.message.sequence_number < sequenceNumber
-    )
-
-    setChatMessages(filteredMessages)
-
-    handleSendMessage(editedContent, filteredMessages, false)
-  }
-
   return {
-    chatInputRef,
-    prompt,
     handleNewChat,
     handleSendMessage,
     handleFocusChatInput,
     handleStopMessage,
-    handleSendEdit
+    handleSendEdit,
+    chatInputRef
   }
 }

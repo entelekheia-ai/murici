@@ -12,8 +12,10 @@ import {
 import { ChatSettings } from "@/types"
 import { NextRequest, NextResponse } from "next/server"
 import { createAnthropic } from "@ai-sdk/anthropic"
-import { streamText, generateText } from "ai"
-import { toModelMessages, buildAiSdkTools } from "@/lib/server/model-message-adapter"
+import { streamText, convertToModelMessages } from "ai"
+import { buildAiSdkTools } from "@/lib/server/model-message-adapter"
+import { getBuiltInTools, mapMcpTools } from "@/lib/tools/registry"
+import { logger } from "@/lib/logger"
 
 export const runtime = "edge"
 
@@ -41,10 +43,12 @@ function withAnthropicCacheBreakpoint(messages: any[]): any[] {
 
 export async function POST(request: NextRequest) {
   const json = await request.json()
-  const { chatSettings, messages, tools: rawTools } = json as {
+  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools } = json as {
     chatSettings: ChatSettings
     messages: any[]
     tools?: any[]
+    behaviorState?: any
+    mcpTools?: any[]
   }
 
   try {
@@ -56,47 +60,24 @@ export async function POST(request: NextRequest) {
       apiKey: profile.anthropic_api_key || ""
     })
 
-    const useStreaming = !rawTools?.length
-    const tools = buildAiSdkTools(rawTools)
-    const modelMessages = withAnthropicCacheBreakpoint(toModelMessages(messages))
-
-    if (!useStreaming) {
-      const result = await generateText({
-        model: anthropic(chatSettings.model),
-        messages: modelMessages,
-        allowSystemInMessages: true,
-        temperature: chatSettings.temperature,
-        tools
-      })
-
-      return NextResponse.json({
-        choices: [
-          {
-            message: {
-              content: result.text || "",
-              tool_calls: result.toolCalls?.map(call => ({
-                id: call.toolCallId,
-                type: "function",
-                function: {
-                  name: call.toolName,
-                  arguments: JSON.stringify(call.input)
-                }
-              }))
-            }
-          }
-        ]
-      })
+    const tools = {
+      ...buildAiSdkTools(rawTools),
+      ...getBuiltInTools(behaviorState),
+      ...mapMcpTools(mcpTools || [])
     }
+    const modelMessages = withAnthropicCacheBreakpoint(await convertToModelMessages(messages, { tools }))
 
     const result = await streamText({
       model: anthropic(chatSettings.model),
       messages: modelMessages,
       allowSystemInMessages: true,
-      temperature: chatSettings.temperature
+      temperature: chatSettings.temperature,
+      tools
     })
 
-    return result.toTextStreamResponse()
+    return result.toUIMessageStreamResponse()
   } catch (error: any) {
+    logger.error("chat route failed", { provider: "anthropic", model: chatSettings?.model, error: error.message })
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
 

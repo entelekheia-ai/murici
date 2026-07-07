@@ -8,17 +8,21 @@
 import { checkApiKey, getProfileFromBody } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { createOpenAI } from "@ai-sdk/openai"
-import { streamText, generateText } from "ai"
-import { toModelMessages, buildAiSdkTools } from "@/lib/server/model-message-adapter"
+import { streamText, convertToModelMessages } from "ai"
+import { buildAiSdkTools } from "@/lib/server/model-message-adapter"
+import { getBuiltInTools, mapMcpTools } from "@/lib/tools/registry"
+import { logger } from "@/lib/logger"
 
 export const runtime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, tools: rawTools } = json as {
+  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools } = json as {
     chatSettings: ChatSettings
     messages: any[]
     tools?: any[]
+    behaviorState?: any
+    mcpTools?: any[]
   }
 
   try {
@@ -33,47 +37,24 @@ export async function POST(request: Request) {
       baseURL: "https://openrouter.ai/api/v1"
     })
 
-    const useStreaming = !rawTools?.length
-    const tools = buildAiSdkTools(rawTools)
-    const modelMessages = toModelMessages(messages)
-
-    if (!useStreaming) {
-      const result = await generateText({
-        model: custom(chatSettings.model),
-        messages: modelMessages,
-        allowSystemInMessages: true,
-        temperature: chatSettings.temperature,
-        tools
-      })
-
-      return Response.json({
-        choices: [
-          {
-            message: {
-              content: result.text || "",
-              tool_calls: result.toolCalls?.map(call => ({
-                id: call.toolCallId,
-                type: "function",
-                function: {
-                  name: call.toolName,
-                  arguments: JSON.stringify(call.input)
-                }
-              }))
-            }
-          }
-        ]
-      })
+    const tools = {
+      ...buildAiSdkTools(rawTools),
+      ...getBuiltInTools(behaviorState),
+      ...mapMcpTools(mcpTools || [])
     }
+    const modelMessages = await convertToModelMessages(messages, { tools })
 
     const result = await streamText({
       model: custom(chatSettings.model),
       messages: modelMessages,
       allowSystemInMessages: true,
-      temperature: chatSettings.temperature
+      temperature: chatSettings.temperature,
+      tools
     })
 
-    return result.toTextStreamResponse()
+    return result.toUIMessageStreamResponse()
   } catch (error: any) {
+    logger.error("chat route failed", { provider: "openrouter", model: chatSettings?.model, error: error.message })
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
 

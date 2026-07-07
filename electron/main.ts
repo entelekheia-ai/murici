@@ -28,22 +28,48 @@ const isDev =
   !app.isPackaged
 
 // A packaged app launched from Finder/Dock has no attached terminal, so
-// plain console.log/console.error go nowhere the user can see. Mirror them
 // to a file under the OS logs dir so a silent startup failure (e.g. the
 // bundled Next.js server failing to boot) is still diagnosable.
+import * as winston from "winston"
+
 const logFile = path.join(app.getPath("logs"), "main.log")
 fs.mkdirSync(path.dirname(logFile), { recursive: true })
-const logStream = fs.createWriteStream(logFile, { flags: "a" })
+
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(({ timestamp, level, message }) => {
+      return `[${timestamp}] [${level.toUpperCase()}] ${message}`
+    })
+  ),
+  transports: [
+    new winston.transports.File({ filename: logFile }),
+    // In dev, Next.js output and console.log is very spammy, but we keep it
+    ...(isDev ? [new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })] : [])
+  ]
+})
+
 for (const method of ["log", "warn", "error"] as const) {
   const original = console[method].bind(console)
   console[method] = (...args: any[]) => {
-    original(...args)
+    // Only output to native console if not in Dev via Winston (to avoid double logging)
+    // Actually Winston console transport will handle stdout in dev.
     const line = args
       .map(a => (a instanceof Error ? (a.stack ?? a.message) : typeof a === "string" ? a : JSON.stringify(a)))
       .join(" ")
-    logStream.write(`[${new Date().toISOString()}] [${method}] ${line}\n`)
+    
+    if (method === "log") logger.info(line)
+    else if (method === "warn") logger.warn(line)
+    else if (method === "error") logger.error(line)
   }
 }
+
 console.log(`Murici starting — version ${app.getVersion()}, log file: ${logFile}`)
 
 let mainWindow: BrowserWindow | null = null

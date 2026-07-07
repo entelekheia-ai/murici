@@ -14,10 +14,26 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 const config: Config = {
   coverageProvider: "v8",
-  testEnvironment: "jsdom"
-  // Add more setup options before each test is run
-  // setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  testEnvironment: "jsdom",
+  setupFiles: ["<rootDir>/jest.setup.ts"],
+  // Playwright specs (run via `npm run test:e2e`, not Jest) use `@playwright/test`'s
+  // own `test()` — importing that runner outside its CLI breaks in confusing ways.
+  testPathIgnorePatterns: ["<rootDir>/node_modules/", "<rootDir>/__tests__/playwright-test/"]
 }
 
-// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-export default createJestConfig(config)
+// next/jest merges its own `transformIgnorePatterns` (which always includes
+// a blanket `/node_modules/`) ahead of whatever we pass in `config` above —
+// since Jest ignores a path if ANY pattern matches, that blanket entry wins
+// regardless of what we add. The Vercel AI SDK ships ESM-only builds with a
+// deep transitive ESM dependency chain (`ai` -> `@ai-sdk/gateway` ->
+// `@workflow/serde`, etc.), so carving out exceptions package-by-package is
+// whack-a-mole. Instead, drop the blanket node_modules ignore entirely (keep
+// only next/jest's CSS-module pattern) so SWC transforms whatever actually
+// gets required — it's fast enough and only touches modules under test.
+export default async () => {
+  const nextJestConfig = await createJestConfig(config)()
+  return {
+    ...nextJestConfig,
+    transformIgnorePatterns: ["^.+\\.module\\.(css|sass|scss)$"]
+  }
+}

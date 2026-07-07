@@ -8,18 +8,22 @@
 import { ChatSettings } from "@/types"
 import { ServerRuntime } from "next"
 import { createOpenAI } from "@ai-sdk/openai"
-import { streamText, generateText, extractReasoningMiddleware, wrapLanguageModel } from "ai"
-import { toModelMessages, buildAiSdkTools } from "@/lib/server/model-message-adapter"
+import { streamText, extractReasoningMiddleware, wrapLanguageModel, convertToModelMessages } from "ai"
+import { buildAiSdkTools } from "@/lib/server/model-message-adapter"
+import { getBuiltInTools, mapMcpTools } from "@/lib/tools/registry"
+import { logger } from "@/lib/logger"
 
 export const runtime: ServerRuntime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, customModel, tools: rawTools } = json as {
+  const { chatSettings, messages, customModel, tools: rawTools, behaviorState, mcpTools } = json as {
     chatSettings: ChatSettings
     messages: any[]
     customModel: { api_key: string; base_url: string; model_id: string }
     tools?: any[]
+    behaviorState?: any
+    mcpTools?: any[]
   }
 
   try {
@@ -27,58 +31,52 @@ export async function POST(request: Request) {
       throw new Error("Custom model base_url is required")
     }
 
+    // Auto-discovered "local" models (Ollama, LM Studio, oMLX, etc. — see
+    // app/api/models/discover/route.ts) store a bare host:port with no `/v1`
+    // suffix, while manually-configured "custom" models are expected to
+    // already include it. createOpenAI's baseURL must be the full API root,
+    // so normalize here regardless of which bucket the model came from.
+    const bareBaseUrl = customModel.base_url.replace(/\/+$/, "")
+    const normalizedBaseUrl = bareBaseUrl.endsWith("/v1")
+      ? bareBaseUrl
+      : `${bareBaseUrl}/v1`
+
     const custom = createOpenAI({
       apiKey: customModel.api_key || "",
-      baseURL: customModel.base_url
+      baseURL: normalizedBaseUrl
     })
 
-    const useStreaming = !rawTools?.length
-    const tools = buildAiSdkTools(rawTools)
-    const modelMessages = toModelMessages(messages)
+    const tools = {
+      ...buildAiSdkTools(rawTools),
+      ...getBuiltInTools(behaviorState),
+      ...mapMcpTools(mcpTools || [])
+    }
+    const modelMessages = await convertToModelMessages(messages, { tools })
+
+    const { extractToolCallMiddleware } = await import("@/lib/server/providers/tool-call-leak-middleware")
 
     // Wrap model to automatically extract <think> tags into reasoning protocol
+    // and extract raw leaked <tool_call> tags from local models
     const model = wrapLanguageModel({
       model: custom(chatSettings.model),
-      middleware: extractReasoningMiddleware({ tagName: "think" })
+      middleware: [
+        extractReasoningMiddleware({ tagName: "think" }),
+        extractToolCallMiddleware
+      ]
     })
 
-    if (!useStreaming) {
-      const result = await generateText({
-        model,
-        messages: modelMessages,
-        allowSystemInMessages: true,
-        temperature: chatSettings.temperature,
-        tools
-      })
-
-      return Response.json({
-        choices: [
-          {
-            message: {
-              content: result.text || "",
-              tool_calls: result.toolCalls?.map(call => ({
-                id: call.toolCallId,
-                type: "function",
-                function: {
-                  name: call.toolName,
-                  arguments: JSON.stringify(call.input)
-                }
-              }))
-            }
-          }
-        ]
-      })
-    }
-
+    // We ALWAYS use streaming with Vercel useChat for real-time tool calls
     const result = await streamText({
       model,
       messages: modelMessages,
       allowSystemInMessages: true,
-      temperature: chatSettings.temperature
+      temperature: chatSettings.temperature,
+      tools
     })
 
-    return result.toTextStreamResponse()
+    return result.toUIMessageStreamResponse()
   } catch (error: any) {
+    logger.error("chat route failed", { provider: "custom", model: chatSettings?.model, error: error.message })
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
 
