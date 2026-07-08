@@ -25,6 +25,7 @@ jobs:
         run: npm ci
 
       - name: Build and Publish Next.js + Electron
+        shell: bash
         env:
           ELECTRON_BUILD: "1"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
