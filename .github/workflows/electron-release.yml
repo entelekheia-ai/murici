@@ -24,11 +24,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Next.js + Electron
+      - name: Build and Publish Next.js + Electron
         env:
           ELECTRON_BUILD: "1"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run electron:build
+          CSC_LINK: ${{ secrets.MAC_CERTS }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run electron:publish
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

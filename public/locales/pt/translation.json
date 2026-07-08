@@ -48,5 +48,6 @@
   "Alphabetical": "Alfabética",
   "No recent agents.": "Nenhum agente recente.",
   "Agent file could not be found. It may have been moved or deleted.": "Não foi possível encontrar o arquivo do agente. Ele pode ter sido movido ou excluído.",
-  "murici_logo": "Logotipo do Murici"
+  "murici_logo": "Logotipo do Murici",
+  "murici_description": "Murici é uma interface de Chat leve e responsiva para desktop e web, projetada para executar comportamentos de agentes determinísticos de máquina de estado."
 }

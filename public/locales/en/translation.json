@@ -48,5 +48,6 @@
   "Alphabetical": "Alphabetical",
   "No recent agents.": "No recent agents.",
   "Agent file could not be found. It may have been moved or deleted.": "Agent file could not be found. It may have been moved or deleted.",
-  "murici_logo": "Murici Logo"
+  "murici_logo": "Murici Logo",
+  "murici_description": "Murici is a lightweight, responsive desktop and web Chat UI designed for running deterministic state-machine agent behaviors."
 }

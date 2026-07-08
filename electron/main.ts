@@ -164,6 +164,13 @@ async function createWindow() {
 
 app.whenReady().then(async () => {
   try {
+    app.setAboutPanelOptions({
+      applicationName: "Murici",
+      applicationVersion: app.getVersion(),
+      copyright: "Copyright © 2026 Danilo Borges / Entelékheia Labs",
+      website: "https://entelekheia.ai"
+    })
+
     if (!isDev) serverPort = await startNextServer()
     await createWindow()
     if (!isDev) setupAutoUpdater()
