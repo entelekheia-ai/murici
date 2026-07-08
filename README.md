@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="docs/images/header.png" alt="dot-agent" width="800">
+</p>
+
 # Murici
 
-> A premium Chat UI with deterministic state-machine behavior routing powered by `@dot-agent/sdk`.
+> A LLM chat runtime with deterministic state-machine behavior routing powered by `@dot-agent/sdk`.
 
 Murici is a lightweight, responsive desktop and web Chat UI designed for running deterministic state-machine agent behaviors. By integrating LLM chat interactions with structured finite state machine (FSM) controls, Murici allows developers to design predictable, goal-driven conversational flows.
 
@@ -10,7 +14,7 @@ Murici is a lightweight, responsive desktop and web Chat UI designed for running
 
 - **Deterministic Behavior Routing**: Manage chat sessions, goals, styles, and instructions using `@dot-agent/sdk` and `AgentSession` runtimes.
 - **Local Model Auto-Discovery**: Automatically scan and connect to local LLM servers (e.g., Ollama or custom local API endpoints) alongside standard hosted APIs.
-- **Drag-and-Drop Agent Bundles**: Instantly load and compile behaviors by dragging and dropping `.agent` bundles or `.flow` DSL files directly into the agent panel.
+- **Drag-and-Drop Agent Bundles**: Instantly load and compile behaviors by dragging and dropping `.agent` bundles.
 - **SCXML State Graph**: Visually monitor conversation state, visited steps, and active transitions in real time using a custom SVG-rendered state graph parsed from SCXML.
 - **IndexedDB Persistence**: Save chat history, settings, and custom models directly in the client database (`idb`), requiring no external database or authentication setup.
 - **Electron Desktop packaging**: Easily build standalone binaries (`.dmg`, `.exe`, `.AppImage`) using `electron-builder` for local-first desktop usage.
