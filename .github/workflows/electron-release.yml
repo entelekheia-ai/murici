@@ -32,10 +32,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Select Xcode 15.4 to fix electron-builder actool issue
-        if: matrix.os == 'macos-latest'
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
-
       - name: Build and Publish Next.js + Electron
         shell: bash
         env:
