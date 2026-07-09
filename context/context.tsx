@@ -210,9 +210,11 @@ interface ChatbotUIContext {
   newChatSignal: number
   setNewChatSignal: Dispatch<SetStateAction<number>>
 
-  // THINKING LOG STORE
-  thinkingLog: Record<number, string>
-  setThinkingLog: Dispatch<SetStateAction<Record<number, string>>>
+  // THINKING LOG STORE — keyed by message id (stable across the streaming ->
+  // persisted handoff), not sequence_number (which was recomputed in several
+  // places and diverged, making the <think> block vanish when a stream ended).
+  thinkingLog: Record<string, string>
+  setThinkingLog: Dispatch<SetStateAction<Record<string, string>>>
 
   // FLOW EVENT LOG
   flowEvents: FlowEvent[]

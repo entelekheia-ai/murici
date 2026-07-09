@@ -201,7 +201,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   )
 
   // THINKING LOG STORE
-  const [thinkingLog, setThinkingLog] = useState<Record<number, string>>({})
+  const [thinkingLog, setThinkingLog] = useState<Record<string, string>>({})
 
   // KNOWLEDGE STORE
   const [knowledge, setKnowledge] = useState<KnowledgeRecord[]>([])

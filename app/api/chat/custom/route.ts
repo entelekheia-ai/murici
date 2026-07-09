@@ -27,6 +27,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    logger.info("Custom chat route body", { 
+      messagesCount: json.messages?.length, 
+      messages: json.messages?.map((m: any) => ({ role: m.role, content: m.content?.slice?.(0, 50) || m.content })) 
+    })
+
     if (!customModel?.base_url) {
       throw new Error("Custom model base_url is required")
     }
@@ -51,7 +56,24 @@ export async function POST(request: Request) {
       ...getBuiltInTools(behaviorState),
       ...mapMcpTools(mcpTools || [])
     }
-    const modelMessages = await convertToModelMessages(messages, { tools })
+
+    // Polyfill 'parts' array for older messages to prevent convertToModelMessages from crashing or dropping them
+    const normalizedMessages = messages.map(m => {
+      if (!m.parts) {
+        if (m.role === "user") {
+          return { ...m, parts: [{ type: "text", text: m.content }] }
+        }
+        if (m.role === "assistant") {
+          return { ...m, parts: [{ type: "text", text: m.content || "" }] }
+        }
+        if (m.role === "system") {
+          return { ...m, parts: [{ type: "text", text: m.content || "" }] }
+        }
+      }
+      return m
+    })
+
+    const modelMessages = await convertToModelMessages(normalizedMessages, { tools })
 
     const { extractToolCallMiddleware } = await import("@/lib/server/providers/tool-call-leak-middleware")
 
@@ -76,7 +98,7 @@ export async function POST(request: Request) {
 
     return result.toUIMessageStreamResponse()
   } catch (error: any) {
-    logger.error("chat route failed", { provider: "custom", model: chatSettings?.model, error: error.message })
+    logger.error("chat route failed", { provider: "custom", model: chatSettings?.model, error: error.message, stack: error.stack })
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
 

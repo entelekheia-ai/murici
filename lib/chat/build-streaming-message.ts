@@ -27,6 +27,7 @@ export function buildStreamingAssistantMessage(params: {
   chatId: string
   content: string
   sequenceNumber: number
+  toolCalls?: any[]
 }): Message {
   return {
     id: "temp-assistant",
@@ -37,6 +38,7 @@ export function buildStreamingAssistantMessage(params: {
     content: params.content,
     model: "custom",
     sequence_number: params.sequenceNumber,
+    tool_calls: params.toolCalls || [],
     image_paths: [],
     created_at: new Date().toISOString(),
     updated_at: null

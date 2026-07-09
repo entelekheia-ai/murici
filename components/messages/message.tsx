@@ -280,9 +280,9 @@ export const Message: FC<MessageProps> = ({
             )}
             
             {message.role === "assistant" &&
-              thinkingLog?.[message.sequence_number] && (
+              thinkingLog?.[message.id] && (
                 <MessageThinkingBlock
-                  thinking={thinkingLog[message.sequence_number]}
+                  thinking={thinkingLog[message.id]}
                 />
               )}
               
