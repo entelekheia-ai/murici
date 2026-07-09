@@ -13,7 +13,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Always serial: every E2E here drives a single shared local model server
+  // (oMLX/Ollama/etc.). Running tests in parallel makes it load several models
+  // at once and run out of RAM, which shows up as spurious reply timeouts.
+  workers: 1,
   reporter: "html",
   use: {
     baseURL: "http://localhost:3000",

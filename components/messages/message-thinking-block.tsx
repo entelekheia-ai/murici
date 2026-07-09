@@ -27,7 +27,10 @@ export const MessageThinkingBlock: FC<MessageThinkingBlockProps> = ({
   const wordCount = thinking.trim().split(/\s+/).filter(Boolean).length
 
   return (
-    <div className="border-border bg-muted/20 text-muted-foreground rounded-lg border font-mono text-xs">
+    <div
+      data-testid="thinking-block"
+      className="border-border bg-muted/20 text-muted-foreground rounded-lg border font-mono text-xs"
+    >
       <details>
         <summary className="hover:bg-muted/40 flex cursor-pointer select-none items-center gap-2 px-3 py-2">
           <span>🧠</span>

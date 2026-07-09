@@ -46,9 +46,17 @@ export async function POST(request: Request) {
       ? bareBaseUrl
       : `${bareBaseUrl}/v1`
 
+    const { withReasoningContentAsThink } = await import(
+      "@/lib/server/providers/reasoning-content-fetch"
+    )
+
     const custom = createOpenAI({
       apiKey: customModel.api_key || "",
-      baseURL: normalizedBaseUrl
+      baseURL: normalizedBaseUrl,
+      // Local reasoning models stream their thinking in delta.reasoning_content,
+      // which @ai-sdk/openai drops. Fold it into the text stream as <think>...
+      // </think> so extractReasoningMiddleware below turns it into reasoning parts.
+      fetch: withReasoningContentAsThink()
     })
 
     const tools = {
@@ -80,7 +88,12 @@ export async function POST(request: Request) {
     // Wrap model to automatically extract <think> tags into reasoning protocol
     // and extract raw leaked <tool_call> tags from local models
     const model = wrapLanguageModel({
-      model: custom(chatSettings.model),
+      // .chat() forces the /v1/chat/completions endpoint. @ai-sdk/openai's
+      // default custom(id) now targets the Responses API (/v1/responses), whose
+      // stream shape differs and where local servers don't surface
+      // delta.reasoning_content — so the reasoning shim (and broad local-server
+      // compatibility) depends on staying on chat completions.
+      model: custom.chat(chatSettings.model),
       middleware: [
         extractReasoningMiddleware({ tagName: "think" }),
         extractToolCallMiddleware
