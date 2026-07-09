@@ -20,8 +20,25 @@
  * and console/fetch on the client.
  */
 
+const LEVELS = { error: 0, warn: 1, info: 2, debug: 3 } as const
+type Level = keyof typeof LEVELS
+
 class UniversalLogger {
-  private isServer = typeof window === "undefined"
+  // `typeof window === "undefined"` alone is not reliable: some libraries
+  // set a window-like polyfill object on globalThis as a side effect of
+  // being imported in a non-browser environment (observed under Jest with
+  // certain module combinations), without it having a real `document`. A
+  // real browser/jsdom window always has `.document`.
+  private isServer = typeof window === "undefined" || typeof window.document === "undefined"
+
+  // debug is off by default (both server and client) — it's meant to be
+  // turned on ad hoc while investigating something (NEXT_PUBLIC_LOG_LEVEL is
+  // inlined at build time by Next.js, so it works in both environments,
+  // unlike a server-only LOG_LEVEL var), not left permanently noisy.
+  private currentLevel: Level =
+    (typeof process !== "undefined" &&
+      (process.env.NEXT_PUBLIC_LOG_LEVEL as Level)) ||
+    "info"
 
   info(message: string, meta?: Record<string, any>) {
     this._log("info", message, meta)
@@ -39,7 +56,9 @@ class UniversalLogger {
     this._log("debug", message, meta)
   }
 
-  private _log(level: string, message: string, meta?: Record<string, any>) {
+  private _log(level: Level, message: string, meta?: Record<string, any>) {
+    if (LEVELS[level] > LEVELS[this.currentLevel]) return
+
     if (this.isServer) {
       // On the server, we rely on the global console which is intercepted by winston in main.ts
       // or we can import winston directly if we are in Next.js.
@@ -59,15 +78,38 @@ class UniversalLogger {
           break
       }
     } else {
-      // On the client, we can dispatch to the backend (via API or IPC) if needed,
-      // or just console log.
+      // On the client, mirror to the console as before, and also forward
+      // errors to /api/errors/client so they land in the same Winston
+      // pipeline as server-side errors (see that route for why).
       if (level === "error") {
         console.error(message, meta || "")
+        this._reportToServer(message, meta)
       } else if (level === "warn") {
         console.warn(message, meta || "")
       } else {
         console.log(`[${level.toUpperCase()}]`, message, meta || "")
       }
+    }
+  }
+
+  private _reportToServer(message: string, meta?: Record<string, any>) {
+    if (typeof fetch !== "function") return
+    try {
+      fetch("/api/errors/client", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message,
+          ...meta,
+          source: meta?.source || "logger.error",
+          url: window.location.href
+        }),
+        keepalive: true
+      }).catch(() => {
+        // Best-effort only — never let error reporting itself throw.
+      })
+    } catch {
+      // fetch() itself can throw synchronously in some environments.
     }
   }
 }

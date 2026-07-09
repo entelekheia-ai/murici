@@ -6,7 +6,7 @@ import { AlertCircle, Pencil, Circle, ChevronRight, ChevronDown } from "lucide-r
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
-import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
+import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
@@ -195,6 +195,8 @@ export const Message: FC<MessageProps> = ({
 
   return (
     <div
+      data-message-role={message.role}
+      data-message-id={message.id}
       className={cn(
         "flex w-full justify-center px-[40px]",
       )}

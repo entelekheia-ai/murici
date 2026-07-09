@@ -132,6 +132,30 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   const filter = (m: LLM) =>
     m.modelName.toLowerCase().includes(search.toLowerCase())
 
+  // Same order the sections render in below, respecting which accordions
+  // are open — a match hidden inside a collapsed section shouldn't be
+  // selectable via Enter.
+  const firstVisibleMatch: LLM | undefined = [
+    ...(accordion.local ? availableLocalModels.filter(filter) : []),
+    ...(accordion.custom ? customModels.filter(filter) : []),
+    ...(accordion.hosted
+      ? Object.values(hostedByProvider).flatMap(pModels => pModels.filter(filter))
+      : []),
+    ...(accordion.openrouter ? availableOpenRouterModels.filter(filter) : [])
+  ][0]
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // The search input had no key handling at all — Enter and Escape both
+    // fell through and did nothing, which reads as the picker being broken.
+    if (event.key === "Enter" && firstVisibleMatch) {
+      event.preventDefault()
+      handleSelectModel(firstVisibleMatch.modelId)
+    } else if (event.key === "Escape") {
+      event.preventDefault()
+      onClose?.()
+    }
+  }
+
   if (!profile) return null
 
   return (
@@ -144,6 +168,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
           placeholder={t("Search models...")}
           value={search}
           onChange={e => setSearch(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
         />
       </div>
 

@@ -5,7 +5,7 @@
  */
 
 import { ChatHelp } from "@/components/chat/chat-help"
-import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
+import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { ChatInput } from "@/components/chat/chat-input"
 import { Header } from "@/components/chat/header"
 import { ChatUI } from "@/components/chat/chat-ui"

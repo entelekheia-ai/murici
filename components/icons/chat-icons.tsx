@@ -122,11 +122,15 @@ export const IconSidebarToggle = ({
   }
 }
 
-export const IconEditFigma = ({ className, size = 14, strokeWidth = 1.2, ...props }: React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+export const IconEditFigma = React.forwardRef<
+  SVGSVGElement,
+  React.SVGProps<SVGSVGElement> & { size?: number, strokeWidth?: number }
+>(({ className, size = 14, strokeWidth = 1.2, ...props }, ref) => (
+  <svg ref={ref} width={size} height={size} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
     <path d="M9.4 2.8L11.2 4.6M11.2 1L13 2.8L4 11.8L1 13L2.2 10L11.2 1Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
-)
+))
+IconEditFigma.displayName = "IconEditFigma"
 
 export const IconTrashFigma = React.forwardRef<
   SVGSVGElement,

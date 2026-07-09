@@ -35,7 +35,8 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
     flowState,
     setAgentKnowledgeFiles,
     setAgentPersona,
-    setShowRightSidebar
+    setShowRightSidebar,
+    newChatSignal
   } = useContext(ChatbotUIContext)
 
   const [engine, setEngine] = useState<any>(null)
@@ -281,6 +282,19 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
     },
     [destroyChatAgentSession, getOrCreateSession, applySessionToView, activeChatKeyRef]
   )
+
+  // ChatHandlerProvider bumps newChatSignal when the user starts a new chat
+  // (see context/context.tsx). Reacting to that here — instead of
+  // ChatHandlerProvider calling resetSession directly — keeps the two
+  // providers as siblings that only depend on GlobalState: a chat can exist
+  // without an agent, but an agent always needs a chat, so it's the agent
+  // side that should react to chat lifecycle events, not the other way
+  // around.
+  useEffect(() => {
+    if (newChatSignal === 0) return
+    resetSession("__new__")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newChatSignal])
 
   const hasActiveAgent = useCallback(
     (chatKey: string) => !!chatAgentSessionsRef.current.get(chatKey)?.agentMeta,

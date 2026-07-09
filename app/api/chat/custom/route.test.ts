@@ -63,11 +63,34 @@ describe("POST /api/chat/custom", () => {
     expect(streamTextMock).not.toHaveBeenCalled()
   })
 
+  it("accepts real UIMessage[] payloads from useChat (parts-based, not OpenAI-wire) without AI_InvalidPromptError", async () => {
+    // Regression test: useChat/DefaultChatTransport sends UIMessage[] (id +
+    // role + parts), not the old OpenAI-wire {role, content} shape. The route
+    // must run these through the real (unmocked) convertToModelMessages, not
+    // a hand-rolled adapter built for the wrong input shape.
+    const res = await POST(
+      makeRequest({
+        chatSettings: { model: "some-model", temperature: 0.5 },
+        messages: [
+          { id: "CjmSkw7b2BQ9fng1", role: "user", parts: [{ type: "text", text: "gera um email" }] }
+        ],
+        customModel: { base_url: "http://127.0.0.1:8000", api_key: "local", model_id: "some-model" }
+      })
+    )
+
+    expect(res.status).not.toBe(500)
+    expect(streamTextMock).toHaveBeenCalledTimes(1)
+    const { messages } = streamTextMock.mock.calls[0][0]
+    expect(messages).toEqual([
+      { role: "user", content: [{ type: "text", text: "gera um email" }] }
+    ])
+  })
+
   it("merges built-in tools, MCP tools, and raw wire tools for streamText (Passo 0 contract)", async () => {
     await POST(
       makeRequest({
         chatSettings: { model: "some-model", temperature: 0.5 },
-        messages: [{ role: "user", content: "hi" }],
+        messages: [{ id: "msg_1", role: "user", parts: [{ type: "text", text: "hi" }] }],
         customModel: {
           base_url: "http://127.0.0.1:8000",
           api_key: "local",

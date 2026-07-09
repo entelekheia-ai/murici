@@ -202,6 +202,14 @@ interface ChatbotUIContext {
   destroyChatAgentSession: (chatId: string) => void
   migrateChatAgentSession: (fromChatId: string, toChatId: string) => void
 
+  // Incremented whenever a "new chat" action starts (see ChatHandlerProvider's
+  // handleNewChat). AgentSessionProvider watches this to reset the "__new__"
+  // agent session — chat-level and agent-level providers are siblings that
+  // only share GlobalState, so this signal is how the chat side notifies the
+  // agent side without either importing the other's context.
+  newChatSignal: number
+  setNewChatSignal: Dispatch<SetStateAction<number>>
+
   // THINKING LOG STORE
   thinkingLog: Record<number, string>
   setThinkingLog: Dispatch<SetStateAction<Record<number, string>>>
@@ -355,6 +363,8 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   activeChatKeyRef: { current: "__new__" },
   destroyChatAgentSession: () => {},
   migrateChatAgentSession: () => {},
+  newChatSignal: 0,
+  setNewChatSignal: () => {},
 
   // THINKING LOG STORE
   thinkingLog: {},

@@ -7,8 +7,7 @@ import { AgentSessionContext } from "@/context/agent-session-context"
 import { useContext } from "react"
 
 // Thin accessor for the shared agent-session ViewModel (AgentSessionProvider,
-// mounted once near the app root). Safe to call from any component or hook —
-// unlike useChatHandler, this carries no state or effects of its own, so
-// calling it from multiple places (RightSidebar for rendering,
-// useChatHandler for triggering a reset) reads/drives the same session.
+// mounted once near the app root). Carries no state or effects of its own,
+// so calling it from multiple places (e.g. RightSidebar for rendering) reads
+// and drives the same underlying session.
 export const useAgentSession = () => useContext(AgentSessionContext)

@@ -6,7 +6,7 @@
  */
 
 import Loading from "@/app/[locale]/loading"
-import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
+import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { getChatById } from "@/db/chats"
 import { getMessagesByChatId } from "@/db/messages"

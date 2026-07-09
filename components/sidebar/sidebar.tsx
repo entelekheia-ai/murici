@@ -16,7 +16,7 @@ import { updateAssistant } from "@/db/assistants"
 import { updateChat } from "@/db/chats"
 import { updateFile } from "@/db/files"
 import { updateModel } from "@/db/models"
-import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
+import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 
 import { TabsContent } from "../ui/tabs"
 import { SidebarContent } from "./sidebar-content"

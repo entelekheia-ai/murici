@@ -169,6 +169,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
       chatAgentSessionsRef.current.delete(chatId)
     }
   }, [])
+  const [newChatSignal, setNewChatSignal] = useState(0)
   const migrateChatAgentSession = useCallback(
     (fromChatId: string, toChatId: string) => {
       if (fromChatId === toChatId) return
@@ -217,7 +218,18 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
   useEffect(() => {
     ;(async () => {
-      const profile = await fetchStartingData()
+      // fetchLocalModels doesn't depend on the profile, but used to run
+      // only after the whole profile -> hosted-models -> openrouter-models
+      // chain finished — so sending a chat message to a local model right
+      // after page load, before that chain settled, would fail with
+      // "Custom model base_url is required" (resolveCustomModel couldn't
+      // find it in the still-empty availableLocalModels). Run it in
+      // parallel so local models are available as early as possible.
+      const [profile, localModels] = await Promise.all([
+        fetchStartingData(),
+        fetchLocalModels()
+      ])
+      setAvailableLocalModels(localModels)
 
       if (profile) {
         const hostedModelRes = await fetchHostedModels(profile)
@@ -235,9 +247,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
           setAvailableOpenRouterModels(openRouterModels)
         }
       }
-
-      const localModels = await fetchLocalModels()
-      setAvailableLocalModels(localModels)
 
       const savedId = profile?.background_model_id
       if (savedId) {
@@ -400,6 +409,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         activeChatKeyRef,
         destroyChatAgentSession,
         migrateChatAgentSession,
+        newChatSignal,
+        setNewChatSignal,
 
         // THINKING LOG STORE
         thinkingLog,

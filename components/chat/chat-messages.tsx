@@ -5,7 +5,7 @@
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
-import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
+import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { Tables } from "@/types/database"
 import { FC, Fragment, useContext, useState } from "react"
@@ -43,7 +43,13 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
         : []
 
       return (
-        <Fragment key={seqNum}>
+        // Keyed on message id, not sequence_number: the optimistic user
+        // message and the "temp-assistant" streaming placeholder can
+        // legitimately compute the same next sequence_number for a brief
+        // window (both derive it from the same "last message" snapshot),
+        // and a duplicate React key makes React silently merge/drop one of
+        // the two nodes instead of rendering both.
+        <Fragment key={chatMessage.message.id}>
           {showDebugPanels &&
             eventsForSeq.map(ev => (
               <FlowEventCard key={ev.id} event={ev} />

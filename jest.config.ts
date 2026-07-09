@@ -16,9 +16,16 @@ const config: Config = {
   coverageProvider: "v8",
   testEnvironment: "jsdom",
   setupFiles: ["<rootDir>/jest.setup.ts"],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup-after-env.ts"],
   // Playwright specs (run via `npm run test:e2e`, not Jest) use `@playwright/test`'s
   // own `test()` — importing that runner outside its CLI breaks in confusing ways.
-  testPathIgnorePatterns: ["<rootDir>/node_modules/", "<rootDir>/__tests__/playwright-test/"]
+  testPathIgnorePatterns: ["<rootDir>/node_modules/", "<rootDir>/__tests__/playwright-test/"],
+  // next/jest resolves the `@/*` alias for plain `import`s via its SWC
+  // transform, not via Jest's own module resolver — so `import`s work but
+  // `jest.mock("@/lib/...")` can't find the module without this mapping.
+  moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/$1"
+  }
 }
 
 // next/jest merges its own `transformIgnorePatterns` (which always includes
