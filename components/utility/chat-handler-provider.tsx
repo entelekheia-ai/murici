@@ -27,6 +27,7 @@ import { buildBehaviorStatePayload } from "@/lib/runtime/dot-agent-injector"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { getMessageText, getToolInvocations, getReasoningText, dedupeToolCallParts } from "@/lib/ai/ui-message-parts"
 import { resolveCustomModel } from "@/lib/models/resolve-custom-model"
+import { buildApiKeys } from "@/lib/models/build-api-keys"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 
@@ -140,6 +141,7 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
       context.availableLocalModels,
       context.chatSettings?.model
     ),
+    apiKeys: buildApiKeys(context.profile),
     behaviorState: context.flowState || undefined,
     agentPersona: context.agentPersona || undefined,
     mcpTools: mcpToolsRef.current
@@ -182,8 +184,8 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
             id
           }
           // Mirror the exact client -> route POST (one per send AND per
-          // auto-resubmit). Redact the api_key; keep everything else verbatim.
-          const { customModel, ...restBody } = finalBody as any
+          // auto-resubmit). Redact api_key/apiKeys; keep everything else verbatim.
+          const { customModel, apiKeys, ...restBody } = finalBody as any
           pushDebugRef.current("client_request", {
             api: `/api/chat/${currentProvider}`,
             messageCount: messages.length,
@@ -191,7 +193,8 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
               ...restBody,
               customModel: customModel
                 ? { ...customModel, api_key: undefined }
-                : undefined
+                : undefined,
+              apiKeys: apiKeys ? { redacted: true } : undefined
             }
           })
           return { body: finalBody }

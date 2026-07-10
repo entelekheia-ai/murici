@@ -39,6 +39,7 @@ import { createKnowledgeRecord } from "@/lib/local-db/knowledge"
 import { buildKnowledgeRecords } from "@/lib/knowledge/extract"
 import { triggerEnrichment } from "@/lib/knowledge/enrich"
 import { t } from "@/lib/i18n-instance"
+import { buildApiKeys } from "@/lib/models/build-api-keys"
 import React from "react"
 import { toast } from "sonner"
 
@@ -90,26 +91,6 @@ async function resolveCustomModel(hostedId: string | undefined) {
   const m = await getModelById(hostedId)
   if (!m) return undefined
   return { api_key: m.api_key, base_url: m.base_url, model_id: m.model_id }
-}
-
-function buildApiKeys(profile: Tables<"profiles">) {
-  return {
-    openai: profile.openai_api_key ?? undefined,
-    anthropic: profile.anthropic_api_key ?? undefined,
-    google: profile.google_gemini_api_key ?? undefined,
-    mistral: profile.mistral_api_key ?? undefined,
-    groq: profile.groq_api_key ?? undefined,
-    perplexity: profile.perplexity_api_key ?? undefined,
-    azure: profile.azure_openai_api_key ?? undefined,
-    openrouter: profile.openrouter_api_key ?? undefined,
-    openaiOrgId: profile.openai_organization_id ?? undefined,
-    azureEndpoint: profile.azure_openai_endpoint ?? undefined,
-    azure35TurboId: profile.azure_openai_35_turbo_id ?? undefined,
-    azure45TurboId: profile.azure_openai_45_turbo_id ?? undefined,
-    azure45VisionId: profile.azure_openai_45_vision_id ?? undefined,
-    azureEmbeddingsId: profile.azure_openai_embeddings_id ?? undefined,
-    useAzure: profile.use_azure_openai
-  }
 }
 
 export const validateChatSettings = (
