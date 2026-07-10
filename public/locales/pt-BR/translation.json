@@ -58,5 +58,6 @@
   "Updating...": "Atualizando...",
   "Manage →": "Gerenciar →",
   "Temperature": "Temperatura",
-  "Context Length": "Tamanho do Contexto"
+  "Context Length": "Tamanho do Contexto",
+  "murici_description": "Murici é uma interface de Chat leve e responsiva para desktop e web, projetada para executar comportamentos de agentes determinísticos de máquina de estado."
 }

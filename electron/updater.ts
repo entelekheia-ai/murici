@@ -25,6 +25,7 @@ export function setupAutoUpdater() {
     return
   }
 
+  autoUpdater.allowPrerelease = true
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
 

@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="docs/images/header.png" alt="dot-agent" width="800">
+</p>
+
 # Murici
 
-> A premium Chat UI with deterministic state-machine behavior routing powered by `@dot-agent/sdk`.
+> A LLM chat runtime with deterministic state-machine behavior routing powered by [@dot-agent/sdk](https://github.com/dot-agent-spec/platform/tree/main/packages/sdk).
 
 Murici is a lightweight, responsive desktop and web Chat UI designed for running deterministic state-machine agent behaviors. By integrating LLM chat interactions with structured finite state machine (FSM) controls, Murici allows developers to design predictable, goal-driven conversational flows.
 
@@ -8,9 +12,9 @@ Murici is a lightweight, responsive desktop and web Chat UI designed for running
 
 ## Key Features
 
-- **Deterministic Behavior Routing**: Manage chat sessions, goals, styles, and instructions using `@dot-agent/sdk` and `AgentSession` runtimes.
+- **Deterministic Behavior Routing**: Manage chat sessions, goals, styles, and instructions using [@dot-agent/sdk](https://github.com/dot-agent-spec/platform/tree/main/packages/sdk) and `AgentSession` runtimes.
 - **Local Model Auto-Discovery**: Automatically scan and connect to local LLM servers (e.g., Ollama or custom local API endpoints) alongside standard hosted APIs.
-- **Drag-and-Drop Agent Bundles**: Instantly load and compile behaviors by dragging and dropping `.agent` bundles or `.flow` DSL files directly into the agent panel.
+- **Drag-and-Drop Agent Bundles**: Instantly load and compile behaviors by dragging and dropping `.agent` bundles (packaged using the [dot-agent-cli](https://github.com/dot-agent-spec/platform/tree/main/apps/dot-agent-cli)).
 - **SCXML State Graph**: Visually monitor conversation state, visited steps, and active transitions in real time using a custom SVG-rendered state graph parsed from SCXML.
 - **IndexedDB Persistence**: Save chat history, settings, and custom models directly in the client database (`idb`), requiring no external database or authentication setup.
 - **Electron Desktop packaging**: Easily build standalone binaries (`.dmg`, `.exe`, `.AppImage`) using `electron-builder` for local-first desktop usage.
@@ -59,7 +63,7 @@ All data is stored locally in the user's browser or Electron renderer process vi
 
 ## Behavior Integration
 
-Murici runs deterministic state-machine execution via the `@dot-agent/sdk` monorepo packages.
+Murici runs deterministic state-machine execution via the [@dot-agent/sdk](https://github.com/dot-agent-spec/platform/tree/main/packages/sdk) monorepo packages.
 
 - Drag-and-drop or copy-paste `.flow` DSL files into the Behavior Panel.
 - The state machine directs the conversation via structured instructions (`goal`, `guide`, `teach` effects).
