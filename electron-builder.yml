@@ -24,38 +24,59 @@ files:
   - "!node_modules/@dot-agent/**/*.rs"
   - "!node_modules/@dot-agent/**/Cargo.*"
   - "!node_modules/@dot-agent/**/build.rs"
+  - node_modules/@colors/colors/**
+  - node_modules/@dabh/diagnostics/**
+  - node_modules/@so-ric/colorspace/**
   - node_modules/argparse/**
+  - node_modules/async/**
   - node_modules/builder-util-runtime/**
+  - node_modules/color/**
+  - node_modules/color-convert/**
+  - node_modules/color-name/**
+  - node_modules/color-string/**
   - node_modules/core-util-is/**
   - node_modules/debug/**
   - node_modules/electron-is-dev/**
   - node_modules/electron-serve/**
   - node_modules/electron-updater/**
+  - node_modules/enabled/**
+  - node_modules/fecha/**
+  - node_modules/fn.name/**
   - node_modules/fs-extra/**
   - node_modules/graceful-fs/**
   - node_modules/immediate/**
   - node_modules/inherits/**
+  - node_modules/is-stream/**
   - node_modules/isarray/**
   - node_modules/js-yaml/**
   - node_modules/jsonfile/**
   - node_modules/jszip/**
+  - node_modules/kuler/**
   - node_modules/lazy-val/**
   - node_modules/lie/**
   - node_modules/lodash.escaperegexp/**
   - node_modules/lodash.isequal/**
+  - node_modules/logform/**
   - node_modules/ms/**
+  - node_modules/one-time/**
   - node_modules/pako/**
   - node_modules/process-nextick-args/**
   - node_modules/readable-stream/**
   - node_modules/safe-buffer/**
+  - node_modules/safe-stable-stringify/**
   - node_modules/sax/**
   - node_modules/semver/**
   - node_modules/setimmediate/**
+  - node_modules/stack-trace/**
   - node_modules/string_decoder/**
+  - node_modules/text-hex/**
   - node_modules/tiny-typed-emitter/**
+  - node_modules/triple-beam/**
   - node_modules/universalify/**
   - node_modules/util-deprecate/**
   - node_modules/web-tree-sitter/**
+  - node_modules/winston/**
+  - node_modules/winston-transport/**
 
 # Next.js standalone server packed into resources/server. Not done via
 # extraResources: electron-builder's glob matcher was silently dropping

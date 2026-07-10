@@ -26,9 +26,9 @@
     "test": "jest",
     "test:e2e": "playwright test",
     "build:agents": "node scripts/build-agents.js",
-    "electron:compile": "tsc -p tsconfig.electron.json",
+    "electron:compile": "rm -rf electron-dist && tsc -p tsconfig.electron.json",
     "electron:dev": "npm run electron:compile && NODE_ENV=development ELECTRON_ENV=development concurrently -k -n next,electron \"next dev\" \"wait-on http://localhost:3000 && electron electron-dist/main.js\"",
-    "electron:build": "ELECTRON_BUILD=1 npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && npm run electron:compile && electron-builder",
+    "electron:build": "ELECTRON_BUILD=1 npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && npm run electron:compile && node scripts/verify-electron-deps.js && electron-builder",
     "electron:publish": "npm run electron:build -- --publish always",
     "postinstall": "node scripts/copy-tree-sitter-assets.js"
   },
