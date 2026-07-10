@@ -178,8 +178,44 @@ wrapado (reasoning + tool-leak middleware) e passa pro helper. Teste: `jest.setu
 `TextEncoderStream`/`TextDecoderStream` (o `createUIMessageStreamResponse` real que o helper usa pipa por
 eles, e o env `node` do jest não os tinha — antes o `custom` devolvia o método MOCK e nunca batia nisso).
 
+## 13. Causa da cópia FECHADA pelo logger — cópia fantasma no resubmit (não é o modelo, não é o FSM)
+
+O logger da decisão nova deu o veredito num teste **sem FSM, só um chat normal chamando `save_doc`**:
+
+```
+onToolCall invoked {toolCallId: 'call_14e36e35', toolName: 'murici__save_doc', kernelState:'', kernelValidIntents: []}   // 1× (grep confirma: só 1)
+projection snapshot {count:4, toolCallIds:[1], dupToolCallIds:false}   // ...
+projection snapshot {count:5, ids:[...5 ids DISTINTOS...], toolCallIds:['call_14e36e35','call_14e36e35'], dupMessageIds:false, dupToolCallIds:true}
+```
+
+Leitura definitiva:
+- `onToolCall` disparou **exatamente 1×** pro `call_14e36e35` → a tool **executou uma vez** (não é re-fire, não é double-execute).
+- Mesmo assim o store terminou com **2 mensagens distintas** (`dupMessageIds:false`, 5 ids) carregando o **mesmo** `toolCallId` → **cópia fantasma**.
+- Aconteceu com `save_doc` num chat **sem FSM** (`kernelState:''`) → não é modelo, não é RULES, não é FSM. É o **caminho de resubmit de tool-result**: o resubmit empurra uma nova mensagem assistant que herda uma cópia da parte tool-call anterior.
+
+Isso reconcilia TUDO das seções 8–11 (o guard one-shot cortava o double-*trigger*, mas não a cópia; o
+curl inocentou o modelo; as cópias byte-idênticas eram exatamente isso). Suspeito de origem no SDK segue
+`createStreamingUIMessageState` (`ai/dist:6469`) reusar/semear `lastMessage`, mas a origem exata no SDK é
+secundária agora.
+
+**Fix (mitigação no nosso boundary, `lib/ai/ui-message-parts.ts` `dedupeToolCallParts`):** colapsa
+partes tool-call duplicadas por `toolCallId`, mantendo a **1ª** ocorrência (que tem o output executado) e
+dropando as cópias posteriores; mensagem que sobra sem partes (só existia pra carregar a cópia) é
+removida. Aplicado em **dois pontos** do `chat-handler-provider`:
+- **saída pro modelo** (`prepareSendMessagesRequest`) → o modelo nunca recebe o `toolCallId` 2× (era o que
+  cascateava em re-raciocínio / risco de `MissingToolResults`);
+- **projeção** (SDK store → chatMessages) → UI e linhas persistidas mostram cada tool call uma vez.
+A sonda continua na lista crua, então ainda dá pra VER o dup no SDK e confirmar que o fix é downstream.
+Testes: `lib/ai/ui-message-parts.test.ts` (3 casos: mantém-1ª/dropa-cópia, dropa-msg-fantasma, no-op em
+conversa limpa). Nota: é mitigação — a cópia ainda nasce no store do SDK; erradicar na origem (por que o
+resubmit empurra a cópia) é follow-up.
+
+> [!note] A duplicação está mitigada, não erradicada na raiz. A cópia ainda nasce no store do SDK (por isso a sonda mostra true na lista crua); nós a filtramos no boundary. Funciona, mas se um dia mexer no fluxo de mensagens, vale lembrar que a origem (SDK createStreamingUIMessageState) segue lá.
+> Follow-ups registrados no ADR-0004 (não bloqueiam nada, ficam pra quando quiser): erradicar a cópia na origem, breakpoint de cache do anthropic, limpeza de código morto (chat-helpers/index.ts, use-debug.ts, flow-debug.ts, flow-system-debug-bubble.tsx). E existe uma falha de teste pré-existente (openapi-conversion.test.ts:342) que não é nossa e continua lá.
+
 ## Verificação (2026-07-10)
 
-`tsc` limpo. `jest` 50/51 (única falha: `openapi-conversion.test.ts:342` "stocksTicker", pré-existente no
-HEAD, fora do diff). Rota `custom` coberta pelo `route.test.ts` (passa após o polyfill). **Duplicação
-ainda aberta** — commit desse estado a pedido do usuário, pra explorar com o logger no próximo round.
+`tsc` limpo. `jest` verde nos testes do diff (`ui-message-parts` 10/10, `dot-agent-injector`,
+`normalize-tool-call`, `custom/route`); suíte cheia 50/51 com a única falha pré-existente
+(`openapi-conversion.test.ts:342` "stocksTicker", fora do diff). Falta a confirmação ao vivo de que a
+cópia sumiu da UI e do que vai pro modelo.

@@ -142,15 +142,23 @@ Substitui o painel consolidado (`FlowSystemDebugBubble` + `flowDebugLog` + `useD
 - O `system` estático + estado no result mantêm o prefixo cacheável; qualquer injeção dinâmica quebra
   cache a partir da posição dela (por isso só no 1º turno).
 
-## Aberto (em investigação, ver log §11)
+## Duplicação de tool call — diagnóstico FECHADO, mitigado (ver log §13)
 
-- **Duplicação de tool call no histórico** (mesmo `toolCallId` repetido): **REABERTO.** Isolado que
-  **não é o modelo** (curl direto respondeu texto 5/5, log §9) e que as cópias são **byte-idênticas**
-  (log §11) — logo é cópia no store/SDK, não geração. O guard one-shot (decisão 4) era necessário mas
-  **insuficiente**. Suspeito principal: `createStreamingUIMessageState` (`ai/dist:6469`) reusar o objeto
-  `lastMessage` no resubmit. Logger decisivo adicionado no `onToolCall` pra separar re-fire real de cópia
-  fantasma no próximo teste. Ficam o guard + a rejeição endurecida (decisão 5); a reinjeção de estado
-  chegou a ser adicionada e foi **revertida** (log §10).
+- **Causa confirmada:** cópia **fantasma** no caminho de resubmit de tool-result. O logger no
+  `onToolCall` provou (num chat **sem FSM**, só `save_doc`): a tool executa **1×** mas o store termina
+  com **2 mensagens distintas** carregando o mesmo `toolCallId` (`dupToolCallIds:true`,
+  `dupMessageIds:false`). Não é o modelo, não é o FSM, não é double-execute — reconcilia as seções 8–11.
+- **Mitigação (decisão 10, abaixo):** `dedupeToolCallParts` colapsa `toolCallId` repetidos (mantém a 1ª
+  ocorrência, com output) na **saída pro modelo** e na **projeção**. Erradicar na origem do SDK (por que
+  o resubmit empurra a cópia; suspeito `createStreamingUIMessageState` `ai/dist:6469`) é follow-up.
+
+### 10. Dedupe de tool-call fantasma (`dedupeToolCallParts`)
+O resubmit de tool-result deixa o store do SDK com uma **cópia** da parte tool-call (mesmo `toolCallId`,
+mensagem nova) sem re-executar. `lib/ai/ui-message-parts.ts::dedupeToolCallParts` colapsa por identidade —
+mantém a 1ª ocorrência (tem o output executado), dropa cópias posteriores, remove mensagem que só existia
+pra carregar a cópia. Aplicado no `prepareSendMessagesRequest` (o modelo nunca vê o id 2× → sem cascata /
+`MissingToolResults`) e na projeção (UI/persistência limpas). A sonda fica na lista crua pra flagrar
+recorrência. É mitigação no nosso boundary, não conserto na origem do SDK.
 
 ## Related
 

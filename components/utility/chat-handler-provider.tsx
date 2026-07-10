@@ -25,7 +25,7 @@ import { runTriggerIntent } from "@/lib/tools/executors/trigger-intent"
 import { buildFlowStateFromEffects } from "@/lib/runtime/advance-flow"
 import { buildBehaviorStatePayload } from "@/lib/runtime/dot-agent-injector"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
-import { getMessageText, getToolInvocations, getReasoningText } from "@/lib/ai/ui-message-parts"
+import { getMessageText, getToolInvocations, getReasoningText, dedupeToolCallParts } from "@/lib/ai/ui-message-parts"
 import { resolveCustomModel } from "@/lib/models/resolve-custom-model"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
@@ -169,7 +169,18 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
         // We own the whole outgoing body here so every request — first send AND
         // the automatic tool-result resubmit — carries the route's inputs.
         prepareSendMessagesRequest: ({ messages, id, body }) => {
-          const finalBody = { ...body, ...requestCtxRef.current, messages, id }
+          // Strip any phantom duplicate tool-call parts the SDK's resubmit left in
+          // the store (see dedupeToolCallParts) so the model never receives the
+          // same toolCallId twice — that duplicate is what cascades into re-reasoning
+          // / MissingToolResults. Purely on the outgoing wire; the SDK store is
+          // untouched.
+          const dedupedMessages = dedupeToolCallParts(messages as any)
+          const finalBody = {
+            ...body,
+            ...requestCtxRef.current,
+            messages: dedupedMessages,
+            id
+          }
           // Mirror the exact client -> route POST (one per send AND per
           // auto-resubmit). Redact the api_key; keep everything else verbatim.
           const { customModel, ...restBody } = finalBody as any
@@ -499,12 +510,17 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
       dupToolCallIds: toolCallIds.length !== new Set(toolCallIds).size
     })
 
+    // Collapse the SDK-store phantom tool-call copies (the dup the probe above
+    // reports) BEFORE projecting, so the UI and the persisted rows show each tool
+    // call once. Probe stays on the raw list so we can still see the SDK-level dup.
+    const sdkMessages = dedupeToolCallParts(vercelMessages as any)
+
     const prevById = new Map(
       chatMessagesRef.current.map(cm => [cm.message.id, cm])
     )
     const nextThinking: Record<string, string> = {}
 
-    const projected: ChatMessage[] = vercelMessages.map((m, i) => {
+    const projected: ChatMessage[] = sdkMessages.map((m, i) => {
       const prev = prevById.get(m.id)
       const content = getMessageText(m)
       const tools = getToolInvocations(m)
@@ -535,7 +551,7 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
       context.setThinkingLog(prev => ({ ...prev, ...nextThinking }))
     }
 
-    const last = vercelMessages[vercelMessages.length - 1]
+    const last = sdkMessages[sdkMessages.length - 1]
     if (
       !context.firstTokenReceived &&
       last?.role === "assistant" &&

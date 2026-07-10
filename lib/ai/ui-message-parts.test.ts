@@ -17,7 +17,7 @@
 /**
  * @jest-environment node
  */
-import { getMessageText, getToolInvocations } from "./ui-message-parts"
+import { getMessageText, getToolInvocations, dedupeToolCallParts } from "./ui-message-parts"
 
 describe("getMessageText", () => {
   it("joins text parts into a single string", () => {
@@ -108,5 +108,66 @@ describe("getToolInvocations", () => {
     expect(getToolInvocations({ role: "assistant", parts: [{ type: "text", text: "hi" }] } as any)).toEqual([])
     expect(getToolInvocations({ role: "assistant" } as any)).toEqual([])
     expect(getToolInvocations(undefined)).toEqual([])
+  })
+})
+
+// Reproduces the exact store shape the onToolCall probe captured: save_doc ran
+// ONCE, yet the SDK resubmit left call_14e36e35 in two different messages
+// (dupToolCallIds: true, dupMessageIds: false). See project/adr/0004 log §13.
+describe("dedupeToolCallParts", () => {
+  const toolPart = (toolCallId: string) => ({
+    type: "tool-murici__save_doc",
+    toolCallId,
+    state: "output-available",
+    input: {},
+    output: { id: "doc_1" }
+  })
+
+  it("keeps the first occurrence of a toolCallId and strips the later phantom copy", () => {
+    const messages = [
+      { id: "u1", role: "user", parts: [{ type: "text", text: "salva" }] },
+      { id: "j7yg", role: "assistant", parts: [toolPart("call_14e36e35")] },
+      {
+        id: "9jro",
+        role: "assistant",
+        parts: [toolPart("call_14e36e35"), { type: "text", text: "salvei!" }]
+      }
+    ] as any[]
+
+    const out = dedupeToolCallParts(messages as any)
+
+    const ids = out.flatMap((m: any) =>
+      (m.parts || []).filter((p: any) => p.toolCallId).map((p: any) => p.toolCallId)
+    )
+    expect(ids).toEqual(["call_14e36e35"])
+    expect(out).toHaveLength(3)
+    expect((out[2] as any).parts).toEqual([{ type: "text", text: "salvei!" }])
+    // The message that actually executed the tool is untouched (kept by identity).
+    expect(out[1]).toBe(messages[1])
+  })
+
+  it("drops a message that existed ONLY to carry the phantom tool part", () => {
+    const messages = [
+      { id: "j7yg", role: "assistant", parts: [toolPart("call_x")] },
+      { id: "9jro", role: "assistant", parts: [toolPart("call_x")] }
+    ] as any[]
+
+    const out = dedupeToolCallParts(messages as any)
+
+    expect(out).toHaveLength(1)
+    expect(out[0].id).toBe("j7yg")
+  })
+
+  it("leaves a clean conversation (distinct ids) untouched by identity", () => {
+    const messages = [
+      { id: "u1", role: "user", parts: [{ type: "text", text: "oi" }] },
+      { id: "a1", role: "assistant", parts: [toolPart("call_a")] },
+      { id: "a2", role: "assistant", parts: [toolPart("call_b")] }
+    ] as any[]
+
+    const out = dedupeToolCallParts(messages as any)
+
+    expect(out).toHaveLength(3)
+    messages.forEach((m, i) => expect(out[i]).toBe(m))
   })
 })
