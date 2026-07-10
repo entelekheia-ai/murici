@@ -20,7 +20,13 @@
  * Node's own global fetch/Request/Response either. The Vercel AI SDK relies
  * on the stream classes even for code paths that don't touch the network.
  */
-import { ReadableStream, WritableStream, TransformStream } from "node:stream/web"
+import {
+  ReadableStream,
+  WritableStream,
+  TransformStream,
+  TextEncoderStream,
+  TextDecoderStream
+} from "node:stream/web"
 import { TextEncoder, TextDecoder } from "node:util"
 import { randomUUID } from "node:crypto"
 
@@ -46,6 +52,14 @@ if (typeof (globalThis as any).WritableStream === "undefined") {
 }
 if (typeof (globalThis as any).TransformStream === "undefined") {
   ;(globalThis as any).TransformStream = TransformStream
+}
+// createUIMessageStreamResponse (shared agent-stream helper -> every chat route)
+// pipes the UI stream through a TextEncoderStream before handing it to Response.
+if (typeof (globalThis as any).TextEncoderStream === "undefined") {
+  ;(globalThis as any).TextEncoderStream = TextEncoderStream
+}
+if (typeof (globalThis as any).TextDecoderStream === "undefined") {
+  ;(globalThis as any).TextDecoderStream = TextDecoderStream
 }
 if (typeof (globalThis as any).TextEncoder === "undefined") {
   ;(globalThis as any).TextEncoder = TextEncoder

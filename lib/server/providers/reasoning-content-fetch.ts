@@ -19,10 +19,17 @@
  * for local reasoning models", adapted to the current streamText + middleware stack.)
  */
 export function withReasoningContentAsThink(
-  baseFetch: typeof fetch = fetch
+  baseFetch?: typeof fetch
 ): typeof fetch {
   return async (input: any, init?: any) => {
-    const response = await baseFetch(input, init)
+    // Resolve the underlying fetch lazily, at actual request time, rather than
+    // as a default parameter. An eager `= fetch` default references the global
+    // the instant this factory is *called* (before any request), which throws
+    // "fetch is not defined" in environments that only expose fetch per-request
+    // (and in the jest node test env). Deferring it keeps both edge runtime and
+    // tests happy.
+    const doFetch = baseFetch ?? fetch
+    const response = await doFetch(input, init)
 
     const contentType = response.headers.get("content-type") || ""
     const { logger } = await import("@/lib/logger")

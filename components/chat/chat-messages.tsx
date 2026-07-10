@@ -10,68 +10,83 @@ import { ChatbotUIContext } from "@/context/context"
 import { Tables } from "@/types/database"
 import { FC, Fragment, useContext, useState } from "react"
 import { FlowEventCard } from "../messages/flow-event-card"
-import { FlowSystemDebugBubble } from "../messages/flow-system-debug-bubble"
 import { Message } from "../messages/message"
 
 interface ChatMessagesProps {}
 
 export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
-  const { chatMessages, chatFileItems, flowDebugLog, flowEvents, showDebugPanels } =
+  const { chatMessages, chatFileItems, flowEvents, showDebugPanels } =
     useContext(ChatbotUIContext)
 
   const { handleSendEdit } = useChatHandler()
 
   const [editingMessage, setEditingMessage] = useState<Tables<"messages">>()
 
-  return chatMessages
-    .sort((a, b) => a.message.sequence_number - b.message.sequence_number)
-    .map((chatMessage, index, array) => {
-      const messageFileItems = chatFileItems.filter(
-        (chatFileItem, _, self) =>
-          chatMessage.fileItems.includes(chatFileItem.id) &&
-          self.findIndex(item => item.id === chatFileItem.id) === _
-      )
+  // Debug is a real-time mirror of the exchange: each flowEvent renders as its
+  // own inline card, ungrouped, interleaved with the messages in the order it
+  // actually happened (by timestamp) — not consolidated into a per-turn block.
+  const orderedMessages = [...chatMessages].sort(
+    (a, b) => a.message.sequence_number - b.message.sequence_number
+  )
+  const orderedEvents = showDebugPanels
+    ? [...flowEvents].sort((a, b) => a.timestamp - b.timestamp)
+    : []
 
-      const seqNum = chatMessage.message.sequence_number
-      const isAssistant = chatMessage.message.role === "assistant"
-      const debug = isAssistant ? flowDebugLog?.[seqNum] : undefined
+  const lastMessageId =
+    orderedMessages[orderedMessages.length - 1]?.message.id ?? null
+  const msgTs = (cm: (typeof orderedMessages)[number]) =>
+    Date.parse(cm.message.created_at || "") || 0
 
-      const eventsForSeq = isAssistant
-        ? flowEvents
-            .filter(e => e.seqNum === seqNum)
-            .sort((a, b) => a.timestamp - b.timestamp)
-        : []
+  // Events that predate the first message (rare) render at the very top.
+  const firstTs = orderedMessages.length ? msgTs(orderedMessages[0]) : Infinity
+  const leadingEvents = orderedEvents.filter(e => e.timestamp < firstTs)
 
-      return (
-        // Keyed on message id, not sequence_number: the optimistic user
-        // message and the "temp-assistant" streaming placeholder can
-        // legitimately compute the same next sequence_number for a brief
-        // window (both derive it from the same "last message" snapshot),
-        // and a duplicate React key makes React silently merge/drop one of
-        // the two nodes instead of rendering both.
-        <Fragment key={chatMessage.message.id}>
-          {showDebugPanels &&
-            eventsForSeq.map(ev => (
+  return (
+    <>
+      {leadingEvents.map(ev => (
+        <FlowEventCard key={ev.id} event={ev} />
+      ))}
+
+      {orderedMessages.map((chatMessage, index) => {
+        const messageFileItems = chatFileItems.filter(
+          (chatFileItem, _, self) =>
+            chatMessage.fileItems.includes(chatFileItem.id) &&
+            self.findIndex(item => item.id === chatFileItem.id) === _
+        )
+
+        // Every event whose timestamp falls between this message and the next
+        // one renders right after this message — i.e. in the order it happened.
+        const thisTs = msgTs(chatMessage)
+        const nextTs =
+          index < orderedMessages.length - 1
+            ? msgTs(orderedMessages[index + 1])
+            : Infinity
+        const eventsAfter = orderedEvents.filter(
+          e => e.timestamp >= thisTs && e.timestamp < nextTs
+        )
+
+        return (
+          // Keyed on message id, not sequence_number: the optimistic user
+          // message and the "temp-assistant" streaming placeholder can
+          // legitimately compute the same next sequence_number for a brief
+          // window, and a duplicate React key makes React silently merge/drop
+          // one of the two nodes instead of rendering both.
+          <Fragment key={chatMessage.message.id}>
+            <Message
+              message={chatMessage.message}
+              fileItems={messageFileItems}
+              isEditing={editingMessage?.id === chatMessage.message.id}
+              isLast={chatMessage.message.id === lastMessageId}
+              onStartEdit={setEditingMessage}
+              onCancelEdit={() => setEditingMessage(undefined)}
+              onSubmitEdit={handleSendEdit}
+            />
+            {eventsAfter.map(ev => (
               <FlowEventCard key={ev.id} event={ev} />
             ))}
-          <Message
-            message={chatMessage.message}
-            fileItems={messageFileItems}
-            isEditing={editingMessage?.id === chatMessage.message.id}
-            isLast={index === array.length - 1}
-            onStartEdit={setEditingMessage}
-            onCancelEdit={() => setEditingMessage(undefined)}
-            onSubmitEdit={handleSendEdit}
-          />
-          {showDebugPanels && debug && (
-            <details className="mx-4 mb-2">
-              <summary className="text-muted-foreground/50 cursor-pointer select-none font-mono text-xs hover:opacity-70">
-                ver debug completo
-              </summary>
-              <FlowSystemDebugBubble debug={debug} />
-            </details>
-          )}
-        </Fragment>
-      )
-    })
+          </Fragment>
+        )
+      })}
+    </>
+  )
 }

@@ -8,22 +8,24 @@
 import { ChatSettings } from "@/types"
 import { ServerRuntime } from "next"
 import { createOpenAI } from "@ai-sdk/openai"
-import { streamText, extractReasoningMiddleware, wrapLanguageModel, convertToModelMessages } from "ai"
+import { extractReasoningMiddleware, wrapLanguageModel, convertToModelMessages } from "ai"
 import { buildAiSdkTools } from "@/lib/server/model-message-adapter"
 import { getBuiltInTools, mapMcpTools } from "@/lib/tools/registry"
+import { streamAgentResponse } from "@/lib/server/agent-stream"
 import { logger } from "@/lib/logger"
 
 export const runtime: ServerRuntime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, customModel, tools: rawTools, behaviorState, mcpTools } = json as {
+  const { chatSettings, messages, customModel, tools: rawTools, behaviorState, mcpTools, agentPersona } = json as {
     chatSettings: ChatSettings
     messages: any[]
     customModel: { api_key: string; base_url: string; model_id: string }
     tools?: any[]
     behaviorState?: any
     mcpTools?: any[]
+    agentPersona?: string | null
   }
 
   try {
@@ -100,16 +102,18 @@ export async function POST(request: Request) {
       ]
     })
 
-    // We ALWAYS use streaming with Vercel useChat for real-time tool calls
-    const result = await streamText({
+    // The .agent prompt injection (persona/RULES system header + per-turn FSM
+    // get_current_state) and the transient data-debug mirror now live in the
+    // shared helper so all 9 provider routes behave identically. See agent-stream.
+    return await streamAgentResponse({
+      provider: "custom",
       model,
-      messages: modelMessages,
-      allowSystemInMessages: true,
-      temperature: chatSettings.temperature,
+      chatSettings,
+      agentPersona,
+      behaviorState,
+      modelMessages,
       tools
     })
-
-    return result.toUIMessageStreamResponse()
   } catch (error: any) {
     logger.error("chat route failed", { provider: "custom", model: chatSettings?.model, error: error.message, stack: error.stack })
     let errorMessage = error.message || "An unexpected error occurred"

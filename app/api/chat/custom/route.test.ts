@@ -18,11 +18,29 @@
  * @jest-environment node
  */
 
+// The route wraps the model stream in createUIMessageStream (to emit the
+// data-debug part) and merges result.toUIMessageStream() into it, so that's the
+// method the mock must expose now.
 const mockStreamTextResult = {
+  toUIMessageStream: jest.fn(
+    () =>
+      new ReadableStream({
+        start(controller) {
+          controller.close()
+        }
+      })
+  ),
   toUIMessageStreamResponse: jest.fn(() => new Response("mock-stream"))
 }
 const streamTextMock = jest.fn((..._args: any[]) => Promise.resolve(mockStreamTextResult))
-const createOpenAIMock = jest.fn((..._args: any[]) => (modelId: string) => ({ modelId }))
+// The route calls custom.chat(model) to force the /v1/chat/completions endpoint
+// (where local reasoning models surface reasoning_content), so the provider the
+// mock returns must expose a .chat() alongside being directly callable.
+const createOpenAIMock = jest.fn((..._args: any[]) => {
+  const provider = (modelId: string) => ({ modelId })
+  ;(provider as any).chat = (modelId: string) => ({ modelId })
+  return provider
+})
 
 jest.mock("ai", () => {
   const actual = jest.requireActual("ai")

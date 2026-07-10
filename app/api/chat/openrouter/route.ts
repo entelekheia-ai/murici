@@ -8,21 +8,23 @@
 import { checkApiKey, getProfileFromBody } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { createOpenAI } from "@ai-sdk/openai"
-import { streamText, convertToModelMessages } from "ai"
+import { convertToModelMessages } from "ai"
 import { buildAiSdkTools } from "@/lib/server/model-message-adapter"
 import { getBuiltInTools, mapMcpTools } from "@/lib/tools/registry"
+import { streamAgentResponse } from "@/lib/server/agent-stream"
 import { logger } from "@/lib/logger"
 
 export const runtime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools } = json as {
+  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools, agentPersona } = json as {
     chatSettings: ChatSettings
     messages: any[]
     tools?: any[]
     behaviorState?: any
     mcpTools?: any[]
+    agentPersona?: string | null
   }
 
   try {
@@ -44,15 +46,15 @@ export async function POST(request: Request) {
     }
     const modelMessages = await convertToModelMessages(messages, { tools })
 
-    const result = await streamText({
+    return await streamAgentResponse({
+      provider: "openrouter",
       model: custom(chatSettings.model),
-      messages: modelMessages,
-      allowSystemInMessages: true,
-      temperature: chatSettings.temperature,
+      chatSettings,
+      agentPersona,
+      behaviorState,
+      modelMessages,
       tools
     })
-
-    return result.toUIMessageStreamResponse()
   } catch (error: any) {
     logger.error("chat route failed", { provider: "openrouter", model: chatSettings?.model, error: error.message })
     let errorMessage = error.message || "An unexpected error occurred"

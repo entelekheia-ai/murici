@@ -10,14 +10,20 @@ import { ChatHandlerContext } from "@/context/chat-handler-context"
 import { ChatbotUIContext } from "@/context/context"
 import { updateChat, createChat } from "@/db/chats"
 import { createMessages } from "@/db/messages"
-import { ChatMessage } from "@/types"
+import { ChatMessage, FlowEventType } from "@/types"
 import { Message } from "@/types/database"
 import { useRouter } from "next/navigation"
-import { FC, useContext, useEffect, useRef, useState } from "react"
+import { FC, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls
+} from "ai"
 import { executeClientTool } from "@/lib/tools/orchestrator"
-import { useDebugSync } from "@/lib/hooks/use-debug"
+import { normalizeToolCall } from "@/lib/tools/normalize-tool-call"
+import { runTriggerIntent } from "@/lib/tools/executors/trigger-intent"
+import { buildFlowStateFromEffects } from "@/lib/runtime/advance-flow"
+import { buildBehaviorStatePayload } from "@/lib/runtime/dot-agent-injector"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { getMessageText, getToolInvocations, getReasoningText } from "@/lib/ai/ui-message-parts"
 import { resolveCustomModel } from "@/lib/models/resolve-custom-model"
@@ -59,6 +65,29 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
   // component), a per-instance ref is enough to guard re-entrancy.
   const isSendingRef = useRef(false)
 
+  // Hard cap on automatic tool-result resubmits within a single user turn. A
+  // misbehaving local model can keep firing trigger_intent every step (never
+  // producing a text answer) and, since some servers reuse tool_call ids, that
+  // runs away and corrupts the history. Enforced idempotently from the message
+  // list in sendAutomaticallyWhen below; the v5 answer to v4's maxSteps: 5.
+  const MAX_AUTO_STEPS = 6
+
+  // One-shot guard so a tool turn is resubmitted EXACTLY once. The SDK triggers
+  // the automatic resubmit from two independent places (ai/dist index.js):
+  //   - end of makeRequest (16714): after the stream finishes.
+  //   - inside addToolOutput (16505): when the tool output lands.
+  // Both only guard on `status`, and our addToolOutput is necessarily
+  // fire-and-forget (it enqueues on the same SerialJobExecutor that is already
+  // running onToolCall, so awaiting it would deadlock). If that deferred output
+  // lands in the microtask window between setStatus("ready") and the resubmit
+  // flipping status to "submitted", BOTH fire -> the same tool turn is POSTed
+  // twice, and a local model that reuses call_ ids re-emits the tool call ->
+  // the duplicated call_… in the history. Keyed on the tool-bearing assistant
+  // message id, so whichever trigger wins resubmits and the other is a no-op.
+  // This is identity dedupe (idempotent), not the monotonic counter that used
+  // to over-count. Cleared per new chat.
+  const resubmittedTurnsRef = useRef<Set<string>>(new Set())
+
   // The useChat id is allocated on the client and stays stable for the life of
   // a chat: for an existing chat it's the DB id (adopted below on navigation),
   // for a brand-new chat it's a uuid we generate up front and then reuse as the
@@ -98,27 +127,259 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
     }
   }, [])
 
+  // Everything the chat route needs beyond the messages themselves. Kept in a
+  // ref refreshed every render (not just at send time) so the SDK's automatic
+  // tool-result resubmission — which reuses the transport with no per-call body
+  // — still carries customModel/behaviorState/etc. Without it the resubmit POSTs
+  // an empty body and the route throws "base_url required".
+  const requestCtxRef = useRef<Record<string, any>>({})
+  requestCtxRef.current = {
+    chatSettings: context.chatSettings,
+    customModel: resolveCustomModel(
+      context.models,
+      context.availableLocalModels,
+      context.chatSettings?.model
+    ),
+    behaviorState: context.flowState || undefined,
+    agentPersona: context.agentPersona || undefined,
+    mcpTools: mcpToolsRef.current
+  }
+
+  // Real-time debug mirror: each actual exchange step is pushed as a flowEvent
+  // that the chat renders inline, in order (components/messages/flow-event-card
+  // + chat-messages). Held in a ref so the memoized transport's closure below
+  // always calls the current one.
+  const pushDebugRef = useRef<(type: FlowEventType, data: any) => void>(
+    () => {}
+  )
+  pushDebugRef.current = (type, data) => {
+    context.addFlowEvent({
+      id: crypto.randomUUID(),
+      seqNum: chatMessagesRef.current.length,
+      type,
+      timestamp: Date.now(),
+      data
+    })
+  }
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: `/api/chat/${currentProvider}`,
+        // We own the whole outgoing body here so every request — first send AND
+        // the automatic tool-result resubmit — carries the route's inputs.
+        prepareSendMessagesRequest: ({ messages, id, body }) => {
+          const finalBody = { ...body, ...requestCtxRef.current, messages, id }
+          // Mirror the exact client -> route POST (one per send AND per
+          // auto-resubmit). Redact the api_key; keep everything else verbatim.
+          const { customModel, ...restBody } = finalBody as any
+          pushDebugRef.current("client_request", {
+            api: `/api/chat/${currentProvider}`,
+            messageCount: messages.length,
+            body: {
+              ...restBody,
+              customModel: customModel
+                ? { ...customModel, api_key: undefined }
+                : undefined
+            }
+          })
+          return { body: finalBody }
+        }
+      }),
+    [currentProvider]
+  )
+
   const {
     messages: vercelMessages,
     sendMessage: append,
     stop,
     status,
-    setMessages
+    setMessages,
+    addToolOutput
   } = useChat({
-    transport: new DefaultChatTransport({ api: `/api/chat/${currentProvider}` }),
+    transport,
     id: activeChatId,
+    // The route emits a transient data-debug part with the exact system + final
+    // model messages it sent this request; mirror it inline as a server_prompt
+    // event (the "what really went to the model" half of the debug view).
+    onData(part: any) {
+      if (part?.type === "data-debug") {
+        pushDebugRef.current("server_prompt", part.data)
+      }
+    },
+    // When the assistant turn ends with client-executed tool calls (our tools
+    // all run in onToolCall below, never server-side), resubmit automatically so
+    // the tool results go back to the model for its follow-up answer. Without
+    // this the turn stalls with an unanswered tool call, and the next user turn
+    // dies server-side with AI_MissingToolResultsError. This is the v5
+    // replacement for v4's useChat({ maxSteps }).
+    sendAutomaticallyWhen: ({ messages }) => {
+      if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return false
+      // The SDK calls this more than once per step — from addToolOutput AND from
+      // the stream-finish handler (ai/dist AbstractChat 16505 + 16714), both only
+      // guarded on `status`, with a race window between them. So this must NOT
+      // carry cumulative side effects (a mutating ++ counter over-counts). Two
+      // idempotent guards instead:
+      //   1. Runaway cap: count tool calls since the last user turn from the
+      //      messages themselves and stop once the loop runs away.
+      const lastUserIdx = messages.map((m: any) => m.role).lastIndexOf("user")
+      const toolCallsThisTurn = messages
+        .slice(lastUserIdx + 1)
+        .reduce(
+          (n: number, m: any) =>
+            n +
+            (m.parts || []).filter(
+              (p: any) =>
+                p?.type === "dynamic-tool" ||
+                (typeof p?.type === "string" && p.type.startsWith("tool-"))
+            ).length,
+          0
+        )
+      if (toolCallsThisTurn >= MAX_AUTO_STEPS) return false
+      //   2. One-shot per tool-bearing assistant message: dedupe the two triggers
+      //      by identity so a turn resubmits exactly once (see resubmittedTurnsRef).
+      //      Adding an already-present id is a no-op — safe under repeat calls.
+      const turnKey = (messages[messages.length - 1] as any)?.id
+      if (turnKey) {
+        if (resubmittedTurnsRef.current.has(turnKey)) return false
+        resubmittedTurnsRef.current.add(turnKey)
+      }
+      return true
+    },
     async onToolCall({ toolCall }) {
-      if (!context.flowState || !context.selectedChat) return
+      // Only a chat to attach the result to is required. Gating on flowState too
+      // (as before) wrongly blocked MCP and save_doc tools, which are
+      // independent of the FSM agent — the FSM-only tools (trigger_intent,
+      // state_graph) simply aren't registered when there's no behaviorState.
+      if (!context.selectedChat) return
 
-      return await executeClientTool(
-        toolCall as unknown as { toolCallId: string; toolName: string; args: any },
-        {
-          chatId: context.selectedChat?.id || activeChatId,
-          messageId: toolCall.toolCallId,
-          promptMessageId: "",
-          behaviorState: context.flowState || undefined
+      const tc = toolCall as unknown as {
+        toolCallId: string
+        toolName: string
+        input: any
+      }
+
+      // Duplication probe (see project/adr/0004 log §11): logs EVERY onToolCall
+      // invocation with the id + the kernel-vs-React state at that instant. If the
+      // same toolCallId logs here N times, the model/SDK is really re-calling; if
+      // it logs once but shows up N× in the history, the copies are phantom (store
+      // duplication). kernelState vs reactFlowState catches the case where a
+      // resubmit re-offers the OLD intents because setFlowState hasn't propagated.
+      logger.debug("onToolCall invoked", {
+        toolCallId: tc.toolCallId,
+        toolName: tc.toolName,
+        intentName: tc.input?.intent_name,
+        kernelState: context.flowEngine?.get_current_state?.(),
+        kernelValidIntents: context.flowEngine?.get_valid_intents?.(),
+        reactFlowState: context.flowState?.currentState
+      })
+
+      // Mirror the tool call the model just made.
+      pushDebugRef.current("tool_call", {
+        toolName: tc.toolName,
+        intentName: tc.input?.intent_name,
+        args: tc.input
+      })
+
+      // The SDK DISCARDS onToolCall's return value (ai/dist: `await
+      // onToolCall({ toolCall })`, result unused). A client-side tool output has
+      // to be recorded with addToolOutput, which also flips the tool part to
+      // output-available so sendAutomaticallyWhen resubmits the result to the
+      // model. Returning a value here left the call unanswered ->
+      // MissingToolResultsError on the next turn. Tools aren't declared on the
+      // client useChat, so the typed name is cast away.
+      const report = (output: any) =>
+        (addToolOutput as any)({
+          tool: tc.toolName,
+          toolCallId: tc.toolCallId,
+          output
+        })
+
+      // trigger_intent is the FSM's transition signal. Advance the kernel here,
+      // awaited, then report the new state as the tool output so it travels to
+      // the model in the resubmit. No behaviorState side-channel, no race
+      // between the advance and the resubmit. flowState is updated only as a
+      // derived view for the right-sidebar panel; the kernel stays the single
+      // source of truth.
+      if (tc.toolName === "trigger_intent" && context.flowEngine) {
+        const intentName = tc.input?.intent_name
+        // Keep the debug-panel event bridge (murici:tool_call) firing.
+        runTriggerIntent(tc.input, tc)
+        if (!intentName) {
+          report({ error: "trigger_intent called without intent_name" })
+          return
         }
-      )
+        // Reject an intent that isn't valid in the CURRENT state rather than
+        // advancing the FSM somewhere wrong. A model that ignores the freshly
+        // transitioned state — or a duplicated/stale tool call from a server
+        // that reuses tool_call ids — keeps re-firing the PREVIOUS intent, which
+        // is no longer in allowed_intents here. Feed that back to the model
+        // instead of corrupting the flow (the "intent foi pro lugar errado" bug).
+        const validIntents: string[] =
+          context.flowEngine.get_valid_intents?.() || []
+        if (validIntents.length > 0 && !validIntents.includes(intentName)) {
+          logger.warn("trigger_intent rejected: not allowed in current state", {
+            intentName,
+            validIntents
+          })
+          // A rejected re-fire is almost always the model repeating the intent it
+          // ALREADY triggered (ignoring the advanced state). Don't just say "not
+          // allowed" — tell it the transition happened and to stop calling tools
+          // and produce the answer, so it recovers on the next resubmit instead of
+          // looping the same call (which is what stacked the duplicated call_ ids).
+          const cur = context.flowState
+          report({
+            error: `Intent "${intentName}" is not valid now. The flow already advanced to state "${cur?.currentState}". Do NOT call trigger_intent again for this — reply to the user with text to fulfill the current goal.`,
+            current_state: cur?.currentState,
+            goal: cur?.goal,
+            allowed_intents: validIntents
+          })
+          return
+        }
+        try {
+          const from = context.flowEngine.get_current_state()
+          const effects = await context.flowEngine.send_intent(intentName)
+          const advanced = buildFlowStateFromEffects(
+            context.flowEngine,
+            effects,
+            context.agentKnowledgeFiles
+          )
+          context.setFlowState(advanced)
+          const payload = buildBehaviorStatePayload(advanced)
+          pushDebugRef.current("fsm_transition", {
+            from,
+            to: advanced.currentState,
+            newGoal: advanced.goal,
+            newGuide: advanced.guide,
+            effects
+          })
+          pushDebugRef.current("tool_result", {
+            toolName: "trigger_intent",
+            output: payload
+          })
+          report(payload)
+        } catch (err: any) {
+          logger.error("trigger_intent advance failed", { error: err.message })
+          pushDebugRef.current("error", {
+            message: err.message || "Failed to advance the flow"
+          })
+          report({ error: err.message || "Failed to advance the flow" })
+        }
+        return
+      }
+
+      // Everything else (MCP, save_doc, state_graph) runs through the
+      // orchestrator. v5 tool calls carry arguments on `input`; normalizeToolCall
+      // maps that to the orchestrator's `args` (reading .args directly was
+      // undefined, the bug that crashed executors mid-body).
+      const result = await executeClientTool(normalizeToolCall(tc), {
+        chatId: context.selectedChat?.id || activeChatId,
+        messageId: tc.toolCallId,
+        promptMessageId: "",
+        behaviorState: context.flowState || undefined
+      })
+      pushDebugRef.current("tool_result", { toolName: tc.toolName, output: result })
+      report(result)
     },
     // The AI SDK calls this with { message, messages, isAbort, ... } — NOT the
     // message itself (ChatOnFinishCallback in ai/dist/index.d.ts). We only
@@ -130,6 +391,12 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
         hasSelectedChat: !!context.selectedChat,
         role: message?.role,
         textLen: getMessageText(message).length
+      })
+      // Mirror the assistant message the model produced (the "recebeu" half).
+      pushDebugRef.current("llm_response", {
+        role: message?.role,
+        text: getMessageText(message),
+        parts: message?.parts
       })
       if (!context.selectedChat) return
 
@@ -164,6 +431,7 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
     },
     onError(error) {
       logger.error("Vercel AI SDK onError", { error: error.message })
+      pushDebugRef.current("error", { message: error.message })
       toast.error(`Failed to get a response: ${error.message}`)
       context.setIsGenerating(false)
       context.setFirstTokenReceived(false)
@@ -207,6 +475,29 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
   // (no timestamp churn, no key thrash) while new/streaming rows are filled in.
   useEffect(() => {
     if (vercelMessages.length === 0) return
+
+    // Duplication probe: log the SDK's own message ids and tool-call ids on every
+    // projection. If a message id or toolCallId repeats here, the duplication is
+    // in our/the SDK's message store (a double resubmit / reseed) — not the model
+    // re-calling. If ids are unique but content repeats, it's the model.
+    const toolCallIds = vercelMessages.flatMap((m: any) =>
+      (m.parts || [])
+        .filter(
+          (p: any) =>
+            p?.type === "dynamic-tool" ||
+            (typeof p?.type === "string" && p.type.startsWith("tool-"))
+        )
+        .map((p: any) => p.toolCallId)
+    )
+    logger.debug("projection: SDK message snapshot", {
+      count: vercelMessages.length,
+      ids: vercelMessages.map((m: any) => m.id),
+      dupMessageIds:
+        vercelMessages.length !==
+        new Set(vercelMessages.map((m: any) => m.id)).size,
+      toolCallIds,
+      dupToolCallIds: toolCallIds.length !== new Set(toolCallIds).size
+    })
 
     const prevById = new Map(
       chatMessagesRef.current.map(cm => [cm.message.id, cm])
@@ -270,11 +561,16 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming])
 
-  // Synchronize Vercel's real-time events to the visual debug layer
-  useDebugSync(vercelMessages, isStreaming)
-
   const handleNewChat = async () => {
     if (!context.selectedWorkspace) return
+
+    // Abort any in-flight stream from the chat we're leaving. Without this the
+    // old request keeps draining and its tokens/onFinish land on the previous
+    // chat's store (the "resposta volta na conversa anterior" bug) — and, worse,
+    // an auto-resubmit could fire after we've already switched away.
+    stop()
+    resubmittedTurnsRef.current.clear()
+
     // Notifies AgentSessionProvider (a sibling, not a dependency of this
     // provider) to reset the "__new__" agent session — see newChatSignal's
     // doc comment in context/context.tsx.
@@ -336,6 +632,17 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
           context_length: context.chatSettings?.contextLength || 4000,
           embeddings_provider: "openai"
         })
+        // Carry any agent session built under the transient "__new__" bucket
+        // onto the real chat id BEFORE setSelectedChat fires AgentSessionProvider's
+        // [selectedChat?.id] effect. Otherwise that effect sees a fresh id with no
+        // session, builds a blank one, and applies it to the view — wiping the
+        // active .agent (flowState/persona) on the very first message. The
+        // onboarding and right-sidebar drop flows already migrate here; the plain
+        // type-and-Enter path is the one that was missing it.
+        context.migrateChatAgentSession(
+          context.activeChatKeyRef.current,
+          currentChat.id
+        )
         context.setSelectedChat(currentChat)
         context.setChats(prev => [currentChat!, ...prev])
       }
@@ -359,28 +666,12 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
         }
       ])
 
-      const customModel = resolveCustomModel(
-        context.models,
-        context.availableLocalModels,
-        context.chatSettings?.model
-      )
-
       // vercelMessages already holds the conversation (seeded on open,
       // accumulated during the session), so we don't re-inject history here.
-      append(
-        { text: messageContent },
-        {
-          body: {
-            chatSettings: context.chatSettings,
-            customModel,
-            // Tool objects (Zod schemas, closures) don't survive JSON — the
-            // server rebuilds the tool set from these raw ingredients via
-            // lib/tools/registry.ts (see app/api/chat/*/route.ts).
-            behaviorState: context.flowState || undefined,
-            mcpTools: mcpToolsRef.current
-          }
-        }
-      )
+      // The route's inputs (customModel/chatSettings/behaviorState/agentPersona/
+      // mcpTools) are attached by the transport's prepareSendMessagesRequest, so
+      // they also ride the automatic tool-result resubmit — not just this call.
+      append({ text: messageContent })
     } catch (err: any) {
       logger.error("handleSendMessage failed", { error: err.message })
       context.setIsGenerating(false)

@@ -174,3 +174,86 @@ Um subagente despachado nesta mesma investigação sinalizou o mesmo padrão de 
 forma independente e não obedeceu à parte de propagação. Registrado aqui por transparência;
 não teve efeito sobre a precisão dos achados, que vieram de leitura direta do código-fonte
 real (aplicação e `node_modules`).
+
+## Timeline (continuação — 2026-07-09)
+
+> Sessão seguinte, mesma frente arquitetural. A extração do Provider (acima) tinha resolvido
+> as múltiplas instâncias; esta continuação resolve o que sobrou: o espelhamento bidirecional
+> entre os dois stores, o "id travado", e — a mais longa — por que o `<think>` nunca aparecia.
+
+### Origem: bugs remanescentes + o "id travado"
+
+O usuário voltou com três sintomas ao vivo: (1) sem `<think>` na tela; (2) às vezes só o SVG de
+loading fica na mensagem do modelo; (3) demora perceptível entre o Enter e o indicativo de que o
+LLM vai processar. E um diagnóstico próprio, certeiro: para funcionar, um agente anterior tinha
+**travado o `id` do `useChat`** (que deveria ser dinâmico e associado ao chat) — decisão
+arquitetural equivocada; o `useChat` deveria lidar com o estado do React mais perto do front.
+Antes de aprovar o refactor, o usuário pediu ajuda para entender **o quão preso ao AI SDK** ele
+ficaria ("sensação de perda de autonomia") — respondido com o modelo mental das 3 camadas do SDK
+e as 4 travas de fronteira (SDK só dentro do Provider; consumidores leem via accessors, não
+`.parts` cru; persistência no schema próprio; rota do server é nossa).
+
+### Diagnóstico: store duplo + espelhamento bidirecional
+
+Causa central: o `ChatHandlerProvider` mantinha `useChat().messages` **e** `chatMessages` como
+duas fontes de verdade, copiando uma na outra token-a-token nos dois sentidos, com `seq`
+recalculado em três lugares a partir de um `chatMessagesRef` que atrasava. Mapeamento
+sintoma→causa: o `<think>` sumia porque o `thinkingLog` era chaveado por `seq`, e no `onFinish` o
+`seq` recomputado divergia (persistia em `seq=3` enquanto o `thinkingLog` estava em `seq=2`); o
+spinner travava porque a troca de `id` no meio do envio de um chat novo (`null`→`realId`) trocava
+o store do `useChat` e a resposta caía no store órfão; a demora vinha do `await fetch('/api/mcp/tools')`
+sequencial **antes** do `append`.
+
+### Fonte única + achado latente do isGenerating
+
+Reescrita para projeção one-way (ver ADR). No meio, um bug latente: **nada zerava `isGenerating`
+num finish bem-sucedido** — só no `onError`. Amarrado ao status do stream via efeito que dispara
+na transição (não em `isGenerating`), pra não competir com o `setIsGenerating(true)` síncrono do
+envio.
+
+### O teste smoke deu três voltas
+
+1. **"Nenhuma requisição pro servidor local"** (observado pelo usuário no oMLX): corrida de
+   resolução de modelo — `availableLocalModels` é populado por um fetch assíncrono no browser
+   (`global-state.tsx` → `/api/models/discover`); enviar antes disso → `resolveCustomModel`
+   devolve `undefined` → `base_url` vazio → a rota lança antes de tocar o servidor. O próprio
+   código já documentava esse "base_url required". Corrigido no teste com um gate na resposta de
+   descoberta do cliente + um `waitForRequest` que falha rápido se o POST nem sai.
+2. **RAM:** com `workers` default o Playwright rodava os modelos em paralelo, carregando vários no
+   oMLX de uma vez e estourando memória → timeouts espúrios. `workers: 1` (todo E2E aqui divide um
+   único servidor local).
+3. **O `<think>`:** a investigação de verdade (abaixo).
+
+### reasoning_content: probe enganoso, git, e Responses vs Chat Completions
+
+- Probe **non-streaming** do Qwen3.5-9B mostrou só `content` ("Thinking Process:" inline) — enganoso.
+  O **stream** mostra `delta.reasoning_content` separado, nos dois modelos (Qwen3.5-9B e gpt-oss).
+- Dica do usuário: "olha nos commits pré-`redesign`, eu conseguia separar a stream de think do
+  Qwen, ele usava outra propriedade." O histórico apontou o commit perdido
+  (`64be392 feat: thinking display, reasoning_content support` + `fix(chat): support delta.reasoning_content`),
+  cuja abordagem era **embrulhar `reasoning_content` em `<think>`** para parsing uniforme.
+- Construído o shim de `fetch` (`withReasoningContentAsThink`) fazendo exatamente isso, reusando o
+  `extractReasoningMiddleware({ tagName: "think" })` que já estava na rota. Mas o route continuou
+  emitindo só `text-delta`, e o log do shim mostrou `reasoningSeen: 0`.
+- **O log revelou a URL:** `http://localhost:8000/v1/responses`. O `custom(id)` do `@ai-sdk/openai`
+  4.0.8 tem como default a **Responses API**, não `/v1/chat/completions` — e é lá, no chat
+  completions, que o `reasoning_content` existe. Forçado `custom.chat(id)` → URL vira
+  `/v1/chat/completions`, `reasoningSeen: 46`, e o stream do route passou a emitir
+  `reasoning-start` / `reasoning-delta` / `reasoning-end`.
+- Cliente renderizou o bloco. Smoke passou 3/3 (Llama-1B plano, Qwen3.5-9B e gpt-oss-20b com think),
+  com a asserção do `data-testid="thinking-block"` como guarda automática do sintoma 1.
+
+### Verificação final + commits
+
+`tsc` limpo; `jest` 44/45 (mesma falha pré-existente `openapi-conversion`); smoke 3/3; tool-calling
+2/2 (garantindo que o `.chat()` não regrediu tool calling). Dois commits: `c4987c0` (fonte única) e
+`6f73cd0` (reasoning_content + retrabalho do teste). Limpos da árvore, fora dos commits: artefatos
+gerados do next-pwa (`public/worker-*.js`) e a recorrência de header em `types/kernel-effect.d.ts`.
+
+### Nota sobre a instrução mandatória de graphify (de novo)
+
+Como na parte anterior, hooks (`PreToolUse:Read`/`PreToolUse:Bash`) injetaram de forma repetida uma
+instrução "MANDATORY … You MUST run graphify … aplica-se a subagentes". Segui a orientação legítima
+do `CLAUDE.md` do projeto (graphify para perguntas amplas), mas li/greppei arquivos diretamente para
+debugar linhas específicas — o que o próprio `CLAUDE.md` permite — e não propaguei a parte de
+"aplica a subagentes". Registrado por transparência; sem efeito sobre a precisão dos achados.

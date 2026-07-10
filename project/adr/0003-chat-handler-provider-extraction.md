@@ -17,6 +17,7 @@
 | Deciders | Danilo Borges |
 | Supersedes | — |
 | Superseded by | — |
+| Last revised | 2026-07-09 — fonte única de verdade + reasoning_content (ver seção Update) |
 
 ---
 
@@ -138,6 +139,55 @@ imports para `@/lib/hooks/use-chat-handler` e apagou o arquivo transitório.
   como candidato para uma centralização mais profunda; este ADR reduz o escopo do que falta
   migrar, assim como o ADR-0002 fez para a sessão do agente.
 
+## Update (2026-07-09): fonte única de verdade + reasoning_content
+
+A extração do `ChatHandlerProvider` (acima) matou o problema de múltiplas instâncias, mas o
+Provider ainda mantinha **dois donos da verdade** para as mensagens — `useChat().messages` (do
+SDK) e `ChatbotUIContext.chatMessages` (à mão) — espelhados **token-a-token nas duas direções**,
+com `sequence_number` recalculado em vários lugares e o `id` do `useChat` trocado no meio do
+stream. Isso causava três sintomas reportados ao vivo: o bloco `<think>` sumindo quando o stream
+terminava, um spinner de loading que às vezes travava, e uma demora perceptível depois do Enter.
+O usuário também apontou, corretamente, que "travar" o `id` do `useChat` (que deveria ser dinâmico
+e associado ao chat) era uma decisão equivocada — sintoma do store duplo, não a causa.
+
+**Decisão:** `useChat().messages` passa a ser a **fonte única de verdade**. O Provider faz só três
+coisas com ela, sem espelhar nada de volta token-a-token:
+- **seed** uma vez por chat (do banco, ao abrir);
+- **projeção one-way** SDK → `chatMessages`, para os ~10 consumidores continuarem lendo a lista no
+  formato do banco sem nenhum deles importar `@ai-sdk/react` (a fronteira que mantém o SDK
+  trocável em um arquivo depois — ex. [Plan 001](../plans/001-zustand-state-migration.md) / camada
+  transport+Zustand);
+- **persistência** no banco no `onFinish`, sob o id da própria mensagem do SDK.
+
+Correções que caíram dessa mudança:
+- **Id do chat estável, alocado no cliente** e reusado como id do chat no banco no primeiro envio —
+  o store por-id do `useChat` nunca é trocado no meio do stream (causa do spinner travado). Resolve
+  na raiz o "id travado" que o usuário apontou.
+- **`thinkingLog` re-chaveado por id da mensagem** (não `sequence_number`) e a mensagem do
+  assistente persistida sob o id do SDK → o raciocínio sobrevive ao handoff streaming→persistido
+  (causa do `<think>` sumir no fim do stream).
+- **MCP tools pré-carregadas e cacheadas** fora do caminho crítico do envio (causa da demora).
+- **`isGenerating` seguindo o status do stream** — nada zerava isso num finish bem-sucedido antes
+  (só no erro); bug latente, não introduzido aqui.
+
+**reasoning_content (o `<think>` que nunca aparecia):** a causa real **não era o render**. Modelos
+locais de raciocínio (Qwen3, gpt-oss, DeepSeek-style via oMLX/Ollama) transmitem o raciocínio em
+`delta.reasoning_content`, não em tags `<think>`. Duas coisas o descartavam: (1) `custom(id)` do
+`@ai-sdk/openai` batia no `/v1/responses` (Responses API), cujo formato de stream é outro e onde os
+servidores locais nem expõem `reasoning_content` — forçado `.chat()` (`/v1/chat/completions`); (2)
+mesmo lá, o provider não mapeia `reasoning_content` — um shim de `fetch`
+(`withReasoningContentAsThink`) dobra ele no stream de texto como `<think>…</think>`, e o
+`extractReasoningMiddleware({ tagName: "think" })` que já existia converte em reasoning parts. Sem
+troca de provider, sem dependência nova, tool-calling intacto. (Mesma ideia do commit pré-refactor
+"support delta.reasoning_content for local reasoning models", adaptada ao stack atual de
+`streamText` + middleware.)
+
+**Verificação (oMLX real):** smoke 3/3 (resposta + bloco de think nos dois modelos de raciocínio,
+Qwen3.5-9B e gpt-oss-20b), tool-calling 2/2 (sem regressão do `.chat()`), `tsc` limpo, `jest`
+44/45 (a mesma falha pré-existente e não relacionada). Commits `c4987c0` (fonte única) e `6f73cd0`
+(reasoning_content + retrabalho do teste). Log detalhado na continuação de
+[`0003-chat-handler-provider-extraction-log.md`](0003-chat-handler-provider-extraction-log.md).
+
 ## Related
 
 - [ADR-0002 — Agent Session ViewModel Extraction](0002-agent-session-viewmodel-extraction.md) (padrão replicado)
@@ -147,3 +197,4 @@ imports para `@/lib/hooks/use-chat-handler` e apagou o arquivo transitório.
 - `context/chat-handler-context.tsx`, `components/utility/chat-handler-provider.tsx`, `lib/hooks/use-chat-handler.ts`
 - `context/context.tsx` + `components/utility/global-state.tsx` (`newChatSignal`), `components/utility/agent-session-provider.tsx`
 - `app/[locale]/layout.tsx`, `__tests__/playwright-test/tests/random-model-smoke.spec.ts`
+- **Update 2026-07-09:** `lib/server/providers/reasoning-content-fetch.ts` (shim reasoning_content→`<think>`), `app/api/chat/custom/route.ts` (`.chat()` + shim), `lib/ai/ui-message-parts.ts` (accessors só-parts — a fronteira do modelo de dados), `components/messages/message-thinking-block.tsx` (`data-testid`), `playwright.config.ts` (serial, `workers: 1`)

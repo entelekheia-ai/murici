@@ -12,43 +12,23 @@ import {
 import { ChatSettings } from "@/types"
 import { NextRequest, NextResponse } from "next/server"
 import { createAnthropic } from "@ai-sdk/anthropic"
-import { streamText, convertToModelMessages } from "ai"
+import { convertToModelMessages } from "ai"
 import { buildAiSdkTools } from "@/lib/server/model-message-adapter"
 import { getBuiltInTools, mapMcpTools } from "@/lib/tools/registry"
+import { streamAgentResponse } from "@/lib/server/agent-stream"
 import { logger } from "@/lib/logger"
 
 export const runtime = "edge"
 
-// Anthropic requires an explicit prompt-cache breakpoint (unlike OpenAI/Groq,
-// which cache automatically). @ai-sdk/anthropic's convertToAnthropicPrompt
-// reads a message-level providerOptions.anthropic.cacheControl for the system
-// message. Since buildBasePrompt's static persona+rules content is always the
-// first (system-role) message, and the dynamic per-turn behavior injection is
-// spliced before the last *user* message (never before the system message),
-// this breakpoint lands exactly at the static/dynamic boundary.
-function withAnthropicCacheBreakpoint(messages: any[]): any[] {
-  if (messages[0]?.role !== "system") return messages
-  const [systemMessage, ...rest] = messages
-  return [
-    {
-      ...systemMessage,
-      providerOptions: {
-        ...(systemMessage.providerOptions ?? {}),
-        anthropic: { cacheControl: { type: "ephemeral" } }
-      }
-    },
-    ...rest
-  ]
-}
-
 export async function POST(request: NextRequest) {
   const json = await request.json()
-  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools } = json as {
+  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools, agentPersona } = json as {
     chatSettings: ChatSettings
     messages: any[]
     tools?: any[]
     behaviorState?: any
     mcpTools?: any[]
+    agentPersona?: string | null
   }
 
   try {
@@ -65,17 +45,22 @@ export async function POST(request: NextRequest) {
       ...getBuiltInTools(behaviorState),
       ...mapMcpTools(mcpTools || [])
     }
-    const modelMessages = withAnthropicCacheBreakpoint(await convertToModelMessages(messages, { tools }))
+    const modelMessages = await convertToModelMessages(messages, { tools })
 
-    const result = await streamText({
+    // NOTE: the anthropic prompt-cache breakpoint (providerOptions.anthropic
+    // .cacheControl on the leading system message) was dropped here: the shared
+    // helper now sends persona/RULES via streamText's `system` param, not as a
+    // leading system message, so the old breakpoint was a no-op. Re-adding proper
+    // anthropic cache control on the `system` param is a follow-up.
+    return await streamAgentResponse({
+      provider: "anthropic",
       model: anthropic(chatSettings.model),
-      messages: modelMessages,
-      allowSystemInMessages: true,
-      temperature: chatSettings.temperature,
+      chatSettings,
+      agentPersona,
+      behaviorState,
+      modelMessages,
       tools
     })
-
-    return result.toUIMessageStreamResponse()
   } catch (error: any) {
     logger.error("chat route failed", { provider: "anthropic", model: chatSettings?.model, error: error.message })
     let errorMessage = error.message || "An unexpected error occurred"

@@ -32,9 +32,80 @@ export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
       {type === "tool_call" && <ToolCallCard data={data} />}
       {type === "fsm_transition" && <FsmTransitionCard data={data} />}
       {type === "second_turn" && <SecondTurnCard />}
+      {type === "client_request" && (
+        <WireCard
+          icon="⬆"
+          label="cliente → rota"
+          tint="text-slate-400"
+          summary={`${data.messageCount} msgs · POST ${data.api}`}
+          json={data.body}
+        />
+      )}
+      {type === "server_prompt" && (
+        <WireCard
+          icon="⚙"
+          label="rota → modelo"
+          tint="text-blue-400"
+          summary={`${data.messages?.length ?? 0} msgs${
+            data.system ? " · +system" : ""
+          }`}
+          json={{ system: data.system, messages: data.messages }}
+        />
+      )}
+      {type === "tool_result" && (
+        <WireCard
+          icon="↩"
+          label="tool → modelo"
+          tint="text-green-400"
+          summary={data.toolName}
+          json={data.output}
+        />
+      )}
+      {type === "llm_response" && (
+        <WireCard
+          icon="⬇"
+          label="modelo → cliente"
+          tint="text-teal-400"
+          summary={
+            data.text
+              ? `"${String(data.text).slice(0, 60)}"`
+              : `${data.parts?.length ?? 0} parts`
+          }
+          json={data.parts ?? data.text}
+        />
+      )}
+      {type === "error" && (
+        <div className="flex items-center gap-2 px-3 py-2">
+          <span>⛔</span>
+          <span className="font-semibold text-red-400">Erro</span>
+          <span className="text-muted-foreground/80">{data.message}</span>
+        </div>
+      )}
     </div>
   )
 }
+
+/* ── generic wire card (raw JSON, collapsed by default) ─── */
+const WireCard: FC<{
+  icon: string
+  label: string
+  tint: string
+  summary?: string
+  json: unknown
+}> = ({ icon, label, tint, summary, json }) => (
+  <details>
+    <summary className="hover:bg-muted/40 flex cursor-pointer select-none items-center gap-2 px-3 py-2">
+      <span>{icon}</span>
+      <span className={`font-semibold ${tint}`}>{label}</span>
+      {summary && (
+        <span className="text-muted-foreground/70 truncate">{summary}</span>
+      )}
+    </summary>
+    <pre className="bg-muted mx-3 mb-2 max-h-64 overflow-auto whitespace-pre-wrap rounded p-2 text-xs">
+      {typeof json === "string" ? json : JSON.stringify(json, null, 2)}
+    </pre>
+  </details>
+)
 
 /* ── flow_context ─────────────────────────────────────── */
 const FlowContextCard: FC<{ data: Record<string, any> }> = ({ data }) => (

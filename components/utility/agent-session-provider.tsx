@@ -10,6 +10,7 @@ import { KernelProxy } from "@/lib/kernel-proxy"
 import { handleKernelEffects } from "@/lib/kernel-effects"
 import { getAgentBundle, saveAgentBundle } from "@/lib/local-db/agent-bundles"
 import { upsertRecentAgent } from "@/lib/local-db/recent-agents"
+import { buildFlowStateFromEffects } from "@/lib/runtime/advance-flow"
 import type { AgentAboutme, UnpackPayload } from "@/types/electron"
 import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
 
@@ -111,20 +112,6 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
     [setFlowEngine, setAgentPersona, setAgentKnowledgeFiles, setFlowState]
   )
 
-  const resolveTeach = (
-    name: string | undefined,
-    know: Array<{ path: string; content: string }>
-  ): string | undefined => {
-    if (!name) return undefined
-    const entry = know.find(
-      k =>
-        k.path === name ||
-        k.path === `knowledge/${name}` ||
-        k.path.endsWith(`/${name}`)
-    )
-    return entry ? entry.content : name
-  }
-
   const loadBehavior = useCallback(
     async (
       chatKey: string,
@@ -158,22 +145,9 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
 
         if (isActive()) handleKernelEffects(effects, { setShowRightSidebar })
 
-        const state = eng.get_current_state()
-        const graph = eng.get_graph()
-        const goal = effects.find((e: any) => e.type === "goal")?.text
-        const guide = effects.find((e: any) => e.type === "guide")?.text
-        const teach = resolveTeach(
-          effects.find((e: any) => e.type === "teach")?.text,
-          know
-        )
-        const newFlowState = {
-          currentState: state,
-          goal,
-          guide,
-          teach,
-          validIntents: Array.from(eng.get_valid_intents() || []) as string[],
-          graph
-        }
+        const newFlowState = buildFlowStateFromEffects(eng, effects, know)
+        const state = newFlowState.currentState
+        const graph = newFlowState.graph ?? null
 
         updateSession(chatKey, {
           knowledge: know,
