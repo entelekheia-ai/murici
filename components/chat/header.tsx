@@ -11,6 +11,7 @@ import { ButtonGhost } from "../ui/button-ghost"
 import { Switch } from "../ui/switch"
 
 interface HeaderProps {
+  title?: string
   showSidebar: boolean
   showRightSidebar: boolean
   showDebugPanels: boolean
@@ -20,6 +21,7 @@ interface HeaderProps {
 }
 
 export const Header: FC<HeaderProps> = ({
+  title,
   showSidebar,
   showRightSidebar,
   showDebugPanels,
@@ -57,6 +59,15 @@ export const Header: FC<HeaderProps> = ({
             }
             onClick={onToggleSidebar}
           />
+        </div>
+      )}
+
+      {/* Page title */}
+      {title && (
+        <div className="min-w-0 shrink px-2">
+          <h1 className="truncate text-sm font-semibold text-foreground-primary select-none">
+            {title}
+          </h1>
         </div>
       )}
 

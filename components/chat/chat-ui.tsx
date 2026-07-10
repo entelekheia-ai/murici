@@ -20,6 +20,7 @@ import { useScroll } from "./chat-hooks/use-scroll"
 import { ChatInput } from "./chat-input"
 import { ChatMessages } from "./chat-messages"
 import { Header } from "./header"
+import { useHeaderControls } from "@/lib/hooks/use-header-controls"
 
 interface ChatUIProps {}
 
@@ -38,17 +39,12 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     setSelectedAssistant,
     setChatFileItems,
     setChatFiles,
-    showSidebar,
-    setShowSidebar,
-    showRightSidebar,
-    setShowRightSidebar,
-    showDebugPanels,
-    setShowDebugPanels,
     setUseRetrieval,
     setKnowledge,
     backgroundQueue
   } = useContext(ChatbotUIContext)
 
+  const headerProps = useHeaderControls()
   const { handleNewChat, handleFocusChatInput } = useChatHandler()
 
   const {
@@ -135,17 +131,7 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
 
   return (
     <div className="bg-background-app relative flex h-full flex-col items-center">
-      <Header
-        showSidebar={showSidebar}
-        showRightSidebar={showRightSidebar}
-        showDebugPanels={showDebugPanels}
-        onToggleSidebar={() => setShowSidebar(!showSidebar)}
-        onToggleRightSidebar={() => setShowRightSidebar(!showRightSidebar)}
-        onToggleDebugPanels={checked => {
-          localStorage.setItem("showDebugPanels", String(checked))
-          setShowDebugPanels(checked)
-        }}
-      />
+      <Header {...headerProps} />
 
       <div
         className="flex size-full flex-col overflow-auto"
