@@ -21,6 +21,7 @@ import { startNextServer, stopNextServer } from "./next-server"
 import { setupAutoUpdater } from "./updater"
 import { readFile } from "fs/promises"
 import type { UnpackPayload } from "../types/electron"
+import { buildAppMenu, MenuAction } from "./menu"
 
 const isDev =
   process.env.NODE_ENV === "development" ||
@@ -105,6 +106,59 @@ async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
     behaviors: files.behaviors ?? []
   }
 }
+
+let menuLocale = "en"
+let menuDebugMode = false
+let menuShowChatList = false
+let menuShowDetails = false
+
+function rebuildMenu(): void {
+  buildAppMenu(
+    { locale: menuLocale, debugMode: menuDebugMode, showChatList: menuShowChatList, showDetails: menuShowDetails },
+    { onAction: handleMenuAction, onLoadAgent: handleLoadAgent }
+  )
+}
+
+function handleMenuAction(action: MenuAction): void {
+  mainWindow?.webContents.send("murici:menu-action", { action })
+}
+
+async function handleLoadAgent(): Promise<void> {
+  if (!mainWindow) return
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openFile"],
+    filters: [{ name: "Agent File", extensions: ["agent"] }]
+  })
+  if (result.canceled || result.filePaths.length === 0) return
+
+  const filePath = result.filePaths[0]
+  try {
+    const payload = await resolveAgentFile(filePath)
+    mainWindow.webContents.send("open-agent-file", { payload, filePath })
+  } catch (err: any) {
+    console.error("Failed to resolve agent file:", err)
+    mainWindow.webContents.send("open-agent-file-error", err.message || err.toString())
+  }
+}
+
+ipcMain.on("murici:debug-mode-changed", (_event, value: boolean) => {
+  menuDebugMode = value
+  rebuildMenu()
+})
+
+ipcMain.on("murici:locale-changed", (_event, locale: string) => {
+  menuLocale = locale
+  rebuildMenu()
+})
+
+ipcMain.on(
+  "murici:sidebar-state-changed",
+  (_event, state: { showSidebar?: boolean; showRightSidebar?: boolean }) => {
+    if (state.showSidebar !== undefined) menuShowChatList = state.showSidebar
+    if (state.showRightSidebar !== undefined) menuShowDetails = state.showRightSidebar
+    rebuildMenu()
+  }
+)
 
 // Handle file open from OS (macOS)
 app.on("open-file", (event, filePath) => {
@@ -199,6 +253,7 @@ app.whenReady().then(async () => {
 
     if (!isDev) serverPort = await startNextServer()
     await createWindow()
+    rebuildMenu()
     if (!isDev) setupAutoUpdater()
 
     app.on("activate", () => {

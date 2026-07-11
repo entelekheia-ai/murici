@@ -137,7 +137,9 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
 
   useEffect(() => {
     const saved = localStorage.getItem("showDebugPanels")
-    if (saved !== null) setShowDebugPanels(saved === "true")
+    const isOn = saved === "true"
+    if (saved !== null) setShowDebugPanels(isOn)
+    window.electronAPI?.setDebugMode?.(isOn)
   }, [])
 
   // RETIEVAL STORE

@@ -16,11 +16,12 @@ import { ChatbotUIContext } from "@/context/context"
 import { ContentType } from "@/types"
 import { OsPendingAgentFile } from "@/types/electron"
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams, useParams } from "next/navigation"
 import dynamic from "next/dynamic"
 import { FC, useEffect, useState, useContext, useCallback } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { useAgentSession } from "@/lib/hooks/use-agent-session"
+import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { CommandK } from "../utility/command-k"
 import { getSetting } from "@/lib/local-db/settings"
 import { toast } from "sonner"
@@ -51,10 +52,14 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const params = useParams()
+  const locale = (params?.locale as string) || "en"
+  const workspaceid = (params?.workspaceid as string) || "local"
   const tabValue = searchParams.get("tab") || "chats"
 
   const { handleSelectDeviceFile } = useSelectFileHandler()
   const { handleAgentFile } = useAgentSession()
+  const { handleNewChat } = useChatHandler()
 
   const [contentType, setContentType] = useState<ContentType>(
     tabValue as ContentType
@@ -97,6 +102,41 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
     window.addEventListener("murici:sidebar-navigate", handler)
     return () => window.removeEventListener("murici:sidebar-navigate", handler)
   }, [pathname, router])
+
+  useEffect(() => {
+    window.electronAPI?.setSidebarState?.({ showSidebar, showRightSidebar })
+  }, [showSidebar, showRightSidebar])
+
+  useEffect(() => {
+    window.electronAPI?.onMenuAction?.(data => {
+      switch (data.action) {
+        case "new-chat":
+          handleNewChat()
+          break
+        case "open-settings":
+          window.dispatchEvent(new Event("murici:profile-open"))
+          break
+        case "view-chat":
+          window.dispatchEvent(new CustomEvent("murici:sidebar-navigate", { detail: "chats" }))
+          break
+        case "view-agents":
+          window.dispatchEvent(new CustomEvent("murici:sidebar-navigate", { detail: "agents" }))
+          break
+        case "view-knowledge":
+          router.push(`/${locale}/${workspaceid}/graph`)
+          break
+        case "toggle-chat-list":
+          setShowSidebar(prevState => {
+            localStorage.setItem("showSidebar", String(!prevState))
+            return !prevState
+          })
+          break
+        case "toggle-details":
+          setShowRightSidebar(prevState => !prevState)
+          break
+      }
+    })
+  }, [handleNewChat, locale, workspaceid, router, setShowSidebar, setShowRightSidebar])
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(280)
   const [isResizing, setIsResizing] = useState(false)

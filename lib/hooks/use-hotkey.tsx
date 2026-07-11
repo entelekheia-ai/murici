@@ -5,10 +5,15 @@
 
 import { useEffect } from "react"
 
+const isMac = (): boolean =>
+  typeof window !== "undefined" &&
+  (window.electronAPI?.platform ?? navigator.platform).toLowerCase().includes("mac")
+
 const useHotkey = (key: string, callback: () => void): void => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.metaKey && event.shiftKey && event.key === key) {
+      const isMod = isMac() ? event.metaKey : event.ctrlKey
+      if (isMod && event.shiftKey && event.key === key) {
         event.preventDefault()
         callback()
       }

@@ -19,6 +19,7 @@ import type { OsPendingAgentFile, UnpackPayload } from "../types/electron"
 
 let openAgentFileCallback: ((data: OsPendingAgentFile) => void) | null = null
 let openAgentFileErrorCallback: ((errorMsg: string) => void) | null = null
+let menuActionCallback: ((data: { action: string }) => void) | null = null
 
 ipcRenderer.on("open-agent-file", (_event, data) => {
   if (openAgentFileCallback) {
@@ -29,6 +30,12 @@ ipcRenderer.on("open-agent-file", (_event, data) => {
 ipcRenderer.on("open-agent-file-error", (_event, errorMsg) => {
   if (openAgentFileErrorCallback) {
     openAgentFileErrorCallback(errorMsg)
+  }
+})
+
+ipcRenderer.on("murici:menu-action", (_event, data) => {
+  if (menuActionCallback) {
+    menuActionCallback(data)
   }
 })
 
@@ -49,5 +56,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.send("app-ready-for-files")
   },
   resolveAgentFile: (filePath: string): Promise<UnpackPayload> =>
-    ipcRenderer.invoke("resolve-agent-file", filePath)
+    ipcRenderer.invoke("resolve-agent-file", filePath),
+  onMenuAction: (cb: (data: { action: string }) => void) => {
+    menuActionCallback = cb
+  },
+  setDebugMode: (value: boolean) => {
+    ipcRenderer.send("murici:debug-mode-changed", value)
+  },
+  setLocale: (locale: string) => {
+    ipcRenderer.send("murici:locale-changed", locale)
+  },
+  setSidebarState: (state: { showSidebar?: boolean; showRightSidebar?: boolean }) => {
+    ipcRenderer.send("murici:sidebar-state-changed", state)
+  }
 })

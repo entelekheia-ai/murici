@@ -4,7 +4,6 @@
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
-import { ChatHelp } from "@/components/chat/chat-help"
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { ChatInput } from "@/components/chat/chat-input"
 import { Header } from "@/components/chat/header"
@@ -76,9 +75,6 @@ export default function ChatPage() {
           </div>
           <div className="w-full items-end p-[24px]">
             <ChatInput />
-          </div>
-          <div className="absolute bottom-2 right-2 hidden md:block lg:bottom-4 lg:right-4">
-            <ChatHelp />
           </div>
         </div>
       ) : (

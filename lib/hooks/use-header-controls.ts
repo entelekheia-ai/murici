@@ -25,6 +25,7 @@ export const useHeaderControls = () => {
     onToggleDebugPanels: (checked: boolean) => {
       localStorage.setItem("showDebugPanels", String(checked))
       setShowDebugPanels(checked)
+      window.electronAPI?.setDebugMode?.(checked)
     }
   }
 }

@@ -15,7 +15,6 @@ import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLMID } from "@/types"
 import { useParams } from "next/navigation"
 import { FC, useContext, useEffect, useState } from "react"
-import { ChatHelp } from "./chat-help"
 import { useScroll } from "./chat-hooks/use-scroll"
 import { ChatInput } from "./chat-input"
 import { ChatMessages } from "./chat-messages"
@@ -152,10 +151,6 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
             <span>Processando {backgroundQueue.length} tarefa{backgroundQueue.length > 1 ? "s" : ""} em segundo plano...</span>
           </div>
         )}
-      </div>
-
-      <div className="absolute bottom-2 right-2 hidden md:block lg:bottom-4 lg:right-4">
-        <ChatHelp />
       </div>
     </div>
   )

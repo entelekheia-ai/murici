@@ -5,7 +5,6 @@
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
-export * from "./announcement"
 export * from "./assistant-retrieval-item"
 export * from "./chat"
 export * from "./chat-file"
