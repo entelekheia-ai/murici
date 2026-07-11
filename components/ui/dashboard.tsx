@@ -18,13 +18,14 @@ import { OsPendingAgentFile } from "@/types/electron"
 
 import { usePathname, useRouter, useSearchParams, useParams } from "next/navigation"
 import dynamic from "next/dynamic"
-import { FC, useEffect, useState, useContext, useCallback } from "react"
+import { FC, useEffect, useState, useContext, useCallback, useRef } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { useAgentSession } from "@/lib/hooks/use-agent-session"
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { CommandK } from "../utility/command-k"
 import { getSetting } from "@/lib/local-db/settings"
 import { toast } from "sonner"
+import { computeSidebarVisibility } from "@/lib/hooks/sidebar-auto-collapse"
 
 const APP_VERSION = "0.0.5"
 
@@ -42,12 +43,27 @@ const RightSidebar = dynamic(
 
 export const SIDEBAR_WIDTH = 280
 
+// Keep in sync with the `w-[320px]` class on RightSidebar's panel root.
+const RIGHT_SIDEBAR_WIDTH = 320
+// Below this, the center panel is considered too cramped to keep both
+// sidebars open (matches the `sm:min-w-fit` intent on the center panel).
+const CENTER_MIN_WIDTH = 320
+
 interface DashboardProps {
   children: React.ReactNode
 }
 
 export const Dashboard: FC<DashboardProps> = ({ children }) => {
-  useHotkey("s", () => setShowSidebar(prevState => !prevState))
+  // Tracks whether the resize-driven auto-collapse effect (below) closed a
+  // sidebar for lack of space, as opposed to the user closing it on purpose.
+  // Only auto-closed sidebars are candidates for automatic re-expansion.
+  const autoCollapsedLeftRef = useRef(false)
+  const autoCollapsedRightRef = useRef(false)
+
+  useHotkey("s", () => {
+    autoCollapsedLeftRef.current = false
+    setShowSidebar(prevState => !prevState)
+  })
 
   const pathname = usePathname()
   const router = useRouter()
@@ -126,12 +142,14 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
           router.push(`/${locale}/${workspaceid}/graph`)
           break
         case "toggle-chat-list":
+          autoCollapsedLeftRef.current = false
           setShowSidebar(prevState => {
             localStorage.setItem("showSidebar", String(!prevState))
             return !prevState
           })
           break
         case "toggle-details":
+          autoCollapsedRightRef.current = false
           setShowRightSidebar(prevState => !prevState)
           break
       }
@@ -182,6 +200,71 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
     }
   }, [resize, stopResizing])
 
+  // Observes the outer container's total width (not the center panel's own
+  // width, which changes as a *side effect* of hiding/showing a sidebar and
+  // would otherwise feed back into this logic and cause flicker). Hides the
+  // left sidebar first, then the right, once the center panel would drop
+  // below CENTER_MIN_WIDTH; restores whichever of those it auto-hid, right
+  // first then left, once there's room again.
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  // Mirrors of the latest state, read inside the ResizeObserver callback
+  // below instead of closed-over state. The observer is created once (see
+  // the empty dependency array further down) — recreating it on every
+  // showSidebar/showRightSidebar change would re-trigger its mandatory
+  // initial synthetic callback, which reported the just-toggled state back
+  // against the *unchanged* window width and immediately re-collapsed the
+  // sidebar the user had just opened by hand (visible as a blink).
+  const showSidebarRef = useRef(showSidebar)
+  const showRightSidebarRef = useRef(showRightSidebar)
+  const sidebarWidthRef = useRef(sidebarWidth)
+
+  useEffect(() => {
+    showSidebarRef.current = showSidebar
+  }, [showSidebar])
+
+  useEffect(() => {
+    showRightSidebarRef.current = showRightSidebar
+  }, [showRightSidebar])
+
+  useEffect(() => {
+    sidebarWidthRef.current = sidebarWidth
+  }, [sidebarWidth])
+
+  useEffect(() => {
+    const node = rootRef.current
+    if (!node) return
+
+    const evaluateSidebarSpace = (totalWidth: number) => {
+      const left = showSidebarRef.current
+      const right = showRightSidebarRef.current
+      const result = computeSidebarVisibility({
+        totalWidth,
+        left,
+        right,
+        leftWidth: sidebarWidthRef.current,
+        rightWidth: RIGHT_SIDEBAR_WIDTH,
+        centerMinWidth: CENTER_MIN_WIDTH,
+        autoCollapsedLeft: autoCollapsedLeftRef.current,
+        autoCollapsedRight: autoCollapsedRightRef.current
+      })
+
+      autoCollapsedLeftRef.current = result.autoCollapsedLeft
+      autoCollapsedRightRef.current = result.autoCollapsedRight
+      if (result.left !== left) setShowSidebar(result.left)
+      if (result.right !== right) setShowRightSidebar(result.right)
+    }
+
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0]
+      if (entry) evaluateSidebarSpace(entry.contentRect.width)
+    })
+    observer.observe(node)
+
+    return () => observer.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [isDragging, setIsDragging] = useState(false)
 
   const onFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -212,12 +295,13 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   }
 
   const handleToggleSidebar = () => {
+    autoCollapsedLeftRef.current = false
     setShowSidebar(prevState => !prevState)
     localStorage.setItem("showSidebar", String(!showSidebar))
   }
 
   return (
-    <div className="flex size-full">
+    <div ref={rootRef} className="flex size-full">
       <CommandK />
 
       <div
@@ -261,7 +345,8 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
       </div>
 
       <div
-        className="bg-muted/50 relative flex flex-1 flex-col overflow-hidden sm:min-w-fit"
+        // sm:min-w-[320px] mirrors CENTER_MIN_WIDTH above — keep both in sync.
+        className="bg-muted/50 relative flex flex-1 flex-col overflow-hidden sm:min-w-[320px]"
         onDrop={onFileDrop}
         onDragOver={onDragOver}
         onDragEnter={handleDragEnter}

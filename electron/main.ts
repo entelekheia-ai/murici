@@ -212,8 +212,8 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    minWidth: 800,
-    minHeight: 600,
+    minWidth: 430,
+    minHeight: 430,
     titleBarStyle: "hidden",
     ...(process.platform === "darwin" && {
       trafficLightPosition: { x: 16, y: 13 }
