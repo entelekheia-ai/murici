@@ -429,6 +429,19 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
         behaviorState: context.flowState || undefined
       })
       pushDebugRef.current("tool_result", { toolName: tc.toolName, output: result })
+
+      // runSaveDoc already persisted the record to local-db; mirror it into
+      // context.knowledge here too, or the right-sidebar's "Arquivos do Chat"
+      // list (which reads that state, not the DB) only picks it up on reload.
+      if (tc.toolName === "murici__save_doc" && result?.record) {
+        context.setKnowledge(prev => {
+          if (prev.length === 0) {
+            window.dispatchEvent(new CustomEvent("murici:knowledge-panel-open"))
+          }
+          return [...prev, result.record]
+        })
+      }
+
       report(result)
     },
     // The AI SDK calls this with { message, messages, isAbort, ... } — NOT the

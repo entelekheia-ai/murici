@@ -70,7 +70,8 @@ module.exports = {
         },
         'brand-text': 'hsl(var(--brand-text))',
         stroke: 'hsl(var(--stroke))',
-        'stroke-secondary': 'hsl(var(--stroke-secondary))'
+        'stroke-secondary': 'hsl(var(--stroke-secondary))',
+        'murici-orange': '#C05621'
       },
       fontFamily: {
         instrument: ['var(--font-instrument-sans)', 'sans-serif'],
