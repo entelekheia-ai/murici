@@ -63,10 +63,17 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
   // discovered live (see lib/models/fetch-models.ts) rather than listed in
   // the static LLM_LIST, so routing must also check the live-discovered set
   // in context — otherwise a live model would fall through to "custom" and
-  // misroute to app/api/chat/custom.
-  const builtInModel = [...LLM_LIST, ...context.availableHostedModels].find(
-    m => m.modelId === context.chatSettings?.model
-  )
+  // misroute to app/api/chat/custom. OpenRouter models are discovered live
+  // too (context.availableOpenRouterModels) and were missing here — that's
+  // what caused "Custom model base_url is required" for openrouter models.
+  // availableLocalModels is intentionally NOT included: local models are
+  // meant to fall through to "custom" and get resolved via
+  // resolveCustomModel's local-models bucket.
+  const builtInModel = [
+    ...LLM_LIST,
+    ...context.availableHostedModels,
+    ...context.availableOpenRouterModels
+  ].find(m => m.modelId === context.chatSettings?.model)
   const currentProvider = builtInModel?.provider || "custom"
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
   const chatMessagesRef = useRef(context.chatMessages)
