@@ -64,6 +64,7 @@ declare global {
       onOpenAgentFileError?: (cb: (errorMsg: string) => void) => void
       appReadyForFiles?: () => void
       resolveAgentFile?: (filePath: string) => Promise<UnpackPayload>
+      getPathForFile?: (file: File) => string
       onMenuAction?: (cb: (data: { action: string }) => void) => void
       setDebugMode?: (value: boolean) => void
       setLocale?: (locale: string) => void

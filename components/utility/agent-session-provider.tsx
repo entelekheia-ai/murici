@@ -312,10 +312,11 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
       if (!file.name.endsWith(".agent")) return
       setAgentLoading(true)
       try {
-        // Electron exposes a non-standard `.path` on File objects picked via
-        // <input type=file> or drag-and-drop (absent in a plain web build,
-        // where browsers don't expose real filesystem paths).
-        const electronPath = (file as any).path as string | undefined
+        // Electron 32+ removed the non-standard `.path` on File objects; the
+        // replacement is webUtils.getPathForFile, bridged from preload.ts.
+        // Absent in a plain web build, where browsers don't expose real
+        // filesystem paths.
+        const electronPath = window.electronAPI?.getPathForFile?.(file)
 
         // Sent as a raw body instead of multipart/form-data: Node's
         // undici-based multipart parser throws deep inside its own header

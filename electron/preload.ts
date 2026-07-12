@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { contextBridge, ipcRenderer } from "electron"
+import { contextBridge, ipcRenderer, webUtils } from "electron"
 import type { OsPendingAgentFile, UnpackPayload } from "../types/electron"
 
 let openAgentFileCallback: ((data: OsPendingAgentFile) => void) | null = null
@@ -57,6 +57,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   resolveAgentFile: (filePath: string): Promise<UnpackPayload> =>
     ipcRenderer.invoke("resolve-agent-file", filePath),
+  // File.path was removed from renderer File objects in Electron 32+; this is
+  // the replacement (see agent-session-provider.tsx handleAgentFile).
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
   onMenuAction: (cb: (data: { action: string }) => void) => {
     menuActionCallback = cb
   },
