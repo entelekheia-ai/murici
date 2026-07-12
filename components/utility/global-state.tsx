@@ -76,7 +76,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [userInput, setUserInput] = useState<string>("")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatSettings, setChatSettings] = useState<ChatSettings>({
-    model: "gpt-4-turbo-preview",
+    model: "gpt-4o-mini",
     prompt: "You are a helpful AI assistant.",
     temperature: 0.5,
     contextLength: 4000,
@@ -233,21 +233,43 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
       ])
       setAvailableLocalModels(localModels)
 
+      let hostedModels: LLM[] = []
+      let openRouterModels: OpenRouterLLM[] = []
+
       if (profile) {
         const hostedModelRes = await fetchHostedModels(profile)
-        if (!hostedModelRes) return
+        if (hostedModelRes) {
+          hostedModels = hostedModelRes.hostedModels
+          setEnvKeyMap(hostedModelRes.envKeyMap)
+          setAvailableHostedModels(hostedModelRes.hostedModels)
 
-        setEnvKeyMap(hostedModelRes.envKeyMap)
-        setAvailableHostedModels(hostedModelRes.hostedModels)
-
-        if (
-          profile["openrouter_api_key"] ||
-          hostedModelRes.envKeyMap["openrouter"]
-        ) {
-          const openRouterModels = await fetchOpenRouterModels()
-          if (!openRouterModels) return
-          setAvailableOpenRouterModels(openRouterModels)
+          if (
+            profile["openrouter_api_key"] ||
+            hostedModelRes.envKeyMap["openrouter"]
+          ) {
+            const fetched = await fetchOpenRouterModels()
+            if (fetched) {
+              openRouterModels = fetched
+              setAvailableOpenRouterModels(fetched)
+            }
+          }
         }
+      }
+
+      // The selected model may come from localStorage (a previous session)
+      // and could name a model a provider has since deprecated/removed —
+      // fall back to the first live-discovered model instead of silently
+      // trying a dead id on the first send.
+      const knownModels = [...localModels, ...hostedModels, ...openRouterModels]
+      if (knownModels.length > 0) {
+        setChatSettings(prev => {
+          const stillValid = knownModels.some(
+            m => !m.disabled && m.modelId === prev.model
+          )
+          if (stillValid) return prev
+          const fallback = knownModels.find(m => !m.disabled)
+          return fallback ? { ...prev, model: fallback.modelId } : prev
+        })
       }
 
       const savedId = profile?.background_model_id

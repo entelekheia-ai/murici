@@ -75,6 +75,10 @@ export interface LLM {
   imageInput: boolean
   baseUrl?: string
   apiKey?: string
+  // Set when live discovery for this provider failed (network/5xx/timeout) but the
+  // key itself looked valid — rendered as a non-selectable placeholder row instead
+  // of silently falling back to a stale hardcoded model list.
+  disabled?: boolean
   pricing?: {
     currency: string
     unit: string

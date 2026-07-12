@@ -63,6 +63,7 @@ export const Message: FC<MessageProps> = ({
     firstTokenReceived,
     availableLocalModels,
     availableOpenRouterModels,
+    availableHostedModels,
     chatMessages,
     selectedAssistant,
     chatImages,
@@ -146,6 +147,7 @@ export const Message: FC<MessageProps> = ({
       imageInput: false
     })),
     ...LLM_LIST,
+    ...availableHostedModels,
     ...availableLocalModels,
     ...availableOpenRouterModels
   ].find(llm => llm.modelId === message.model) as LLM
@@ -158,7 +160,9 @@ export const Message: FC<MessageProps> = ({
     image => image.path === selectedAssistant?.image_path
   )?.base64
 
-  const modelDetails = LLM_LIST.find(model => model.modelId === message.model)
+  const modelDetails = [...LLM_LIST, ...availableHostedModels].find(
+    model => model.modelId === message.model
+  )
 
   const fileAccumulator: Record<
     string,

@@ -29,7 +29,8 @@ export const useSelectFileHandler = () => {
     setNewMessageImages,
     setNewMessageFiles,
     setFiles,
-    setUseRetrieval
+    setUseRetrieval,
+    availableHostedModels
   } = useContext(ChatbotUIContext)
 
   const [filesToAccept, setFilesToAccept] = useState(ACCEPTED_FILE_TYPES)
@@ -40,7 +41,9 @@ export const useSelectFileHandler = () => {
 
   const handleFilesToAccept = () => {
     const model = chatSettings?.model
-    const FULL_MODEL = LLM_LIST.find(llm => llm.modelId === model)
+    const FULL_MODEL = [...LLM_LIST, ...availableHostedModels].find(
+      llm => llm.modelId === model
+    )
 
     if (!FULL_MODEL) return
 

@@ -55,7 +55,8 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
     isFilePickerOpen,
     setFocusFile,
     chatSettings,
-    assistantImages
+    assistantImages,
+    availableHostedModels
   } = useContext(ChatbotUIContext)
 
   const {
@@ -146,7 +147,7 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
   }
 
   const handlePaste = (event: React.ClipboardEvent) => {
-    const imagesAllowed = LLM_LIST.find(
+    const imagesAllowed = [...LLM_LIST, ...availableHostedModels].find(
       llm => llm.modelId === chatSettings?.model
     )?.imageInput
 

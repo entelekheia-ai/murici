@@ -11,6 +11,19 @@ import { GROQ_LLM_LIST } from "./groq-llm-list"
 import { OPENAI_LLM_LIST } from "./openai-llm-list"
 import { PERPLEXITY_LLM_LIST } from "./perplexity-llm-list"
 
+// openai/google/anthropic/mistral/groq no longer populate the selectable
+// model dropdown — those providers are discovered live from each provider's
+// API (see app/api/models/discover-remote/route.ts + fetchHostedModels in
+// lib/models/fetch-models.ts), because these hardcoded ids go stale as
+// providers deprecate models (this is what LLM_LIST used to ship: retired
+// ids like gemini-1.5-flash / gpt-4-turbo-preview, 404ing at request time).
+// LLM_LIST is kept only so old chat messages/presets that reference one of
+// these ids can still resolve a display name/icon — it is merged with the
+// live-discovered list at each call site (see chat-handler-provider.tsx,
+// chat-input.tsx, use-select-file-handler.tsx, message.tsx), never used
+// alone for anything user-selectable. Perplexity (no public list-models
+// endpoint) and Azure (deployments, not discoverable models) are the only
+// providers still resolved directly from LLM_LIST_MAP at selection time.
 export const LLM_LIST: LLM[] = [
   ...OPENAI_LLM_LIST,
   ...GOOGLE_LLM_LIST,

@@ -131,17 +131,22 @@ export const ModelSelect: FC<ModelSelectProps> = ({
 
   const filter = (m: LLM) =>
     m.modelName.toLowerCase().includes(search.toLowerCase())
+  // Disabled entries (discovery-error placeholders) still render so the user
+  // sees why a provider's group looks empty, but Enter must never "select" one.
+  const selectableFilter = (m: LLM) => filter(m) && !m.disabled
 
   // Same order the sections render in below, respecting which accordions
   // are open — a match hidden inside a collapsed section shouldn't be
   // selectable via Enter.
   const firstVisibleMatch: LLM | undefined = [
-    ...(accordion.local ? availableLocalModels.filter(filter) : []),
-    ...(accordion.custom ? customModels.filter(filter) : []),
+    ...(accordion.local ? availableLocalModels.filter(selectableFilter) : []),
+    ...(accordion.custom ? customModels.filter(selectableFilter) : []),
     ...(accordion.hosted
-      ? Object.values(hostedByProvider).flatMap(pModels => pModels.filter(filter))
+      ? Object.values(hostedByProvider).flatMap(pModels =>
+          pModels.filter(selectableFilter)
+        )
       : []),
-    ...(accordion.openrouter ? availableOpenRouterModels.filter(filter) : [])
+    ...(accordion.openrouter ? availableOpenRouterModels.filter(selectableFilter) : [])
   ][0]
 
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -259,14 +264,24 @@ export const ModelSelect: FC<ModelSelectProps> = ({
                         {providerLabel}
                       </div>
                       <ul role="listbox" aria-label={providerLabel} className="space-y-[2px]">
-                        {filtered.map(m => (
-                          <ListItem
-                            key={m.modelId}
-                            label={m.modelName}
-                            selected={selectedModelId === m.modelId}
-                            onClick={() => handleSelectModel(m.modelId)}
-                          />
-                        ))}
+                        {filtered.map(m =>
+                          m.disabled ? (
+                            <li
+                              key={m.modelId}
+                              aria-disabled="true"
+                              className="flex h-[37px] w-full cursor-not-allowed select-none items-center justify-start rounded-[8px] px-3 py-2.5 text-small-regular text-foreground-secondary"
+                            >
+                              {t("Could not load models")}
+                            </li>
+                          ) : (
+                            <ListItem
+                              key={m.modelId}
+                              label={m.modelName}
+                              selected={selectedModelId === m.modelId}
+                              onClick={() => handleSelectModel(m.modelId)}
+                            />
+                          )
+                        )}
                       </ul>
                     </div>
                   )

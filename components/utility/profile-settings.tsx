@@ -11,8 +11,7 @@ import { PROFILE_CONTEXT_MAX, PROFILE_DISPLAY_NAME_MAX } from "@/db/limits"
 import { updateProfile } from "@/db/profile"
 import { uploadProfileImage } from "@/db/storage/profile-images"
 import { exportLocalStorageAsJSON } from "@/lib/export-old-data"
-import { fetchOpenRouterModels } from "@/lib/models/fetch-models"
-import { LLM_LIST_MAP } from "@/lib/models/llm/llm-list"
+import { fetchHostedModels, fetchOpenRouterModels } from "@/lib/models/fetch-models"
 import { cn } from "@/lib/utils"
 import { OpenRouterLLM } from "@/types"
 
@@ -221,65 +220,31 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
 
     toast.success("Profile updated!")
 
-    const providers = [
-      "openai",
-      "google",
-      "azure",
-      "anthropic",
-      "mistral",
-      "groq",
-      "perplexity",
-      "openrouter"
-    ]
+    // OpenRouter keeps its own live discovery here, unchanged.
+    if (!envKeyMap["openrouter"]) {
+      const hasOpenRouterKey = !!updatedProfile.openrouter_api_key
 
-    providers.forEach(async provider => {
-      let providerKey: keyof typeof profile
-
-      if (provider === "google") {
-        providerKey = "google_gemini_api_key"
-      } else if (provider === "azure") {
-        providerKey = "azure_openai_api_key"
-      } else {
-        providerKey = `${provider}_api_key` as keyof typeof profile
+      if (hasOpenRouterKey && availableOpenRouterModels.length === 0) {
+        const openrouterModels: OpenRouterLLM[] = await fetchOpenRouterModels()
+        setAvailableOpenRouterModels(prev => {
+          const newModels = openrouterModels.filter(
+            model => !prev.some(prevModel => prevModel.modelId === model.modelId)
+          )
+          return [...prev, ...newModels]
+        })
+      } else if (!hasOpenRouterKey) {
+        setAvailableOpenRouterModels([])
       }
+    }
 
-      const models = LLM_LIST_MAP[provider]
-      const envKeyActive = envKeyMap[provider]
-
-      if (!envKeyActive) {
-        const hasApiKey = !!updatedProfile[providerKey]
-
-        if (provider === "openrouter") {
-          if (hasApiKey && availableOpenRouterModels.length === 0) {
-            const openrouterModels: OpenRouterLLM[] =
-              await fetchOpenRouterModels()
-            setAvailableOpenRouterModels(prev => {
-              const newModels = openrouterModels.filter(
-                model =>
-                  !prev.some(prevModel => prevModel.modelId === model.modelId)
-              )
-              return [...prev, ...newModels]
-            })
-          } else {
-            setAvailableOpenRouterModels([])
-          }
-        } else {
-          if (hasApiKey && Array.isArray(models)) {
-            setAvailableHostedModels(prev => {
-              const newModels = models.filter(
-                model =>
-                  !prev.some(prevModel => prevModel.modelId === model.modelId)
-              )
-              return [...prev, ...newModels]
-            })
-          } else if (!hasApiKey && Array.isArray(models)) {
-            setAvailableHostedModels(prev =>
-              prev.filter(model => !models.includes(model))
-            )
-          }
-        }
-      }
-    })
+    // The six hosted providers (openai/google/azure/anthropic/mistral/groq/
+    // perplexity) all resolve through fetchHostedModels — the same function
+    // global-state.tsx calls on app load — instead of re-deriving
+    // provider/key/model-list logic here. It fully recomputes the set for
+    // the just-saved profile, so a plain replace (not merge-with-prev) is
+    // correct.
+    const hosted = await fetchHostedModels(updatedProfile)
+    setAvailableHostedModels(hosted?.hostedModels ?? [])
 
     setIsOpen(false)
   }

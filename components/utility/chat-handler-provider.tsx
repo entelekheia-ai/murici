@@ -55,7 +55,12 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
 }) => {
   const router = useRouter()
   const context = useContext(ChatbotUIContext)
-  const builtInModel = LLM_LIST.find(
+  // Remote providers (openai/anthropic/google/mistral/groq) are now
+  // discovered live (see lib/models/fetch-models.ts) rather than listed in
+  // the static LLM_LIST, so routing must also check the live-discovered set
+  // in context — otherwise a live model would fall through to "custom" and
+  // misroute to app/api/chat/custom.
+  const builtInModel = [...LLM_LIST, ...context.availableHostedModels].find(
     m => m.modelId === context.chatSettings?.model
   )
   const currentProvider = builtInModel?.provider || "custom"
