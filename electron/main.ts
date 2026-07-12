@@ -234,6 +234,16 @@ async function createWindow() {
     mainWindow!.show()
   })
 
+  // Main-process console.* only covers startup/IPC — the app's actual
+  // activity happens in the renderer (Next.js/React UI). Bridge it into
+  // the same log file so main.log reflects real usage, not just launches.
+  mainWindow.webContents.on("console-message", details => {
+    const line = `[renderer] ${details.message} (${details.sourceId}:${details.lineNumber})`
+    if (details.level === "error") logger.error(line)
+    else if (details.level === "warning") logger.warn(line)
+    else logger.info(line)
+  })
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: "deny" }
