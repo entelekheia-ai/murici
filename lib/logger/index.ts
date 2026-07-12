@@ -20,7 +20,7 @@
  * and console/fetch on the client.
  */
 
-const LEVELS = { error: 0, warn: 1, info: 2, debug: 3 } as const
+const LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 } as const
 type Level = keyof typeof LEVELS
 
 class UniversalLogger {
@@ -56,6 +56,10 @@ class UniversalLogger {
     this._log("debug", message, meta)
   }
 
+  trace(message: string, meta?: Record<string, any>) {
+    this._log("trace", message, meta)
+  }
+
   private _log(level: Level, message: string, meta?: Record<string, any>) {
     if (LEVELS[level] > LEVELS[this.currentLevel]) return
 
@@ -68,6 +72,7 @@ class UniversalLogger {
       switch (level) {
         case "info":
         case "debug":
+        case "trace":
           console.log(`[${level.toUpperCase()}] ${payload}`)
           break
         case "warn":

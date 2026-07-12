@@ -124,7 +124,7 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
 
   useEffect(() => {
     chatMessagesRef.current = context.chatMessages
-    logger.debug("chatMessages changed", {
+    logger.trace("chatMessages changed", {
       count: context.chatMessages.length,
       lastRole: context.chatMessages[context.chatMessages.length - 1]?.message.role,
       lastLen: context.chatMessages[context.chatMessages.length - 1]?.message.content?.length ?? -1
@@ -545,7 +545,7 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
         )
         .map((p: any) => p.toolCallId)
     )
-    logger.debug("projection: SDK message snapshot", {
+    logger.trace("projection: SDK message snapshot", {
       count: vercelMessages.length,
       ids: vercelMessages.map((m: any) => m.id),
       dupMessageIds:
