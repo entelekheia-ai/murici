@@ -79,6 +79,12 @@ export interface LLM {
   // key itself looked valid — rendered as a non-selectable placeholder row instead
   // of silently falling back to a stale hardcoded model list.
   disabled?: boolean
+  // Set by live discovery (discover-remote/route.ts) to sub-group the model
+  // picker within a provider. Undefined means "current" (static/local/custom/
+  // OpenRouter models are never classified). "legacy" requires a newer sibling
+  // with the same base name in the same discovery result — being old alone
+  // isn't enough; "deprecated" models are filtered out entirely, not tiered.
+  tier?: "current" | "experimental" | "legacy"
   pricing?: {
     currency: string
     unit: string

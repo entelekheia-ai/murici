@@ -26,21 +26,26 @@ import { Tables } from "@/types/database"
 export function buildApiKeys(profile: Tables<"profiles"> | null) {
   if (!profile) return {}
 
+  // "|| undefined", not "?? undefined": profile-settings.tsx's save handler
+  // writes "" (not null) for any provider key field the user hasn't typed
+  // into, since its local state defaults to useState(profile?.x_api_key ||
+  // ""). An empty string would survive "??" and be sent as a real (blank)
+  // key, silently defeating the server's env-var fallback for that provider.
   return {
-    openai: profile.openai_api_key ?? undefined,
-    anthropic: profile.anthropic_api_key ?? undefined,
-    google: profile.google_gemini_api_key ?? undefined,
-    mistral: profile.mistral_api_key ?? undefined,
-    groq: profile.groq_api_key ?? undefined,
-    perplexity: profile.perplexity_api_key ?? undefined,
-    azure: profile.azure_openai_api_key ?? undefined,
-    openrouter: profile.openrouter_api_key ?? undefined,
-    openaiOrgId: profile.openai_organization_id ?? undefined,
-    azureEndpoint: profile.azure_openai_endpoint ?? undefined,
-    azure35TurboId: profile.azure_openai_35_turbo_id ?? undefined,
-    azure45TurboId: profile.azure_openai_45_turbo_id ?? undefined,
-    azure45VisionId: profile.azure_openai_45_vision_id ?? undefined,
-    azureEmbeddingsId: profile.azure_openai_embeddings_id ?? undefined,
+    openai: profile.openai_api_key || undefined,
+    anthropic: profile.anthropic_api_key || undefined,
+    google: profile.google_gemini_api_key || undefined,
+    mistral: profile.mistral_api_key || undefined,
+    groq: profile.groq_api_key || undefined,
+    perplexity: profile.perplexity_api_key || undefined,
+    azure: profile.azure_openai_api_key || undefined,
+    openrouter: profile.openrouter_api_key || undefined,
+    openaiOrgId: profile.openai_organization_id || undefined,
+    azureEndpoint: profile.azure_openai_endpoint || undefined,
+    azure35TurboId: profile.azure_openai_35_turbo_id || undefined,
+    azure45TurboId: profile.azure_openai_45_turbo_id || undefined,
+    azure45VisionId: profile.azure_openai_45_vision_id || undefined,
+    azureEmbeddingsId: profile.azure_openai_embeddings_id || undefined,
     useAzure: profile.use_azure_openai
   }
 }

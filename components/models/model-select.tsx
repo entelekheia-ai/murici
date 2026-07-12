@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next"
 
 const ACCORDION_KEY = "murici_accordion"
 const SELECTED_MODEL_KEY = "murici_selected_model"
+const TIER_ACCORDION_KEY = "murici_accordion_tiers"
 
 interface AccordionState {
   local: boolean
@@ -43,6 +44,40 @@ function readAccordion(): AccordionState {
 
 function writeAccordion(state: AccordionState) {
   localStorage.setItem(ACCORDION_KEY, JSON.stringify(state))
+}
+
+// Sub-grouping within HOSTED, by provider — only rendered when a provider's
+// models actually span more than one tier (otherwise it's just a flat list,
+// same as before this existed). Kept in its own localStorage key/shape
+// (keyed by "<provider>:<tier>") instead of extending AccordionState, since
+// the set of providers is dynamic and unrelated to the four fixed top groups.
+type ModelTier = NonNullable<LLM["tier"]>
+
+const TIER_ORDER: ModelTier[] = ["current", "experimental", "legacy"]
+
+const TIER_LABELS: Record<ModelTier, string> = {
+  current: "Current",
+  experimental: "Experimental",
+  legacy: "Legacy"
+}
+
+const DEFAULT_TIER_OPEN: Record<ModelTier, boolean> = {
+  current: true,
+  experimental: false,
+  legacy: false
+}
+
+function readTierAccordion(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(TIER_ACCORDION_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeTierAccordion(state: Record<string, boolean>) {
+  localStorage.setItem(TIER_ACCORDION_KEY, JSON.stringify(state))
 }
 
 interface ModelSelectProps {
@@ -74,9 +109,11 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   const [search, setSearch] = useState("")
   const [isDiscovering, setIsDiscovering] = useState(false)
   const [accordion, setAccordion] = useState<AccordionState>(DEFAULT_ACCORDION)
+  const [tierAccordion, setTierAccordion] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     setAccordion(readAccordion())
+    setTierAccordion(readTierAccordion())
     // Run discovery on mount
     setIsDiscovering(true)
     fetchLocalModels().then(discovered => {
@@ -89,6 +126,29 @@ export const ModelSelect: FC<ModelSelectProps> = ({
     const next = { ...accordion, [key]: !accordion[key] }
     setAccordion(next)
     writeAccordion(next)
+  }
+
+  const isTierOpen = (provider: string, tier: ModelTier) => {
+    const tierKey = `${provider}:${tier}`
+    return tierKey in tierAccordion ? tierAccordion[tierKey] : DEFAULT_TIER_OPEN[tier]
+  }
+
+  const toggleTier = (provider: string, tier: ModelTier) => {
+    const tierKey = `${provider}:${tier}`
+    const next = { ...tierAccordion, [tierKey]: !isTierOpen(provider, tier) }
+    setTierAccordion(next)
+    writeTierAccordion(next)
+  }
+
+  // A provider's real (non-sentinel) models, restricted to whichever tiers
+  // are open — used for Enter-to-select, mirroring the top-level
+  // accordion.hosted gate. When a provider's models don't actually span more
+  // than one tier there's no sub-accordion rendered, so nothing is hidden.
+  const visibleHostedModels = (provider: string, pModels: LLM[]): LLM[] => {
+    const real = pModels.filter(m => !m.disabled)
+    const tiersPresent = new Set(real.map(m => m.tier ?? "current"))
+    if (tiersPresent.size <= 1) return pModels
+    return pModels.filter(m => m.disabled || isTierOpen(provider, m.tier ?? "current"))
   }
 
   const handleSelectModel = async (modelId: LLMID | string) => {
@@ -142,8 +202,8 @@ export const ModelSelect: FC<ModelSelectProps> = ({
     ...(accordion.local ? availableLocalModels.filter(selectableFilter) : []),
     ...(accordion.custom ? customModels.filter(selectableFilter) : []),
     ...(accordion.hosted
-      ? Object.values(hostedByProvider).flatMap(pModels =>
-          pModels.filter(selectableFilter)
+      ? Object.entries(hostedByProvider).flatMap(([provider, pModels]) =>
+          visibleHostedModels(provider, pModels).filter(selectableFilter)
         )
       : []),
     ...(accordion.openrouter ? availableOpenRouterModels.filter(selectableFilter) : [])
@@ -258,31 +318,72 @@ export const ModelSelect: FC<ModelSelectProps> = ({
                   const providerLabel = provider === "openai" && profile.use_azure_openai
                     ? "Azure OpenAI"
                     : provider
+
+                  const disabledEntries = filtered.filter(m => m.disabled)
+                  const realModels = filtered.filter(m => !m.disabled)
+                  const tiersPresent = TIER_ORDER.filter(tier =>
+                    realModels.some(m => (m.tier ?? "current") === tier)
+                  )
+                  const useSubAccordion = tiersPresent.length > 1
+
+                  const renderRow = (m: LLM) =>
+                    m.disabled ? (
+                      <li
+                        key={m.modelId}
+                        aria-disabled="true"
+                        className="flex h-[37px] w-full cursor-not-allowed select-none items-center justify-start rounded-[8px] px-3 py-2.5 text-small-regular text-foreground-secondary"
+                      >
+                        {t("Could not load models")}
+                      </li>
+                    ) : (
+                      <ListItem
+                        key={m.modelId}
+                        label={m.modelName}
+                        selected={selectedModelId === m.modelId}
+                        onClick={() => handleSelectModel(m.modelId)}
+                      />
+                    )
+
                   return (
                     <div key={provider} className="mt-2 first:mt-0">
                       <div className="mb-1 ml-3 text-[10px] font-bold text-foreground-secondary uppercase tracking-wider">
                         {providerLabel}
                       </div>
-                      <ul role="listbox" aria-label={providerLabel} className="space-y-[2px]">
-                        {filtered.map(m =>
-                          m.disabled ? (
-                            <li
-                              key={m.modelId}
-                              aria-disabled="true"
-                              className="flex h-[37px] w-full cursor-not-allowed select-none items-center justify-start rounded-[8px] px-3 py-2.5 text-small-regular text-foreground-secondary"
-                            >
-                              {t("Could not load models")}
-                            </li>
-                          ) : (
-                            <ListItem
-                              key={m.modelId}
-                              label={m.modelName}
-                              selected={selectedModelId === m.modelId}
-                              onClick={() => handleSelectModel(m.modelId)}
-                            />
+                      {disabledEntries.length > 0 && (
+                        <ul role="listbox" aria-label={providerLabel} className="space-y-[2px]">
+                          {disabledEntries.map(renderRow)}
+                        </ul>
+                      )}
+                      {!useSubAccordion ? (
+                        <ul role="listbox" aria-label={providerLabel} className="space-y-[2px]">
+                          {realModels.map(renderRow)}
+                        </ul>
+                      ) : (
+                        tiersPresent.map(tier => {
+                          const tierModels = realModels.filter(
+                            m => (m.tier ?? "current") === tier
                           )
-                        )}
-                      </ul>
+                          const open = isTierOpen(provider, tier)
+                          return (
+                            <div key={tier} className="mt-1 pl-2">
+                              <GroupHeader
+                                label={t(TIER_LABELS[tier])}
+                                open={open}
+                                onToggle={() => toggleTier(provider, tier)}
+                              />
+                              {open && (
+                                <ul
+                                  role="listbox"
+                                  aria-label={`${providerLabel} ${TIER_LABELS[tier]}`}
+                                  className="space-y-[2px]"
+                                >
+                                  {tierModels.map(renderRow)}
+                                </ul>
+                              )}
+                            </div>
+                          )
+                        })
+                      )}
                     </div>
                   )
                 })}

@@ -190,21 +190,28 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
       profile_context: profileInstructions,
       image_url: profileImageUrl,
       image_path: profileImagePath,
-      openai_api_key: openaiAPIKey,
-      openai_organization_id: openaiOrgID,
-      anthropic_api_key: anthropicAPIKey,
-      google_gemini_api_key: googleGeminiAPIKey,
-      mistral_api_key: mistralAPIKey,
-      groq_api_key: groqAPIKey,
-      perplexity_api_key: perplexityAPIKey,
+      // "|| null" on every key/id field below: local state for each of these
+      // defaults to useState(profile?.x || "") (empty string when unset), and
+      // saving that "" straight through would overwrite a previously-null
+      // field with "" — which then silently defeats the env-var fallback in
+      // getProfileFromBody/buildApiKeys for any provider the user hasn't
+      // typed a key into (an empty string isn't null/undefined, so "??"
+      // fallback chains never trigger). null is the correct "unset" value.
+      openai_api_key: openaiAPIKey || null,
+      openai_organization_id: openaiOrgID || null,
+      anthropic_api_key: anthropicAPIKey || null,
+      google_gemini_api_key: googleGeminiAPIKey || null,
+      mistral_api_key: mistralAPIKey || null,
+      groq_api_key: groqAPIKey || null,
+      perplexity_api_key: perplexityAPIKey || null,
       use_azure_openai: useAzureOpenai,
-      azure_openai_api_key: azureOpenaiAPIKey,
-      azure_openai_endpoint: azureOpenaiEndpoint,
-      azure_openai_35_turbo_id: azureOpenai35TurboID,
-      azure_openai_45_turbo_id: azureOpenai45TurboID,
-      azure_openai_45_vision_id: azureOpenai45VisionID,
-      azure_openai_embeddings_id: azureEmbeddingsID,
-      openrouter_api_key: openrouterAPIKey,
+      azure_openai_api_key: azureOpenaiAPIKey || null,
+      azure_openai_endpoint: azureOpenaiEndpoint || null,
+      azure_openai_35_turbo_id: azureOpenai35TurboID || null,
+      azure_openai_45_turbo_id: azureOpenai45TurboID || null,
+      azure_openai_45_vision_id: azureOpenai45VisionID || null,
+      azure_openai_embeddings_id: azureEmbeddingsID || null,
+      openrouter_api_key: openrouterAPIKey || null,
       background_model_id: backgroundModelId || null
     })
 

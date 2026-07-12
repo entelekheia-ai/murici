@@ -3,6 +3,12 @@
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
+// OpenAI itself is discovered live (see app/api/models/discover-remote/route.ts
+// + fetchHostedModels in lib/models/fetch-models.ts) — this static list no
+// longer feeds the OpenAI branch of the model picker. It's kept only because
+// Azure OpenAI has no discoverable model catalog (deployments are configured
+// by hand in profile-settings.tsx); LLM_LIST_MAP["azure"] reuses this list as
+// the base set of display names/ids for those deployment slots.
 import { LLM } from "@/types"
 
 const OPENAI_PLATORM_LINK = "https://platform.openai.com/docs/overview"
