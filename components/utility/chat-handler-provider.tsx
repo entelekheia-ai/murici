@@ -251,6 +251,13 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
   } = useChat({
     transport,
     id: activeChatId,
+    // Without this, ReactChatState.replaceMessage() (@ai-sdk/react's internal
+    // store) synchronously deep-clones + rebuilds the whole messages array and
+    // notifies useSyncExternalStore on EVERY streamed chunk — a burst of many
+    // chunks close together (e.g. tool-call arguments streamed token by token)
+    // can trip React's "Maximum update depth exceeded" guard. This throttles
+    // the store's change notifications instead of the stream itself.
+    experimental_throttle: 50,
     // The route emits a transient data-debug part with the exact system + final
     // model messages it sent this request; mirror it inline as a server_prompt
     // event (the "what really went to the model" half of the debug view).
