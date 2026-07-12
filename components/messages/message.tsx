@@ -259,7 +259,7 @@ export const Message: FC<MessageProps> = ({
             {message.role === "system" ? (
               <div className="flex items-center space-x-4">
                 <Pencil
-                  className="border-primary bg-primary text-foreground-secondary rounded border-DEFAULT p-1"
+                  className="rounded border-DEFAULT border-primary bg-primary p-1 text-foreground-secondary"
                   size={ICON_SIZE}
                 />
                 <div className="text-lg font-semibold">Prompt</div>
@@ -310,7 +310,7 @@ export const Message: FC<MessageProps> = ({
         </div>
 
         {fileItems.length > 0 && (
-          <div className="border-primary mt-6 border-t pt-4 font-bold">
+          <div className="mt-6 border-t border-primary pt-4 font-bold">
             {!viewSources ? (
               <div
                 className="flex cursor-pointer items-center text-lg hover:opacity-50"

@@ -44,7 +44,7 @@ export const KnowledgeSidebarSection: FC = () => {
   return (
     <div className="mb-3">
       <button
-        className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1 pb-1 text-xs font-semibold uppercase tracking-wider transition-colors"
+        className="flex w-full items-center gap-1 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
         onClick={() => setCollapsed(v => !v)}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
@@ -61,7 +61,7 @@ export const KnowledgeSidebarSection: FC = () => {
           ))}
 
           <button
-            className="text-muted-foreground hover:text-foreground mt-0.5 text-right text-xs transition-colors"
+            className="mt-0.5 text-right text-xs text-muted-foreground transition-colors hover:text-foreground"
             onClick={() => router.push(`/${locale}/${workspaceid}/graph`)}
           >
             Ver tudo →
@@ -75,8 +75,8 @@ export const KnowledgeSidebarSection: FC = () => {
 const MiniChip: FC<{ record: KnowledgeRecord }> = ({ record }) => {
   const lang = record.payload.language || "text"
   return (
-    <div className="bg-muted/50 flex items-center gap-2 truncate rounded px-2 py-1">
-      <span className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-mono ${languageColor(lang)}`}>
+    <div className="flex items-center gap-2 truncate rounded bg-muted/50 px-2 py-1">
+      <span className={`shrink-0 rounded px-1 py-0.5 font-mono text-[10px] ${languageColor(lang)}`}>
         {lang}
       </span>
       <span className="truncate text-xs" title={record.title}>

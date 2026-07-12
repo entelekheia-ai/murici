@@ -129,7 +129,7 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
   }
 
   return (
-    <div className="bg-background-app relative flex h-full flex-col items-center">
+    <div className="relative flex h-full flex-col items-center bg-background-app">
       <Header {...headerProps} />
 
       <div
@@ -146,7 +146,7 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
       <div className="relative w-full items-end p-[24px]">
         <ChatInput />
         {backgroundQueue && backgroundQueue.length > 0 && (
-          <div className="absolute -bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground flex items-center space-x-1.5 opacity-80">
+          <div className="absolute -bottom-1 left-1/2 flex -translate-x-1/2 items-center space-x-1.5 text-xs text-muted-foreground opacity-80 sm:bottom-2">
             <span className="animate-pulse">🧠</span>
             <span>Processando {backgroundQueue.length} tarefa{backgroundQueue.length > 1 ? "s" : ""} em segundo plano...</span>
           </div>

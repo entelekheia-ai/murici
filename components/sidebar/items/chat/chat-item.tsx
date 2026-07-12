@@ -35,7 +35,7 @@ export const ChatItem: FC<ChatItemProps> = ({
     <div
       ref={itemRef}
       className={cn(
-        "group flex w-full cursor-pointer items-center h-[37px] rounded-lg px-2 py-1 focus:outline-none transition-colors",
+        "group flex h-[37px] w-full cursor-pointer items-center rounded-lg px-2 py-1 transition-colors focus:outline-none",
         isActive
           ? "bg-background-secondary text-foreground-primary"
           : "text-foreground-secondary-80 hover:bg-background-secondary/40"

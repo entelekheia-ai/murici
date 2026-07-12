@@ -168,7 +168,7 @@ export const SidebarAgentsContent: FC = () => {
                 </div>
               )}
               {sortedRecentAgents.length === 0 ? (
-                <p className="text-muted-foreground px-2 py-1 text-xs">
+                <p className="px-2 py-1 text-xs text-muted-foreground">
                   {t("No recent agents.")}
                 </p>
               ) : (

@@ -93,7 +93,7 @@ export default async function RootLayout({
           >
             <Toaster richColors position="top-center" duration={3000} />
             <GlobalErrorReporter />
-            <div className="bg-background text-foreground flex h-dvh flex-col items-center overflow-x-auto">
+            <div className="flex h-dvh flex-col items-center overflow-x-auto bg-background text-foreground">
               <ErrorBoundary>
                 <GlobalState>
                   <ChatHandlerProvider>

@@ -722,11 +722,11 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
           onClick={() => setAgentPreview(null)}
         >
           <div
-            className="bg-background max-w-sm rounded-xl border p-4 shadow-xl"
+            className="max-w-sm rounded-xl border bg-background p-4 shadow-xl"
             onClick={e => e.stopPropagation()}
           >
             <h3 className="font-semibold">{agentPreview.name}</h3>
-            <p className="text-muted-foreground mt-1 text-sm">
+            <p className="mt-1 text-sm text-muted-foreground">
               {agentPreview.conversationIds.length} conversa(s), {agentPreview.artifactIds.length} artefato(s)
             </p>
           </div>

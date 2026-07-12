@@ -43,7 +43,7 @@ export default function ChatPage() {
   return (
     <>
       {chatMessages.length === 0 && showGraphHome ? (
-        <div className="relative flex h-full w-full flex-col items-center">
+        <div className="relative flex size-full flex-col items-center">
           <KnowledgeHomeView
             knowledge={knowledge}
             chats={chats}

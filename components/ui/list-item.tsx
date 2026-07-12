@@ -46,10 +46,10 @@ export const ListItem: FC<ListItemProps> = ({
       onClick={onClick}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex h-[37px] w-full cursor-pointer select-none items-center justify-start rounded-[8px] px-3 py-2.5 transition-colors outline-none focus-visible:bg-black/5 dark:focus-visible:bg-white/5",
+        "flex h-[37px] w-full cursor-pointer select-none items-center justify-start rounded-[8px] px-3 py-2.5 outline-none transition-colors focus-visible:bg-black/5 dark:focus-visible:bg-white/5",
         selected
-          ? "bg-background-secondary text-foreground-primary text-small-semi-strong"
-          : "bg-transparent text-foreground-primary text-small-regular hover:bg-black/5 dark:hover:bg-white/5",
+          ? "text-small-semi-strong bg-background-secondary text-foreground-primary"
+          : "text-small-regular bg-transparent text-foreground-primary hover:bg-black/5 dark:hover:bg-white/5",
         className
       )}
       {...props}

@@ -90,7 +90,7 @@ export const MCPSettings: FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <Label>Installed MCP Servers</Label>
         <div className="space-x-2">
           <Button variant="outline" size="sm" onClick={() => setAddingType("stdio")}>+ Stdio Server</Button>
@@ -99,8 +99,8 @@ export const MCPSettings: FC = () => {
       </div>
       
       {addingType && (
-        <div className="p-3 border rounded-md space-y-3 bg-muted/50">
-          <div className="font-bold text-sm">Add {addingType === "stdio" ? "Stdio" : "SSE"} Server</div>
+        <div className="space-y-3 rounded-md border bg-muted/50 p-3">
+          <div className="text-sm font-bold">Add {addingType === "stdio" ? "Stdio" : "SSE"} Server</div>
           <div className="space-y-2">
             <Input placeholder="Server name" value={newName} onChange={e => setNewName(e.target.value)} />
             {addingType === "stdio" ? (
@@ -122,12 +122,12 @@ export const MCPSettings: FC = () => {
       {Object.keys(config.mcpServers || {}).length === 0 && !addingType ? (
         <div className="text-sm opacity-50">No MCP servers configured.</div>
       ) : (
-        <div className="space-y-2 mt-4">
+        <div className="mt-4 space-y-2">
           {Object.entries(config.mcpServers || {}).map(([name, server]) => (
-            <div key={name} className="p-3 border rounded-md flex justify-between items-center">
+            <div key={name} className="flex items-center justify-between rounded-md border p-3">
               <div>
-                <div className="font-bold text-sm">{name}</div>
-                <div className="text-xs opacity-70 mt-1">
+                <div className="text-sm font-bold">{name}</div>
+                <div className="mt-1 text-xs opacity-70">
                   {server.transport === "stdio" ? `[Stdio] ${server.command} ${server.args?.join(" ")}` : `[SSE] ${server.url}`}
                 </div>
               </div>

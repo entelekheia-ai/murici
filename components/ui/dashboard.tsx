@@ -37,7 +37,7 @@ const RightSidebar = dynamic(
     })),
   {
     ssr: false,
-    loading: () => <div className="bg-muted h-full w-[400px] animate-pulse" />
+    loading: () => <div className="h-full w-[400px] animate-pulse bg-muted" />
   }
 )
 
@@ -306,7 +306,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
       <div
         className={cn(
-          "bg-background-primary relative",
+          "relative bg-background-primary",
           !isResizing && "duration-200",
           showSidebar ? "border-r border-stroke" : ""
         )}
@@ -326,7 +326,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
               router.replace(`${pathname}?tab=${tabValue}`)
             }}
           >
-            <div className="flex h-full w-full flex-col">
+            <div className="flex size-full flex-col">
               <Sidebar
                 contentType={contentType}
                 showSidebar={showSidebar}
@@ -338,7 +338,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
         )}
         {showSidebar && (
           <div
-            className="absolute right-0 top-0 bottom-0 w-[4px] cursor-col-resize hover:bg-primary/20 z-50 transition-colors"
+            className="absolute inset-y-0 right-0 z-50 w-[4px] cursor-col-resize transition-colors hover:bg-primary/20"
             onMouseDown={startResizing}
           />
         )}
@@ -346,7 +346,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
       <div
         // sm:min-w-[320px] mirrors CENTER_MIN_WIDTH above — keep both in sync.
-        className="bg-muted/50 relative flex flex-1 flex-col overflow-hidden sm:min-w-[320px]"
+        className="relative flex flex-1 flex-col overflow-hidden bg-muted/50 sm:min-w-[320px]"
         onDrop={onFileDrop}
         onDragOver={onDragOver}
         onDragEnter={handleDragEnter}

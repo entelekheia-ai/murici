@@ -190,17 +190,17 @@ export const Sidebar: FC<SidebarProps> = ({
 
   return (
     <TabsContent
-      className="m-0 w-full flex-1 overflow-hidden bg-background-app relative"
+      className="relative m-0 w-full flex-1 overflow-hidden bg-background-app"
       value={contentType}
     >
       <div
-        className="flex h-full flex-col px-[16px] pb-[20px] relative gap-[24px]"
+        className="relative flex h-full flex-col gap-[24px] px-[16px] pb-[20px]"
         style={{ paddingTop: isMac ? "40px" : "12px" }}
       >
         {/* Absolute-positioned toggle button matching Figma layout */}
-        <div className="absolute top-[12px] right-[12px] z-50 no-drag">
+        <div className="no-drag absolute right-[12px] top-[12px] z-50">
           <Button
-            className="h-8 w-8 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 flex items-center justify-center rounded-lg"
+            className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-neutral-600 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-800"
             variant="ghost"
             size="icon"
             onClick={onToggleSidebar}

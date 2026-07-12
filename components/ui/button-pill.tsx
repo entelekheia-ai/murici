@@ -19,14 +19,14 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
         ref={ref}
         type="button"
         className={cn(
-          "flex h-7 items-center justify-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors select-none shrink-0",
+          "flex h-7 shrink-0 select-none items-center justify-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
           className
         )}
         {...props}
       >
         <span className="truncate">{label}</span>
         {showIcon && icon && (
-          <span className="flex items-center justify-center shrink-0">
+          <span className="flex shrink-0 items-center justify-center">
             {icon}
           </span>
         )}

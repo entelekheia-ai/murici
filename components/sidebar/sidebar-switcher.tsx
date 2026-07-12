@@ -119,7 +119,7 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
               <Brain size={SIDEBAR_ICON_SIZE} />
             </Button>
             {!isKnowledgeOpen && knowledge.length > 0 && (
-              <span className="bg-primary text-primary-foreground pointer-events-none absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full text-[10px] font-bold leading-none">
+              <span className="pointer-events-none absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold leading-none text-primary-foreground">
                 {knowledge.length > 9 ? "9+" : knowledge.length}
               </span>
             )}

@@ -35,7 +35,7 @@ export const ToggleTheme: FC<ToggleThemeProps> = ({ mode, onClick, className }) 
 
   return (
     <Button
-      className={`flex cursor-pointer space-x-2 text-brand-text hover:opacity-80 transition-opacity ${className || ""}`}
+      className={`flex cursor-pointer space-x-2 text-brand-text transition-opacity hover:opacity-80 ${className || ""}`}
       variant="ghost"
       size="icon"
       onClick={handleChange}

@@ -93,16 +93,16 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
             <IconChevron
               direction={open ? "down" : "up"}
               size={12}
-              className="text-foreground-primary shrink-0"
+              className="shrink-0 text-foreground-primary"
             />
           }
-          className="bg-background-light border border-stroke text-foreground-primary hover:bg-black/5 dark:hover:bg-white/5 max-w-[240px]"
+          className="max-w-[240px] border border-stroke bg-background-light text-foreground-primary hover:bg-black/5 dark:hover:bg-white/5"
           onClick={() => setOpen(prev => !prev)}
         />
       </PopoverTrigger>
 
       <PopoverContent
-        className="bg-background-light shadow-lg rounded-[8px] border-none relative flex max-h-[calc(100vh-60px)] min-w-[120px] max-w-[480px] w-fit flex-col space-y-4 overflow-auto p-5"
+        className="relative flex max-h-[calc(100vh-60px)] w-fit min-w-[120px] max-w-[480px] flex-col space-y-4 overflow-auto rounded-[8px] border-none bg-background-light p-5 shadow-lg"
         align="center"
       >
         <ChatSettingsForm
