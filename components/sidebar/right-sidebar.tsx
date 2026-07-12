@@ -329,7 +329,7 @@ export const RightSidebar: FC = () => {
                       <div className="flex w-full justify-end">
                         <Button
                           variant="ghost"
-                          className="h-auto justify-end p-0 text-[13px] font-medium text-[#C05621] hover:bg-transparent hover:text-[#C05621]/80"
+                          className="h-auto justify-end p-0 text-[13px] font-medium text-murici-orange hover:bg-transparent hover:text-[#C05621]/80"
                           onClick={() => {
                             setShowRightSidebar(false)
                             router.push(`/${locale}/${workspaceid}/graph`)
@@ -365,7 +365,7 @@ export const RightSidebar: FC = () => {
                   Inicie um .agent
                 </h2>
                 <Button
-                  className="bg-murici-orange hover:bg-murici-orange/90 font-instrument-sans mt-1 flex h-11 items-center gap-2.5 rounded-[12px] border-none px-4 text-[13px] font-bold text-white shadow-none"
+                  className="font-instrument-sans mt-1 flex h-11 items-center gap-2.5 rounded-[12px] border-none bg-murici-orange px-4 text-[13px] font-bold text-white shadow-none hover:bg-murici-orange/90"
                   onClick={handleLoadAgentClick}
                   disabled={agentLoading}
                 >
@@ -402,12 +402,12 @@ export const RightSidebar: FC = () => {
                             )}
                             <div className="relative z-10 mt-0.5 shrink-0">
                               {row.status === "done" && (
-                                <div className="border-murici-orange flex h-[18px] w-[18px] items-center justify-center rounded-md border-[1.5px]">
+                                <div className="flex h-[18px] w-[18px] items-center justify-center rounded-md border-[1.5px] border-murici-orange">
                                   <Check size={11} strokeWidth={3} className="text-murici-orange" />
                                 </div>
                               )}
                               {row.status === "current" && (
-                                <div className="bg-murici-orange h-[18px] w-[18px] rounded-md" />
+                                <div className="h-[18px] w-[18px] rounded-md bg-murici-orange" />
                               )}
                               {row.status === "pending" && (
                                 <div className="h-[18px] w-[18px] rounded-md border-[1.5px] border-neutral-400" />
@@ -425,14 +425,14 @@ export const RightSidebar: FC = () => {
                                 {row.state}
                               </p>
                               {row.status === "done" && (
-                                <p className="text-murici-orange mt-0.5 text-[11px]">Concluído</p>
+                                <p className="mt-0.5 text-[11px] text-murici-orange">Concluído</p>
                               )}
                               {row.status === "current" && (
                                 <p className="mt-0.5 text-[11px] text-foreground-secondary">Em andamento</p>
                               )}
                             </div>
                             {row.status === "done" && (
-                              <CheckCircle size={16} className="text-murici-orange mt-0.5 shrink-0" />
+                              <CheckCircle size={16} className="mt-0.5 shrink-0 text-murici-orange" />
                             )}
                             {row.status === "current" && (
                               <MoreHorizontal size={16} className="mt-0.5 shrink-0 text-foreground-secondary" />
