@@ -18,6 +18,16 @@ import {
 import { logger } from "@/lib/logger"
 import { serializeStreamError } from "@/lib/errors/api-error"
 
+// ai@7's default warning logger calls process.emitWarning() when it wants to
+// surface a deprecation/compat notice. All 9 chat routes run on the Edge
+// Runtime, where process.emitWarning exists as a stub that throws instead of
+// warning — turning a harmless notice into a full stream failure ("A Node.js
+// API is used (process.emitWarning) which is not supported in the Edge
+// Runtime"). This is the SDK's own documented escape hatch.
+if (typeof globalThis.AI_SDK_LOG_WARNINGS === "undefined") {
+  globalThis.AI_SDK_LOG_WARNINGS = false
+}
+
 interface StreamAgentArgs {
   provider: string
   // Already-constructed (and possibly middleware-wrapped) LanguageModel.

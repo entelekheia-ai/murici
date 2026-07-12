@@ -480,7 +480,14 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
       })
     },
     onError(error) {
-      logger.error("Vercel AI SDK onError", { error: error.message })
+      // error.stack included so a React-internal failure surfacing through
+      // this callback (e.g. "Maximum update depth exceeded") carries its
+      // component stack instead of just a bare message — otherwise there's
+      // no way to tell which component's setState call caused it.
+      logger.error("Vercel AI SDK onError", {
+        error: error.message,
+        stack: error.stack
+      })
       reportError(parseStreamError(error.message))
       context.setIsGenerating(false)
       context.setFirstTokenReceived(false)
