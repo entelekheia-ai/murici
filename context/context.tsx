@@ -219,6 +219,7 @@ interface ChatbotUIContext {
   // FLOW EVENT LOG
   flowEvents: FlowEvent[]
   addFlowEvent: (event: FlowEvent) => void
+  updateFlowEvent: (id: string, patch: Record<string, any>) => void
 
   // KNOWLEDGE STORE
   knowledge: KnowledgeRecord[]
@@ -375,6 +376,7 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   // FLOW EVENT LOG
   flowEvents: [],
   addFlowEvent: () => {},
+  updateFlowEvent: () => {},
 
   // KNOWLEDGE STORE
   knowledge: [],

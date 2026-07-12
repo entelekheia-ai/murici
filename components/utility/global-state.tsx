@@ -33,6 +33,7 @@ import { AssistantImage } from "@/types/images/assistant-image"
 import { OsPendingAgentFile, UnpackPayload } from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { saveAgentBundle } from "@/lib/local-db/agent-bundles"
+import { patchFlowEventById } from "@/lib/utils/flow-events"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
 
 interface GlobalStateProps {
@@ -215,6 +216,11 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [flowEvents, setFlowEvents] = useState<FlowEvent[]>([])
   const addFlowEvent = useCallback(
     (e: FlowEvent) => setFlowEvents(prev => [...prev, e]),
+    []
+  )
+  const updateFlowEvent = useCallback(
+    (id: string, patch: Record<string, any>) =>
+      setFlowEvents(prev => patchFlowEventById(prev, id, patch)),
     []
   )
 
@@ -443,6 +449,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         // FLOW EVENT LOG
         flowEvents,
         addFlowEvent,
+        updateFlowEvent,
 
         // KNOWLEDGE STORE
         knowledge,

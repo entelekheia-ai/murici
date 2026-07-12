@@ -28,8 +28,11 @@ import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { getMessageText, getToolInvocations, getReasoningText, dedupeToolCallParts } from "@/lib/ai/ui-message-parts"
 import { resolveCustomModel } from "@/lib/models/resolve-custom-model"
 import { buildApiKeys } from "@/lib/models/build-api-keys"
+import { parseStreamError, StreamErrorDetails } from "@/lib/errors/api-error"
+import { translateErrorMessage } from "@/lib/errors/auto-translate"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
 
 interface ChatHandlerProviderProps {
   children: React.ReactNode
@@ -55,6 +58,7 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
 }) => {
   const router = useRouter()
   const context = useContext(ChatbotUIContext)
+  const { i18n } = useTranslation()
   // Remote providers (openai/anthropic/google/mistral/groq) are now
   // discovered live (see lib/models/fetch-models.ts) rather than listed in
   // the static LLM_LIST, so routing must also check the live-discovered set
@@ -156,17 +160,39 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
   // that the chat renders inline, in order (components/messages/flow-event-card
   // + chat-messages). Held in a ref so the memoized transport's closure below
   // always calls the current one.
-  const pushDebugRef = useRef<(type: FlowEventType, data: any) => void>(
-    () => {}
+  const pushDebugRef = useRef<(type: FlowEventType, data: any) => string>(
+    () => ""
   )
   pushDebugRef.current = (type, data) => {
+    const id = crypto.randomUUID()
     context.addFlowEvent({
-      id: crypto.randomUUID(),
+      id,
       seqNum: chatMessagesRef.current.length,
       type,
       timestamp: Date.now(),
       data
     })
+    return id
+  }
+
+  // Shared by every "error" flowEvent producer (useChat's onError below, and
+  // trigger_intent's catch further down) so the debug bubble, the toast, and
+  // the fire-and-forget translation can't drift into two versions. Translation
+  // never blocks or throws: on failure the bubble just keeps showing the
+  // original text (decided default, no extra toast).
+  const reportError = (details: StreamErrorDetails | { message: string }) => {
+    const id = pushDebugRef.current("error", details)
+    toast.error(`Failed to get a response: ${details.message}`)
+    const translateModel = context.backgroundModel ?? builtInModel
+    if (translateModel) {
+      translateErrorMessage(details.message, translateModel, i18n.language).then(
+        translatedMessage => {
+          if (translatedMessage) {
+            context.updateFlowEvent(id, { translatedMessage })
+          }
+        }
+      )
+    }
   }
 
   const transport = useMemo(
@@ -379,9 +405,7 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
           report(payload)
         } catch (err: any) {
           logger.error("trigger_intent advance failed", { error: err.message })
-          pushDebugRef.current("error", {
-            message: err.message || "Failed to advance the flow"
-          })
+          reportError({ message: err.message || "Failed to advance the flow" })
           report({ error: err.message || "Failed to advance the flow" })
         }
         return
@@ -450,8 +474,7 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
     },
     onError(error) {
       logger.error("Vercel AI SDK onError", { error: error.message })
-      pushDebugRef.current("error", { message: error.message })
-      toast.error(`Failed to get a response: ${error.message}`)
+      reportError(parseStreamError(error.message))
       context.setIsGenerating(false)
       context.setFirstTokenReceived(false)
     }

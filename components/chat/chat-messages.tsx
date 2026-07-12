@@ -8,8 +8,10 @@
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { Tables } from "@/types/database"
+import { FlowEvent } from "@/types"
 import { FC, Fragment, useContext, useState } from "react"
 import { FlowEventCard } from "../messages/flow-event-card"
+import { ErrorMessageBubble } from "../messages/error-message-bubble"
 import { Message } from "../messages/message"
 
 interface ChatMessagesProps {}
@@ -32,19 +34,34 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
     ? [...flowEvents].sort((a, b) => a.timestamp - b.timestamp)
     : []
 
+  // "error" events get a friendly bubble unconditionally (not gated by
+  // showDebugPanels) — a failed response should never be invisible just
+  // because the debug panel is off. When debug IS on, both this bubble and
+  // the compact JSON row above coexist; they're not the same list.
+  const errorEvents = [...flowEvents]
+    .filter(e => e.type === "error")
+    .sort((a, b) => a.timestamp - b.timestamp)
+
   const lastMessageId =
     orderedMessages[orderedMessages.length - 1]?.message.id ?? null
   const msgTs = (cm: (typeof orderedMessages)[number]) =>
     Date.parse(cm.message.created_at || "") || 0
 
+  const eventsInRange = (list: FlowEvent[], fromTs: number, toTs: number) =>
+    list.filter(e => e.timestamp >= fromTs && e.timestamp < toTs)
+
   // Events that predate the first message (rare) render at the very top.
   const firstTs = orderedMessages.length ? msgTs(orderedMessages[0]) : Infinity
   const leadingEvents = orderedEvents.filter(e => e.timestamp < firstTs)
+  const leadingErrorEvents = errorEvents.filter(e => e.timestamp < firstTs)
 
   return (
     <>
       {leadingEvents.map(ev => (
         <FlowEventCard key={ev.id} event={ev} />
+      ))}
+      {leadingErrorEvents.map(ev => (
+        <ErrorMessageBubble key={ev.id} event={ev} />
       ))}
 
       {orderedMessages.map((chatMessage, index) => {
@@ -61,9 +78,8 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
           index < orderedMessages.length - 1
             ? msgTs(orderedMessages[index + 1])
             : Infinity
-        const eventsAfter = orderedEvents.filter(
-          e => e.timestamp >= thisTs && e.timestamp < nextTs
-        )
+        const eventsAfter = eventsInRange(orderedEvents, thisTs, nextTs)
+        const errorEventsAfter = eventsInRange(errorEvents, thisTs, nextTs)
 
         return (
           // Keyed on message id, not sequence_number: the optimistic user
@@ -83,6 +99,9 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
             />
             {eventsAfter.map(ev => (
               <FlowEventCard key={ev.id} event={ev} />
+            ))}
+            {errorEventsAfter.map(ev => (
+              <ErrorMessageBubble key={ev.id} event={ev} />
             ))}
           </Fragment>
         )

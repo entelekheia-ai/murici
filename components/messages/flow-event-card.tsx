@@ -75,11 +75,13 @@ export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
         />
       )}
       {type === "error" && (
-        <div className="flex items-center gap-2 px-3 py-2">
-          <span>⛔</span>
-          <span className="font-semibold text-red-400">Erro</span>
-          <span className="text-muted-foreground/80">{data.message}</span>
-        </div>
+        <WireCard
+          icon="⛔"
+          label="Erro"
+          tint="text-red-400"
+          summary={data.message}
+          json={data}
+        />
       )}
     </div>
   )

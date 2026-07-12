@@ -44,6 +44,7 @@
   "Unknown failure while contacting the model.": "Fallo desconocido al contactar al modelo.",
   "Agents": "Agentes",
   "System": "Sistema",
+  "Error": "Error",
   "Recent": "Recientes",
   "Alphabetical": "Alfabético",
   "No recent agents.": "No hay agentes recientes.",

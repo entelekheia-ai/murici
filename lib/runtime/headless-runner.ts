@@ -33,7 +33,8 @@ export async function runHeadlessAgent(
   content: string,
   modelData: LLM,
   agentUrl: string,
-  initialIntent: string
+  initialIntent: string,
+  jsonInstruction: string
 ): Promise<HeadlessResult | null> {
   let behaviorText = agentCache.get(agentUrl)
 
@@ -100,7 +101,7 @@ export async function runHeadlessAgent(
     validIntents: [initialIntent],
     graph: null
   })
-  const systemPrompt = `${JSON.stringify(behaviorPayload)}\n\nRespond ONLY as JSON: { "intent_name": "save_metadata", "title": "...", "summary": "..." }`
+  const systemPrompt = `${JSON.stringify(behaviorPayload)}\n\n${jsonInstruction}`
 
   const baseUrl = getBaseUrl(modelData)
   const headers: Record<string, string> = {
