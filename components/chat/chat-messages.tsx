@@ -7,7 +7,10 @@
 
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
-import { useChannelStore } from "@/lib/store/channel-store"
+import {
+  selectViewedFlowEvents,
+  useChannelStore
+} from "@/lib/store/channel-store"
 import { Tables } from "@/types/database"
 import { FlowEvent } from "@/types"
 import { FC, Fragment, useContext, useState } from "react"
@@ -18,17 +21,17 @@ import { Message } from "../messages/message"
 interface ChatMessagesProps {}
 
 export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
-  const { chatMessages, chatFileItems, flowEvents, showDebugPanels } =
+  const { chatMessages, chatFileItems, showDebugPanels } =
     useContext(ChatbotUIContext)
 
   const { handleSendEdit } = useChatHandler()
 
   const [editingMessage, setEditingMessage] = useState<Tables<"messages">>()
 
-  // The thread on screen (ADR-0007). Every FlowEvent is tagged by the channel that
-  // produced it, so filtering on this keeps a chat that is still generating in the
-  // BACKGROUND from spilling its debug/error rows into the chat being viewed.
-  const viewingChatId = useChannelStore(s => s.viewedThreadId)
+  // The debug/error timeline of the thread on screen (ADR-0007). Events are stored
+  // per thread, so a chat still generating in the BACKGROUND cannot spill its rows
+  // into the chat being viewed — no filtering needed here.
+  const chatEvents = useChannelStore(selectViewedFlowEvents)
 
   // Debug is a real-time mirror of the exchange: each flowEvent renders as its
   // own inline card, ungrouped, interleaved with the messages in the order it
@@ -36,7 +39,6 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
   const orderedMessages = [...chatMessages].sort(
     (a, b) => a.message.sequence_number - b.message.sequence_number
   )
-  const chatEvents = flowEvents.filter(e => e.chatId === viewingChatId)
   const orderedEvents = showDebugPanels
     ? [...chatEvents].sort((a, b) => a.timestamp - b.timestamp)
     : []

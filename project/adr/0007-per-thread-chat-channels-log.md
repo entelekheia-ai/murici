@@ -184,18 +184,41 @@ visualizada pelo **router**, e não por um id recém-cunhado.
 > `arguments` inválido fica no store e **todo turno seguinte daquele chat dá 422**. Não há
 > saneamento. Vale um dia.
 
-## §6. Estágio 3 — limpeza (PENDENTE)
+## §6. Estágio 3 — limpeza (CONCLUÍDO)
 
-- `flowEvents` por canal (hoje ainda é uma lista global, mas **tagueada** por
-  `threadId` e filtrada na renderização, então já está correta — é higiene, não bug).
-- Remover `abortController`/`setAbortController` do Context: **estado morto** — declarado
-  em `context/context.tsx` e `global-state.tsx`, **nunca setado nem lido** (resíduo da era
-  pré-SDK).
-- Auditar `components/chat/chat-helpers/index.ts`: caminho legado que ainda passa
-  `setIsGenerating`. O `right-sidebar` já não usa mais o `handleCreateChat` dele. A memória
-  do projeto diz que é quase todo código morto — **confirmar e deletar** em vez de migrar.
-- Destravar o [plano 014](../plans/014-channel-store-consumer-migration.md): migrar os
-  consumidores para fora do espelho legado do `ChatbotUIContext`.
+**`flowEvents` por thread.** Saiu do `ChatbotUIContext` (lista global, capada em 500, com um
+campo `chatId` em cada evento, filtrada na renderização) e foi pro channel store:
+`flowEvents: Record<threadId, FlowEvent[]>`, cap de **200 por thread**. Não era só higiene:
+com um cap **global**, um chat em background com muito tráfego de debug **despejava o
+histórico do chat que estava na tela**. O campo `chatId` do `FlowEvent` foi **removido** — a
+chave do mapa já carrega isso, e manter o id em dois lugares é justamente como um evento de
+background vaza pro chat visualizado quando alguém esquece o filtro. Os eventos **não** são
+descartados quando o canal desmonta (`dropChannel` não os toca), então reabrir um chat ainda
+mostra o que aconteceu nele nesta sessão.
+
+**`abortController` removido.** Estado morto: declarado em `context/context.tsx` e
+`global-state.tsx`, **nunca setado nem lido** — resíduo da era pré-SDK.
+
+**`components/chat/chat-helpers/index.ts` deletado** (1.234 linhas). Auditados os 13 exports:
+**12 sem nenhum consumidor** (`validateChatSettings`, `handleRetrieval`, `createTempMessages`,
+`executeToolLoopAndStream`, `handleLocalChat`, `handleFlowChat`, `handleHostedChat`,
+`fetchChatResponse`, `sanitizeStreamText`, `processResponse`, `handleCreateChat`,
+`handleCreateMessages`). O único vivo, `getMcpAndBuiltInTools`, foi pra
+[`lib/tools/list-available-tools.ts`](../../lib/tools/list-available-tools.ts) — ele só lista a
+superfície de ferramentas pro painel "Ferramentas"; a execução é do `lib/tools/orchestrator.ts`
+e a lista do request é montada no servidor. (`lib/server/server-chat-helpers.ts` é **outro**
+arquivo, server-side, e continua vivo.)
+
+**Próximo:** [plano 014](../plans/014-channel-store-consumer-migration.md) — migrar os
+consumidores para fora do espelho legado do `ChatbotUIContext`.
+
+### Flakiness pré-existente no `random-model-smoke` (NÃO é dos canais)
+
+Com o servidor de modelo ligado, os testes do **Qwen3.5-9B** e do **gpt-oss-20b** falham de
+forma intermitente na asserção `thinking-block` — o modelo responde, mas não emite `<think>`.
+Confirmado num **worktree no HEAD** (antes do Estágio 3): falha idêntica. É pressão de RAM ao
+trocar 1B → 9B → 20B no mesmo run, exatamente o que o comentário do `playwright.config.ts` já
+descreve (`workers: 1` foi posto por isso). Passam isolados.
 
 ## §7. Dívida conhecida (aceita)
 

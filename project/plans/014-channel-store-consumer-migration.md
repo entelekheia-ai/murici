@@ -7,11 +7,18 @@
 > channels don't. So every consumer in the table still reads the mirror, and this doc is
 > now the actual next step rather than a hypothetical.
 >
-> Two notes from the implementation that change the table below:
-> - `chat-messages.tsx` already reads `viewedThreadId` from the store directly (for the
->   per-chat `flowEvents` filter), so it is partially migrated.
+> Notes from the implementation that change the table below:
+> - **`flowEvents` is DONE.** Stage 3 moved it out of the context entirely, into the store
+>   keyed by threadId (`flowEvents: Record<threadId, FlowEvent[]>`), and `chat-messages.tsx`
+>   now reads it via `selectViewedFlowEvents`. The `FlowEvent.chatId` field is gone.
+> - **`components/chat/chat-helpers/index.ts` is DONE** — deleted. 12 of its 13 exports were
+>   dead; the survivor moved to `lib/tools/list-available-tools.ts`. Drop its rows below.
 > - `components/messages/message.tsx` no longer writes `setIsGenerating` — that flag is now
 >   DERIVED from the viewed channel's stream status, so it must never be written by hand.
+> - `abortController` was dead state and is gone from the context.
+>
+> What is left in the context to migrate: `chatMessages`, `flowState`, `isGenerating` /
+> `firstTokenReceived`, `thinkingLog`.
 
 ## Context
 
@@ -55,15 +62,13 @@ request body, not from React context.
 | Field(s) | Consumer | Notes (fill during dev) |
 |---|---|---|
 | `chatMessages` | `components/messages/message.tsx` | |
-| `chatMessages` | `components/chat/chat-messages.tsx` | already chat-scoped filter added for `flowEvents` |
+| `chatMessages` | `components/chat/chat-messages.tsx` | |
 | `chatMessages` | `components/chat/chat-input.tsx` | |
 | `chatMessages` | `components/chat/chat-hooks/use-scroll.tsx` | |
 | `chatMessages` | `components/chat/chat-hooks/use-chat-history.tsx` | |
 | `chatMessages.length` | `app/[locale]/[workspaceid]/chat/page.tsx` | graph-home gate |
-| `chatMessages` | `components/chat/chat-helpers/index.ts` | mostly dead code — confirm before touching |
 | `flowState` | `components/sidebar/right-sidebar.tsx` | main FSM panel |
 | `flowState` | `lib/hooks/use-debug.ts` (+ `.test.tsx`) | debug hook — may be dead |
-| `flowEvents` | `components/chat/chat-messages.tsx` | |
 | `isGenerating` / `firstTokenReceived` | `components/ui/send-button.tsx` | |
 | `isGenerating` / `firstTokenReceived` | `components/messages/message-actions.tsx` | |
 | `isGenerating` / `firstTokenReceived` | `components/messages/message.tsx` | |
@@ -86,9 +91,9 @@ request body, not from React context.
 
 ## Open questions
 
-- Does `chat-helpers/index.ts` / `use-debug.ts` still have live consumers, or
-  are they dead code that should just be deleted rather than migrated?
-  (Cross-check with memory note on `chat-helpers/index.ts` being mostly dead.)
-- Should `useViewedChannel` also expose a `useChannel(chatId, selector)` variant
-  up front, so the sidebar's per-chat "generating" badge can be built during the
-  migration rather than after?
+- Does `lib/hooks/use-debug.ts` still have live consumers, or is it dead code that should
+  just be deleted rather than migrated? (`chat-helpers/index.ts` was the same question and
+  the answer was "delete" — see the ADR-0007 log, §6.)
+- The sidebar's per-chat "generating" badge is already built and reads the store directly
+  (`chat-item.tsx`), so a `useChannel(threadId, selector)` variant is no longer speculative —
+  model `useViewedChannel` on it.

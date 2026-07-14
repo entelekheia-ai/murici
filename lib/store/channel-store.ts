@@ -3,6 +3,8 @@
  * Licensed under the Apache License, Version 2.0
  */
 
+import { FlowEvent } from "@/types"
+import { patchFlowEventById } from "@/lib/utils/flow-events"
 import { create } from "zustand"
 
 // Runtime state of the app's chat CHANNELS — see project/adr/0007.
@@ -38,9 +40,25 @@ interface ChannelStore {
   viewedThreadId: string | null
   channels: Record<string, ChannelRuntimeState>
 
+  // The debug/error timeline, PER THREAD. It used to be one global capped array
+  // whose entries carried a chatId, filtered at render time — which meant a chatty
+  // background channel could evict the debug history of the chat you were actually
+  // looking at, and the id lived in two places (the entry AND the filter). Keying
+  // by threadId caps each thread on its own and makes the tag redundant.
+  //
+  // NOT tied to `channels`: a thread's events outlive its channel, so re-opening a
+  // chat you left still shows what happened in it this session.
+  flowEvents: Record<string, FlowEvent[]>
+
   setViewedThreadId: (threadId: string | null) => void
   patchChannel: (threadId: string, patch: Partial<ChannelRuntimeState>) => void
   dropChannel: (threadId: string) => void
+  pushFlowEvent: (threadId: string, event: FlowEvent) => void
+  patchFlowEvent: (
+    threadId: string,
+    eventId: string,
+    patch: Record<string, any>
+  ) => void
 }
 
 const IDLE: ChannelRuntimeState = {
@@ -48,9 +66,14 @@ const IDLE: ChannelRuntimeState = {
   firstTokenReceived: false
 }
 
+// Per THREAD, not per app: one chat's debug traffic can no longer push another
+// chat's out of the window.
+const FLOW_EVENTS_CAP = 200
+
 export const useChannelStore = create<ChannelStore>(set => ({
   viewedThreadId: null,
   channels: {},
+  flowEvents: {},
 
   setViewedThreadId: threadId => set({ viewedThreadId: threadId }),
 
@@ -69,6 +92,30 @@ export const useChannelStore = create<ChannelStore>(set => ({
       if (!(threadId in state.channels)) return state
       const { [threadId]: _dropped, ...rest } = state.channels
       return { channels: rest }
+    }),
+
+  pushFlowEvent: (threadId, event) =>
+    set(state => {
+      const prev = state.flowEvents[threadId] ?? []
+      const next = [...prev, event]
+      return {
+        flowEvents: {
+          ...state.flowEvents,
+          [threadId]:
+            next.length > FLOW_EVENTS_CAP
+              ? next.slice(next.length - FLOW_EVENTS_CAP)
+              : next
+        }
+      }
+    }),
+
+  patchFlowEvent: (threadId, eventId, patch) =>
+    set(state => {
+      const prev = state.flowEvents[threadId]
+      if (!prev) return state
+      const next = patchFlowEventById(prev, eventId, patch)
+      if (next === prev) return state
+      return { flowEvents: { ...state.flowEvents, [threadId]: next } }
     })
 }))
 
@@ -99,4 +146,13 @@ export function selectLiveThreadIds(state: ChannelStore): string[] {
 export function selectIsThreadBusy(threadId: string | undefined) {
   return (state: ChannelStore): boolean =>
     !!threadId && isChannelBusy(state.channels[threadId])
+}
+
+// A stable empty array: returning a fresh `[]` from a selector would give Zustand a
+// new reference every render and re-render the subscriber forever.
+const NO_EVENTS: FlowEvent[] = []
+
+export function selectViewedFlowEvents(state: ChannelStore): FlowEvent[] {
+  if (!state.viewedThreadId) return NO_EVENTS
+  return state.flowEvents[state.viewedThreadId] ?? NO_EVENTS
 }

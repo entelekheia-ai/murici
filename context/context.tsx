@@ -15,7 +15,7 @@ import {
   OpenRouterLLM,
   WorkspaceImage
 } from "@/types"
-import { FlowEvent, FlowTurnDebug } from "@/types"
+import { FlowTurnDebug } from "@/types"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { AgentAboutme, OsPendingAgentFile, UnpackPayload } from "@/types/electron"
@@ -105,8 +105,6 @@ interface ChatbotUIContext {
   setChatFileItems: Dispatch<SetStateAction<Tables<"file_items">[]>>
 
   // ACTIVE CHAT STORE
-  abortController: AbortController | null
-  setAbortController: Dispatch<SetStateAction<AbortController | null>>
   firstTokenReceived: boolean
   setFirstTokenReceived: Dispatch<SetStateAction<boolean>>
   isGenerating: boolean
@@ -229,11 +227,6 @@ interface ChatbotUIContext {
   thinkingLog: Record<string, string>
   setThinkingLog: Dispatch<SetStateAction<Record<string, string>>>
 
-  // FLOW EVENT LOG
-  flowEvents: FlowEvent[]
-  addFlowEvent: (event: FlowEvent) => void
-  updateFlowEvent: (id: string, patch: Record<string, any>) => void
-
   // KNOWLEDGE STORE
   knowledge: KnowledgeRecord[]
   setKnowledge: Dispatch<SetStateAction<KnowledgeRecord[]>>
@@ -307,8 +300,6 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setIsGenerating: () => {},
   firstTokenReceived: false,
   setFirstTokenReceived: () => {},
-  abortController: null,
-  setAbortController: () => {},
 
   // CHAT INPUT COMMAND STORE
   isPromptPickerOpen: false,
@@ -385,11 +376,6 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   // THINKING LOG STORE
   thinkingLog: {},
   setThinkingLog: () => {},
-
-  // FLOW EVENT LOG
-  flowEvents: [],
-  addFlowEvent: () => {},
-  updateFlowEvent: () => {},
 
   // KNOWLEDGE STORE
   knowledge: [],

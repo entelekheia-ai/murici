@@ -87,11 +87,6 @@ export interface ChannelDeps {
   setSelectedChat: (chat: Tables<"chats">) => void
   setChats: (fn: (prev: Tables<"chats">[]) => Tables<"chats">[]) => void
   setUserInput: (value: string) => void
-
-  // Debug mirror. Global list, but every event is tagged with this channel's
-  // threadId so the UI only renders the ones belonging to the chat on screen.
-  addFlowEvent: (event: FlowEvent) => void
-  updateFlowEvent: (id: string, patch: Record<string, any>) => void
 }
 
 // The streaming engine's imperative surface — supplied by the <ChatChannel> shell
@@ -187,17 +182,17 @@ export class ChannelController {
   // ------------------------------------------------------------------- debug
 
   // Real-time debug mirror: each actual exchange step is pushed as a flowEvent the
-  // chat renders inline, in order. Tagged with this channel's threadId so a
-  // background channel's events never render inside another chat.
+  // chat renders inline, in order. Stored UNDER this channel's threadId, so a
+  // background channel's events can neither render inside another chat nor evict
+  // its history.
   pushDebug(type: FlowEventType, data: any): string {
     const id = crypto.randomUUID()
-    this.deps.addFlowEvent({
+    channelStore.getState().pushFlowEvent(this.threadId, {
       id,
       seqNum: this.messages.length,
       type,
       timestamp: Date.now(),
-      data,
-      chatId: this.threadId
+      data
     })
     return id
   }
@@ -217,7 +212,9 @@ export class ChannelController {
         this.deps.language
       ).then(translatedMessage => {
         if (translatedMessage) {
-          this.deps.updateFlowEvent(id, { translatedMessage })
+          channelStore
+            .getState()
+            .patchFlowEvent(this.threadId, id, { translatedMessage })
         }
       })
     }

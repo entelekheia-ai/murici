@@ -27,15 +27,15 @@ export type FlowEventType =
   | "llm_response" // the assistant message the model produced (on finish)
   | "error" // a streaming/route error surfaced to the client
 
+// Which thread an event belongs to is carried by the KEY it is stored under —
+// `flowEvents: Record<threadId, FlowEvent[]>` in lib/store/channel-store.ts — not by
+// a field on the event. It used to be a `chatId` field on a single global array,
+// filtered at render time; keeping the id in two places is exactly how a background
+// channel's rows leak into the chat on screen when one of them is forgotten.
 export interface FlowEvent {
   id: string
   seqNum: number
   type: FlowEventType
   timestamp: number
   data: Record<string, any>
-  // The chat this event's turn actually belongs to (the stable, pinned
-  // useChat id — see ChatHandlerProvider's activeChatId), not whichever chat
-  // happens to be on screen when the event is pushed. Lets consumers filter
-  // out debug/error events from a chat other than the one currently viewed.
-  chatId: string
 }

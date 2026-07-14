@@ -176,10 +176,7 @@ export const ChatChannel: FC<ChatChannelProps> = ({ threadId }) => {
 
       setSelectedChat: context.setSelectedChat,
       setChats: context.setChats,
-      setUserInput: context.setUserInput,
-
-      addFlowEvent: context.addFlowEvent,
-      updateFlowEvent: context.updateFlowEvent
+      setUserInput: context.setUserInput
     },
     engineRef.current
   )

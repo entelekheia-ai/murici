@@ -32,7 +32,7 @@ import { KnowledgeRecord } from "@/types/knowledge"
 import { StateGraph, parseScxml } from "../agents/state-graph"
 import { cn } from "@/lib/utils"
 import { useRouter, useParams } from "next/navigation"
-import { getMcpAndBuiltInTools } from "../chat/chat-helpers"
+import { getMcpAndBuiltInTools } from "@/lib/tools/list-available-tools"
 import {
   createChatRowOnce,
   prependChatOnce

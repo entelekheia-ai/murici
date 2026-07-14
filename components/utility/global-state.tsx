@@ -21,7 +21,6 @@ import {
   ChatFile,
   ChatMessage,
   ChatSettings,
-  FlowEvent,
   FlowTurnDebug,
   LLM,
   MessageImage,
@@ -32,7 +31,6 @@ import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { OsPendingAgentFile, UnpackPayload } from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
-import { patchFlowEventById } from "@/lib/utils/flow-events"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
 
 interface GlobalStateProps {
@@ -102,8 +100,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   // ACTIVE CHAT STORE
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
   const [firstTokenReceived, setFirstTokenReceived] = useState<boolean>(false)
-  const [abortController, setAbortController] =
-    useState<AbortController | null>(null)
 
   // CHAT INPUT COMMAND STORE
   const [isPromptPickerOpen, setIsPromptPickerOpen] = useState(false)
@@ -203,28 +199,9 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   // BACKGROUND QUEUE
   const [backgroundQueue, setBackgroundQueue] = useState<any[]>([])
 
-  // FLOW EVENT LOG
-  // Capped so a long session (many chats, lots of tool/debug traffic) doesn't
-  // grow this array unboundedly — events are filtered per-chat for display
-  // (see chat-messages.tsx), so trimming the oldest ones off the front only
-  // drops debug history for chats the user is unlikely to revisit mid-session.
-  const FLOW_EVENTS_CAP = 500
-  const [flowEvents, setFlowEvents] = useState<FlowEvent[]>([])
-  const addFlowEvent = useCallback(
-    (e: FlowEvent) =>
-      setFlowEvents(prev => {
-        const next = [...prev, e]
-        return next.length > FLOW_EVENTS_CAP
-          ? next.slice(next.length - FLOW_EVENTS_CAP)
-          : next
-      }),
-    []
-  )
-  const updateFlowEvent = useCallback(
-    (id: string, patch: Record<string, any>) =>
-      setFlowEvents(prev => patchFlowEventById(prev, id, patch)),
-    []
-  )
+  // FLOW EVENT LOG moved to lib/store/channel-store.ts, keyed by threadId — a
+  // single global capped array let a chatty background chat evict the debug history
+  // of the chat on screen. See ADR-0007.
 
   useEffect(() => {
     ;(async () => {
@@ -369,8 +346,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setIsGenerating,
         firstTokenReceived,
         setFirstTokenReceived,
-        abortController,
-        setAbortController,
 
         // CHAT INPUT COMMAND STORE
         isPromptPickerOpen,
@@ -449,9 +424,6 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setThinkingLog,
 
         // FLOW EVENT LOG
-        flowEvents,
-        addFlowEvent,
-        updateFlowEvent,
 
         // KNOWLEDGE STORE
         knowledge,
