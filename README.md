@@ -75,6 +75,29 @@ For developer and agent guidelines, see [AGENTS.md](./AGENTS.md).
 
 ---
 
+## Known Limitations
+
+### A malformed tool call from a weak model can poison a chat
+
+Agent flows depend on the model emitting a well-formed `trigger_intent` tool call. Small
+quantized models (e.g. **Llama-3.2-1B**) reliably fail at this: they emit a tool call with
+`name: "unknown"` and `arguments` as a JSON **list** instead of an object.
+
+Murici has no sanitation for that yet, so the broken assistant message stays in the chat's
+history and **every subsequent turn in that chat fails** — the model server rejects its own
+malformed history with a `422` (`arguments must be a JSON object, got list`).
+
+**Symptom.** A chat that worked suddenly answers nothing, and the console shows a repeated
+422 / `NoOutputGeneratedError`.
+
+**Workaround.** Start a new chat and **switch to a stronger model**. Anything in the 7B+ range
+(or a hosted model) handles tool calling correctly. Reserve tiny models for plain chat, without
+an `.agent` loaded.
+
+Tracked in [#1](https://github.com/entelekheia-ai/murici/issues/1).
+
+---
+
 ## License
 
 - Copyright (c) 2026 Danilo Borges — **Apache License 2.0**.

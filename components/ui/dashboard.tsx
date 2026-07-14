@@ -24,7 +24,6 @@ import { useAgentSession } from "@/lib/hooks/use-agent-session"
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { CommandK } from "../utility/command-k"
 import { getSetting } from "@/lib/local-db/settings"
-import { toast } from "sonner"
 import { computeSidebarVisibility } from "@/lib/hooks/sidebar-auto-collapse"
 
 const APP_VERSION = "0.0.5"
@@ -82,14 +81,14 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   )
   const { showSidebar, setShowSidebar, showRightSidebar, setShowRightSidebar, setOsPendingAgentPayload } = useContext(ChatbotUIContext)
 
+  // Main hands over the PATH of a .agent the OS opened; right-sidebar unpacks it (and
+  // reports its own failures). There is no "open-agent-file-error" channel any more —
+  // main no longer unpacks, so it has nothing left to fail at.
   useEffect(() => {
     if (typeof window !== "undefined" && window.electronAPI?.onOpenAgentFile) {
       window.electronAPI.onOpenAgentFile((data: OsPendingAgentFile) => {
         setOsPendingAgentPayload(data)
         setShowRightSidebar(true)
-      })
-      window.electronAPI.onOpenAgentFileError?.((errorMsg: string) => {
-        toast.error(`Falha ao abrir arquivo .agent: ${errorMsg}`)
       })
       window.electronAPI.appReadyForFiles?.()
     }

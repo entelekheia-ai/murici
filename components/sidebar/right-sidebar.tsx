@@ -32,12 +32,19 @@ import { KnowledgeRecord } from "@/types/knowledge"
 import { StateGraph, parseScxml } from "../agents/state-graph"
 import { cn } from "@/lib/utils"
 import { useRouter, useParams } from "next/navigation"
-import { getMcpAndBuiltInTools, handleCreateChat } from "../chat/chat-helpers"
+import { getMcpAndBuiltInTools } from "../chat/chat-helpers"
+import {
+  createChatRowOnce,
+  prependChatOnce
+} from "@/lib/channels/chat-rows"
+import { useChannelStore } from "@/lib/store/channel-store"
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { useAgentSession } from "@/lib/hooks/use-agent-session"
 import { getSetting, setSetting } from "@/lib/local-db/settings"
 import { upsertRecentAgent } from "@/lib/local-db/recent-agents"
 import { getOnboardingAgentPayload } from "@/lib/agents/system-agents"
+import { unpackAgentFileFromPath } from "@/lib/agents/unpack-agent-file"
+import { toast } from "sonner"
 
 const APP_VERSION = "0.0.5"
 
@@ -64,11 +71,14 @@ export const RightSidebar: FC = () => {
   const {
     flowState,
     knowledge, setKnowledge, chatSettings, availableLocalModels, backgroundModel, selectedChat,
-    setShowRightSidebar, chatAgentSessionsRef, activeChatKeyRef, migrateChatAgentSession,
+    setShowRightSidebar, chatAgentSessionsRef, activeChatKeyRef,
     profile, selectedWorkspace, selectedAssistant, setSelectedChat, setChats, setChatFiles,
     osPendingAgentPayload, setOsPendingAgentPayload,
     pendingNewAgentPayload, setPendingNewAgentPayload
   } = useContext(ChatbotUIContext)
+  // The thread on screen (ADR-0007). A brand-new, unsent chat is a thread with a
+  // real id like any other — there is no "__new__" bucket any more.
+  const viewedThreadId = useChannelStore(s => s.viewedThreadId)
   const { handleNewChat } = useChatHandler()
   const agentSession = useAgentSession()
   const {
@@ -123,15 +133,14 @@ export const RightSidebar: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingAgentPayload, setPendingAgentPayload] = useState<UnpackPayload | null>(null)
 
-  // "Novo chat" always needs a chat with no agent to land the payload on.
-  // If we're already sitting on the "__new__" (unsaved) bucket, calling
-  // handleNewChat() is a no-op for selectedChat, so there's nothing to
-  // navigate to - reset that bucket in place instead of leaving the
-  // payload stuck in the queue.
+  // "Novo chat" always needs a chat with no agent to land the payload on. If we're
+  // already sitting on an unsent thread, handleNewChat() would be a no-op for
+  // selectedChat and there'd be nothing to navigate to — so swap the agent into
+  // that thread in place instead of leaving the payload stuck in the queue.
   const goToNewChatWithPayload = (payload: UnpackPayload) => {
-    if (activeChatKeyRef.current === "__new__") {
-      resetSession("__new__")
-      loadAgentBundle(payload, "__new__")
+    if (!selectedChat && viewedThreadId) {
+      resetSession(viewedThreadId)
+      loadAgentBundle(payload, viewedThreadId)
     } else {
       queueNewChatPayload(payload)
       handleNewChat()
@@ -141,20 +150,34 @@ export const RightSidebar: FC = () => {
   // Opening a .agent from the OS ("abrir com") is ambiguous about which
   // chat it targets. Enforce one-agent-per-chat: if the active chat
   // already has an agent, route straight to a new chat; otherwise ask.
+  //
+  // Main sends only the PATH — unpacking happens here, through the same route as every
+  // other way of opening an agent, so this can't drift from them.
   useEffect(() => {
-    if (osPendingAgentPayload) {
-      const { payload, filePath } = osPendingAgentPayload
-      upsertRecentAgent({
-        filePath: filePath ?? null,
-        aboutme: payload.aboutme
-      }).catch(err => console.error("[recent-agents] upsert failed", err))
-      if (hasActiveAgent(activeChatKeyRef.current)) {
-        goToNewChatWithPayload(payload)
-      } else {
-        setPendingAgentPayload(payload)
-      }
-      setOsPendingAgentPayload(null)
-    }
+    if (!osPendingAgentPayload) return
+    const { filePath } = osPendingAgentPayload
+    setOsPendingAgentPayload(null)
+
+    unpackAgentFileFromPath(filePath)
+      .then(payload => {
+        upsertRecentAgent({ filePath, aboutme: payload.aboutme }).catch(err =>
+          console.error("[recent-agents] upsert failed", err)
+        )
+        if (hasActiveAgent(activeChatKeyRef.current)) {
+          goToNewChatWithPayload(payload)
+        } else {
+          setPendingAgentPayload(payload)
+        }
+      })
+      .catch(err => {
+        // This toast used to be fired from the Electron main process (an
+        // "open-agent-file-error" IPC event), because that is where the unpack ran.
+        // The unpack lives here now, so the failure surfaces here too.
+        console.error("[agent] failed to open .agent from the OS", err)
+        toast.error(
+          `Falha ao abrir arquivo .agent: ${err?.message ?? String(err)}`
+        )
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [osPendingAgentPayload, setOsPendingAgentPayload])
 
@@ -169,17 +192,22 @@ export const RightSidebar: FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingNewAgentPayload, setPendingNewAgentPayload])
 
-  // First-run auto-load: inject the onboarding-agent into a fresh, persisted
-  // chat once per app version (settings.onboarding_seen_version), regardless
-  // of how far the user gets through the tour. Builds the session under the
-  // "__new__" bucket first, then creates the real chat and migrates the
-  // session onto it — same idiom used elsewhere for "chat didn't exist yet
-  // when we started building agent state" (see migrateChatAgentSession).
+  // First-run auto-load: inject the onboarding agent into a fresh, persisted chat
+  // once per app version (settings.onboarding_seen_version), regardless of how far
+  // the user gets through the tour.
+  //
+  // The agent is loaded into the thread that is ALREADY on screen (the unsent one),
+  // and then that thread's chat row is created UNDER THE SAME ID. No migration step:
+  // a thread is born with its final id (ADR-0007), which is what retired the old
+  // "build under __new__, then move it onto the real chat" dance — the very step
+  // that used to leak an agent into the next chat (ADR-0002).
   const onboardingCheckRef = useRef(false)
   useEffect(() => {
     if (onboardingCheckRef.current) return
-    if (!profile || !selectedWorkspace || !chatSettings) return
+    if (!profile || !selectedWorkspace || !chatSettings || !viewedThreadId) return
     onboardingCheckRef.current = true
+
+    const threadId = viewedThreadId
 
     ;(async () => {
       const seenVersion = await getSetting("onboarding_seen_version")
@@ -190,34 +218,36 @@ export const RightSidebar: FC = () => {
 
         const payload = await getOnboardingAgentPayload()
 
-        await loadAgentBundle(payload, "__new__", [
+        await loadAgentBundle(payload, threadId, [
           { domain: "context", key: "onboarding", value: "true" }
         ])
         setShowRightSidebar(true)
 
-        const setSelectedChatAndMigrateSession: typeof setSelectedChat = value => {
-          const nextChat =
-            typeof value === "function" ? (value as any)(selectedChat) : value
-          if (nextChat) migrateChatAgentSession("__new__", nextChat.id)
-          setSelectedChat(value)
-        }
-
-        await handleCreateChat(
-          chatSettings,
-          profile,
-          selectedWorkspace,
-          "Bem-vindo ao Murici",
-          selectedAssistant!,
-          [],
-          setSelectedChatAndMigrateSession,
-          setChats,
-          setChatFiles
-        )
+        // Shared with ChannelController.send(): both want a row for THIS thread, and a
+        // user who types before the .agent above finishes loading gets there first.
+        // createChatRowOnce makes whoever is second reuse the first one's row instead
+        // of creating a duplicate under the same id.
+        const createdChat = await createChatRowOnce(threadId, () => ({
+          user_id: profile.user_id,
+          workspace_id: selectedWorkspace.id,
+          assistant_id: selectedAssistant?.id || null,
+          context_length: chatSettings.contextLength,
+          include_profile_context: chatSettings.includeProfileContext,
+          include_workspace_instructions: chatSettings.includeWorkspaceInstructions,
+          model: chatSettings.model,
+          name: "Bem-vindo ao Murici",
+          prompt: chatSettings.prompt,
+          temperature: chatSettings.temperature,
+          embeddings_provider: chatSettings.embeddingsProvider
+        }))
+        setSelectedChat(createdChat)
+        setChats(chats => prependChatOnce(chats, createdChat))
       } catch (err) {
         console.error("[onboarding] auto-load failed", err)
       }
     })()
-  }, [profile, selectedWorkspace, chatSettings])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, selectedWorkspace, chatSettings, viewedThreadId])
 
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {

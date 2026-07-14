@@ -32,7 +32,6 @@ import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { OsPendingAgentFile, UnpackPayload } from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
-import { saveAgentBundle } from "@/lib/local-db/agent-bundles"
 import { patchFlowEventById } from "@/lib/utils/flow-events"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
 
@@ -130,6 +129,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [showDebugPanels, setShowDebugPanels] = useState<boolean>(false)
   const [osPendingAgentPayload, setOsPendingAgentPayload] = useState<OsPendingAgentFile | null>(null)
   const [pendingNewAgentPayload, setPendingNewAgentPayload] = useState<UnpackPayload | null>(null)
+  const [isAgentBundleLoading, setIsAgentBundleLoading] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem("showSidebar")
@@ -162,43 +162,34 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
     Record<number, FlowTurnDebug>
   >({})
 
-  // AGENT SESSION CACHE (per chat)
+  // AGENT SESSION CACHE — keyed by agentSessionId (today === threadId). ADR-0007.
+  //
+  // The live KernelProxy (a WASM handle) lives HERE, in a ref, not in the channel
+  // store: the store holds only serializable state. A session survives its channel
+  // being unmounted, which is why switching chats and coming back keeps the agent
+  // exactly where it was in its flow.
+  //
+  // There is no "__new__" bucket and no migrateChatAgentSession: a thread is born
+  // with its final id (ChatHandlerProvider mints it), so the session key is stable
+  // from the first moment. That migration step is what used to leak the previous
+  // chat's agent into a new one (ADR-0002).
   const chatAgentSessionsRef = useRef<Map<string, ChatAgentSession>>(new Map())
-  const activeChatKeyRef = useRef<string>("__new__")
-  const destroyChatAgentSession = useCallback((chatId: string) => {
-    const session = chatAgentSessionsRef.current.get(chatId)
+  const activeChatKeyRef = useRef<string>("")
+  const destroyChatAgentSession = useCallback((agentSessionId: string) => {
+    const session = chatAgentSessionsRef.current.get(agentSessionId)
     if (session) {
       session.proxy.destroy()
-      chatAgentSessionsRef.current.delete(chatId)
+      chatAgentSessionsRef.current.delete(agentSessionId)
     }
   }, [])
-  const [newChatSignal, setNewChatSignal] = useState(0)
-  const migrateChatAgentSession = useCallback(
-    (fromChatId: string, toChatId: string) => {
-      if (fromChatId === toChatId) return
-      const fromSession = chatAgentSessionsRef.current.get(fromChatId)
-      if (!fromSession) return
-      const staleTarget = chatAgentSessionsRef.current.get(toChatId)
-      if (staleTarget && staleTarget !== fromSession) {
-        staleTarget.proxy.destroy()
-      }
-      chatAgentSessionsRef.current.delete(fromChatId)
-      chatAgentSessionsRef.current.set(toChatId, fromSession)
-
-      // "__new__" (and other transient buckets) can't be persisted until
-      // they're attached to a real chat id — do it now that toChatId is one.
-      if (fromSession.agentMeta) {
-        saveAgentBundle(toChatId, {
-          aboutme: fromSession.agentMeta,
-          behaviorText: fromSession.behaviorText,
-          descriptionText: fromSession.descriptionText,
-          knowledge: fromSession.knowledge,
-          guides: fromSession.guides,
-          behaviors: fromSession.behaviors
-        }).catch(err =>
-          console.error("[agent-bundle] failed to persist migrated bundle", err)
-        )
-      }
+  // How a ChannelController writes back to its OWN session (e.g. the FSM advancing
+  // on trigger_intent) without going through React state — so a background chat can
+  // advance its agent without repainting the chat on screen.
+  const updateChatAgentSession = useCallback(
+    (agentSessionId: string, patch: Partial<ChatAgentSession>) => {
+      const existing = chatAgentSessionsRef.current.get(agentSessionId)
+      if (!existing) return
+      chatAgentSessionsRef.current.set(agentSessionId, { ...existing, ...patch })
     },
     []
   )
@@ -213,9 +204,20 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [backgroundQueue, setBackgroundQueue] = useState<any[]>([])
 
   // FLOW EVENT LOG
+  // Capped so a long session (many chats, lots of tool/debug traffic) doesn't
+  // grow this array unboundedly — events are filtered per-chat for display
+  // (see chat-messages.tsx), so trimming the oldest ones off the front only
+  // drops debug history for chats the user is unlikely to revisit mid-session.
+  const FLOW_EVENTS_CAP = 500
   const [flowEvents, setFlowEvents] = useState<FlowEvent[]>([])
   const addFlowEvent = useCallback(
-    (e: FlowEvent) => setFlowEvents(prev => [...prev, e]),
+    (e: FlowEvent) =>
+      setFlowEvents(prev => {
+        const next = [...prev, e]
+        return next.length > FLOW_EVENTS_CAP
+          ? next.slice(next.length - FLOW_EVENTS_CAP)
+          : next
+      }),
     []
   )
   const updateFlowEvent = useCallback(
@@ -415,6 +417,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setOsPendingAgentPayload,
         pendingNewAgentPayload,
         setPendingNewAgentPayload,
+        isAgentBundleLoading,
+        setIsAgentBundleLoading,
 
         // RETRIEVAL STORE
         useRetrieval,
@@ -434,13 +438,11 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         flowDebugLog,
         setFlowDebugLog,
 
-        // AGENT SESSION CACHE (per chat)
+        // AGENT SESSION CACHE (keyed by agentSessionId)
         chatAgentSessionsRef,
         activeChatKeyRef,
         destroyChatAgentSession,
-        migrateChatAgentSession,
-        newChatSignal,
-        setNewChatSignal,
+        updateChatAgentSession,
 
         // THINKING LOG STORE
         thinkingLog,

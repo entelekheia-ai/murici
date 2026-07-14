@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ChatbotUIContext } from "@/context/context"
 import { getOnboardingAgentPayload } from "@/lib/agents/system-agents"
+import { unpackAgentFileFromPath } from "@/lib/agents/unpack-agent-file"
 import {
   getAllRecentAgents,
   removeRecentAgent,
@@ -82,14 +83,12 @@ export const SidebarAgentsContent: FC = () => {
   }
 
   const handleOpenRecent = async (record: RecentAgentRecord) => {
-    if (!record.filePath || !window.electronAPI?.resolveAgentFile) {
+    if (!record.filePath || !window.electronAPI?.readAgentFile) {
       notFoundToast()
       return
     }
     try {
-      const payload = await window.electronAPI.resolveAgentFile(
-        record.filePath
-      )
+      const payload = await unpackAgentFileFromPath(record.filePath)
       const updated = await upsertRecentAgent({
         filePath: record.filePath,
         aboutme: payload.aboutme

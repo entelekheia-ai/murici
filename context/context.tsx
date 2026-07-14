@@ -161,6 +161,12 @@ interface ChatbotUIContext {
   // prompt instead of always landing on a new chat.
   pendingNewAgentPayload: UnpackPayload | null
   setPendingNewAgentPayload: Dispatch<SetStateAction<UnpackPayload | null>>
+  // True for the duration of AgentSessionProvider's loadAgentBundle() call
+  // targeting the active chat key — lets a freshly-mounted chat page know an
+  // agent is being attached before it defaults to the graph/knowledge home
+  // view (which would otherwise stomp showRightSidebar back closed).
+  isAgentBundleLoading: boolean
+  setIsAgentBundleLoading: Dispatch<SetStateAction<boolean>>
 
   // RETRIEVAL STORE
   useRetrieval: boolean
@@ -196,19 +202,26 @@ interface ChatbotUIContext {
   flowDebugLog: Record<number, FlowTurnDebug>
   setFlowDebugLog: Dispatch<SetStateAction<Record<number, FlowTurnDebug>>>
 
-  // AGENT SESSION CACHE (per chat)
+  // AGENT SESSION CACHE — keyed by agentSessionId (see ADR-0007).
+  //
+  // TODAY a thread has at most one agent, so `agentSessionId === threadId`. They
+  // are named apart because the future is 1 chat : N agents, each subagent owning
+  // its own subchat (1:1) — see project/plans/015-future-agent-topology.md.
+  //
+  // Every ChannelController reads the session of the thread it belongs to, never
+  // the globally-viewed one: that is what stops a background chat's request from
+  // travelling with another agent's FSM (the "offtopic" leak).
+  //
+  // There is no "__new__" bucket and no id migration: a thread is born with its
+  // final id, so its session key never changes. Removing that migration removed
+  // the bug class that produced ADR-0002 ("novo chat inherits the previous agent").
   chatAgentSessionsRef: MutableRefObject<Map<string, ChatAgentSession>>
   activeChatKeyRef: MutableRefObject<string>
-  destroyChatAgentSession: (chatId: string) => void
-  migrateChatAgentSession: (fromChatId: string, toChatId: string) => void
-
-  // Incremented whenever a "new chat" action starts (see ChatHandlerProvider's
-  // handleNewChat). AgentSessionProvider watches this to reset the "__new__"
-  // agent session — chat-level and agent-level providers are siblings that
-  // only share GlobalState, so this signal is how the chat side notifies the
-  // agent side without either importing the other's context.
-  newChatSignal: number
-  setNewChatSignal: Dispatch<SetStateAction<number>>
+  destroyChatAgentSession: (agentSessionId: string) => void
+  updateChatAgentSession: (
+    agentSessionId: string,
+    patch: Partial<ChatAgentSession>
+  ) => void
 
   // THINKING LOG STORE — keyed by message id (stable across the streaming ->
   // persisted handoff), not sequence_number (which was recomputed in several
@@ -342,6 +355,8 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setOsPendingAgentPayload: () => {},
   pendingNewAgentPayload: null,
   setPendingNewAgentPayload: () => {},
+  isAgentBundleLoading: false,
+  setIsAgentBundleLoading: () => {},
 
   // RETRIEVAL STORE
   useRetrieval: false,
@@ -361,13 +376,11 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   flowDebugLog: {},
   setFlowDebugLog: () => {},
 
-  // AGENT SESSION CACHE (per chat)
+  // AGENT SESSION CACHE (keyed by agentSessionId)
   chatAgentSessionsRef: { current: new Map() },
-  activeChatKeyRef: { current: "__new__" },
+  activeChatKeyRef: { current: "" },
   destroyChatAgentSession: () => {},
-  migrateChatAgentSession: () => {},
-  newChatSignal: 0,
-  setNewChatSignal: () => {},
+  updateChatAgentSession: () => {},
 
   // THINKING LOG STORE
   thinkingLog: {},

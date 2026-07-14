@@ -33,4 +33,9 @@ export interface FlowEvent {
   type: FlowEventType
   timestamp: number
   data: Record<string, any>
+  // The chat this event's turn actually belongs to (the stable, pinned
+  // useChat id — see ChatHandlerProvider's activeChatId), not whichever chat
+  // happens to be on screen when the event is pushed. Lets consumers filter
+  // out debug/error events from a chat other than the one currently viewed.
+  chatId: string
 }

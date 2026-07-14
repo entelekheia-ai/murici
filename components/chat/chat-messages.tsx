@@ -7,6 +7,7 @@
 
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
+import { useChannelStore } from "@/lib/store/channel-store"
 import { Tables } from "@/types/database"
 import { FlowEvent } from "@/types"
 import { FC, Fragment, useContext, useState } from "react"
@@ -24,21 +25,27 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
 
   const [editingMessage, setEditingMessage] = useState<Tables<"messages">>()
 
+  // The thread on screen (ADR-0007). Every FlowEvent is tagged by the channel that
+  // produced it, so filtering on this keeps a chat that is still generating in the
+  // BACKGROUND from spilling its debug/error rows into the chat being viewed.
+  const viewingChatId = useChannelStore(s => s.viewedThreadId)
+
   // Debug is a real-time mirror of the exchange: each flowEvent renders as its
   // own inline card, ungrouped, interleaved with the messages in the order it
   // actually happened (by timestamp) — not consolidated into a per-turn block.
   const orderedMessages = [...chatMessages].sort(
     (a, b) => a.message.sequence_number - b.message.sequence_number
   )
+  const chatEvents = flowEvents.filter(e => e.chatId === viewingChatId)
   const orderedEvents = showDebugPanels
-    ? [...flowEvents].sort((a, b) => a.timestamp - b.timestamp)
+    ? [...chatEvents].sort((a, b) => a.timestamp - b.timestamp)
     : []
 
   // "error" events get a friendly bubble unconditionally (not gated by
   // showDebugPanels) — a failed response should never be invisible just
   // because the debug panel is off. When debug IS on, both this bubble and
   // the compact JSON row above coexist; they're not the same list.
-  const errorEvents = [...flowEvents]
+  const errorEvents = chatEvents
     .filter(e => e.type === "error")
     .sort((a, b) => a.timestamp - b.timestamp)
 

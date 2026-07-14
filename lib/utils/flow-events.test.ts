@@ -18,7 +18,7 @@ import { patchFlowEventById } from "./flow-events"
 import { FlowEvent } from "@/types"
 
 function makeEvent(id: string, data: Record<string, any> = {}): FlowEvent {
-  return { id, seqNum: 0, type: "error", timestamp: Date.now(), data }
+  return { id, seqNum: 0, type: "error", timestamp: Date.now(), data, chatId: "test-chat" }
 }
 
 describe("patchFlowEventById", () => {

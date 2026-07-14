@@ -59,7 +59,6 @@ export const Message: FC<MessageProps> = ({
     assistants,
     profile,
     isGenerating,
-    setIsGenerating,
     firstTokenReceived,
     availableLocalModels,
     availableOpenRouterModels,
@@ -115,7 +114,10 @@ export const Message: FC<MessageProps> = ({
   }
 
   const handleRegenerate = async () => {
-    setIsGenerating(true)
+    // No setIsGenerating(true) here: isGenerating is DERIVED from the viewed
+    // channel's stream status (ADR-0007), so writing it by hand would just be
+    // overwritten on the next render — and, before channels, a hand-written `true`
+    // that nothing later cleared is exactly how the send button got stuck on "Stop".
     await handleSendMessage(
       editedMessage || chatMessages[chatMessages.length - 2].message.content,
       chatMessages,

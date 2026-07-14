@@ -11,6 +11,8 @@ import { handleKernelEffects } from "@/lib/kernel-effects"
 import { getAgentBundle, saveAgentBundle } from "@/lib/local-db/agent-bundles"
 import { upsertRecentAgent } from "@/lib/local-db/recent-agents"
 import { buildFlowStateFromEffects } from "@/lib/runtime/advance-flow"
+import { useChannelStore } from "@/lib/store/channel-store"
+import { unpackAgentFile } from "@/lib/agents/unpack-agent-file"
 import type { AgentAboutme, UnpackPayload } from "@/types/electron"
 import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
 
@@ -30,15 +32,20 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
     chatAgentSessionsRef,
     activeChatKeyRef,
     destroyChatAgentSession,
-    selectedChat,
     setFlowState,
     setFlowEngine,
     flowState,
     setAgentKnowledgeFiles,
     setAgentPersona,
     setShowRightSidebar,
-    newChatSignal
+    setIsAgentBundleLoading
   } = useContext(ChatbotUIContext)
+
+  // Which thread is on screen. Published by ChatHandlerProvider (ADR-0007) — the
+  // agent side keys its sessions by the SAME id the channel side streams under, so
+  // there is exactly one answer to "which thread is active", with no second source
+  // of truth and no "__new__" bucket.
+  const viewedThreadId = useChannelStore(s => s.viewedThreadId)
 
   const [engine, setEngine] = useState<any>(null)
   const [currentState, setCurrentState] = useState<string>("")
@@ -209,39 +216,59 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
       initialMemory: Array<{ domain: string; key: string; value: string }> = []
     ) => {
       const chatKey = targetChatKey ?? activeChatKeyRef.current
-      const session = getOrCreateSession(chatKey)
-      updateSession(chatKey, {
-        agentMeta: payload.aboutme,
-        behaviorText: payload.behaviorText,
-        descriptionText: payload.descriptionText || ""
-      })
-      if (chatKey === activeChatKeyRef.current) {
-        setAgentMeta(payload.aboutme)
-        setAgentPersona(payload.aboutme.persona || null)
-        setBehaviorText(payload.behaviorText)
-        setDescriptionText(payload.descriptionText || "")
-      }
-      await loadBehavior(
-        chatKey,
-        session.proxy,
-        payload.behaviorText,
-        payload.knowledge,
-        payload.guides,
-        payload.behaviors,
-        initialMemory
-      )
+      const isActiveTarget = chatKey === activeChatKeyRef.current
+      if (isActiveTarget) setIsAgentBundleLoading(true)
+      try {
+        const session = getOrCreateSession(chatKey)
+        updateSession(chatKey, {
+          agentMeta: payload.aboutme,
+          behaviorText: payload.behaviorText,
+          descriptionText: payload.descriptionText || ""
+        })
+        if (isActiveTarget) {
+          setAgentMeta(payload.aboutme)
+          setAgentPersona(payload.aboutme.persona || null)
+          setBehaviorText(payload.behaviorText)
+          setDescriptionText(payload.descriptionText || "")
+        }
+        await loadBehavior(
+          chatKey,
+          session.proxy,
+          payload.behaviorText,
+          payload.knowledge,
+          payload.guides,
+          payload.behaviors,
+          initialMemory
+        )
 
-      // Persist the bundle so it can be reloaded (from its initial FSM
-      // state) after a page reload wipes chatAgentSessionsRef. "__new__"
-      // isn't a real chat yet — migrateChatAgentSession() persists it once
-      // it becomes one.
-      if (chatKey !== "__new__") {
+        // Persist the bundle so the agent can be rebuilt after a reload wipes the
+        // in-memory session map. A thread is born with its final id, so this can
+        // just save under `chatKey` — there is no transient bucket to migrate from.
+        //
+        // NOTE (revival semantics, decided in ADR-0007): a reload rebuilds the agent
+        // at the FSM's **initial state**, not where the conversation had actually
+        // reached. Only the bundle is persisted, not the kernel's live state. Coming
+        // back exactly where it stopped needs **kernel state serialization**, which
+        // is on the dot-agent backlog; when that ships, this is the one place that
+        // changes (persist + restore the kernel state alongside the bundle).
+        // Within a session this does not bite: the KernelProxy stays alive in
+        // chatAgentSessionsRef, so switching chats and coming back preserves the
+        // agent's position in its flow.
         saveAgentBundle(chatKey, payload).catch(err =>
           console.error("[agent-bundle] failed to persist bundle", err)
         )
+      } finally {
+        if (isActiveTarget) setIsAgentBundleLoading(false)
       }
     },
-    [activeChatKeyRef, getOrCreateSession, updateSession, setAgentPersona, loadBehavior]
+    [
+      activeChatKeyRef,
+      getOrCreateSession,
+      updateSession,
+      setAgentPersona,
+      loadBehavior,
+      setIsAgentBundleLoading
+    ]
   )
 
   // The single place that tears a chat's session down and, if it's the one
@@ -257,18 +284,11 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
     [destroyChatAgentSession, getOrCreateSession, applySessionToView, activeChatKeyRef]
   )
 
-  // ChatHandlerProvider bumps newChatSignal when the user starts a new chat
-  // (see context/context.tsx). Reacting to that here — instead of
-  // ChatHandlerProvider calling resetSession directly — keeps the two
-  // providers as siblings that only depend on GlobalState: a chat can exist
-  // without an agent, but an agent always needs a chat, so it's the agent
-  // side that should react to chat lifecycle events, not the other way
-  // around.
-  useEffect(() => {
-    if (newChatSignal === 0) return
-    resetSession("__new__")
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newChatSignal])
+  // No "new chat" signal is needed any more. Starting a new chat mints a NEW
+  // thread id (ChatHandlerProvider), and a new id has no session — so the effect
+  // below simply builds a blank one and applies it. The old newChatSignal +
+  // resetSession("__new__") dance existed only because every unsent chat reused
+  // one shared "__new__" bucket that had to be scrubbed between chats.
 
   const hasActiveAgent = useCallback(
     (chatKey: string) => !!chatAgentSessionsRef.current.get(chatKey)?.agentMeta,
@@ -279,11 +299,17 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
     pendingNewChatPayloadRef.current = payload
   }, [])
 
-  // Swap the active agent session whenever the visible chat changes, so
-  // each chat keeps its own KernelProxy/sessionId instead of sharing a
-  // global one.
+  // Swap the VIEWED agent session whenever the thread on screen changes, so each
+  // thread keeps its own KernelProxy/sessionId instead of sharing a global one.
+  //
+  // This only moves what the VIEW shows. A background chat's session keeps living
+  // in the map and keeps being advanced by its own ChannelController — which reads
+  // it by agentSessionId and never through this projection. That separation is the
+  // fix for the "offtopic" leak: what is on screen no longer decides which agent a
+  // request travels with.
   useEffect(() => {
-    const chatKey = selectedChat?.id ?? "__new__"
+    if (!viewedThreadId) return
+    const chatKey = viewedThreadId
     const isFreshSession = !chatAgentSessionsRef.current.has(chatKey)
     activeChatKeyRef.current = chatKey
     const session = getOrCreateSession(chatKey)
@@ -293,11 +319,12 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
       const payload = pendingNewChatPayloadRef.current
       pendingNewChatPayloadRef.current = null
       loadAgentBundle(payload, chatKey)
-    } else if (isFreshSession && chatKey !== "__new__") {
-      // First time this chat's session is built in this tab (e.g. right
-      // after a page reload) — reload any agent bundle it previously had,
-      // landing back at the FSM's initial state (chatAgentSessionsRef is
-      // in-memory only and never survives a reload).
+    } else if (isFreshSession) {
+      // First time this thread's session is built in this tab (e.g. right after a
+      // reload) — rebuild any agent bundle it had. See the revival note in
+      // loadAgentBundle: this lands at the FSM's INITIAL state, because only the
+      // bundle is persisted, not the kernel's live state (dot-agent backlog).
+      // A brand-new, unsent thread simply has no bundle, so this is a no-op for it.
       getAgentBundle(chatKey).then(bundle => {
         if (!bundle) return
         if (chatAgentSessionsRef.current.get(chatKey)?.agentMeta) return
@@ -305,7 +332,7 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChat?.id])
+  }, [viewedThreadId])
 
   const handleAgentFile = useCallback(
     async (file: File) => {
@@ -318,25 +345,7 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
         // filesystem paths.
         const electronPath = window.electronAPI?.getPathForFile?.(file)
 
-        // Sent as a raw body instead of multipart/form-data: Node's
-        // undici-based multipart parser throws deep inside its own header
-        // parser for some requests when running under Electron's bundled
-        // Node. A raw body has no multipart boundary/header parsing to
-        // trip over.
-        const res = await fetch("/api/agent/unpack", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/octet-stream",
-            "X-Agent-Filename": encodeURIComponent(file.name)
-          },
-          body: file
-        })
-        if (!res.ok) {
-          const error = await res.json()
-          setParseError(error.error || "Failed to unpack agent")
-          return
-        }
-        const payload: UnpackPayload = await res.json()
+        const payload = await unpackAgentFile(file)
         await loadAgentBundle(payload)
         setShowRightSidebar(true)
         upsertRecentAgent({
