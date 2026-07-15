@@ -353,7 +353,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
                   placeholder={defaultLocalePrompt()}
                   minRows={3}
                   maxRows={6}
-                  className="bg-background border-input border-2"
+                  className="border-2 border-input bg-background"
                 />
               </div>
 
@@ -363,7 +363,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
                 </Label>
 
                 {backgroundModelMissing && (
-                  <p className="text-destructive bg-destructive/10 rounded-md px-3 py-2 text-xs">
+                  <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
                     O modelo local configurado não foi encontrado. Selecione outro.
                   </p>
                 )}

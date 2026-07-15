@@ -29,15 +29,15 @@ export const MessageThinkingBlock: FC<MessageThinkingBlockProps> = ({
   return (
     <div
       data-testid="thinking-block"
-      className="border-border bg-muted/20 text-muted-foreground rounded-lg border font-mono text-xs"
+      className="rounded-lg border border-border bg-muted/20 font-mono text-xs text-muted-foreground"
     >
       <details>
-        <summary className="hover:bg-muted/40 flex cursor-pointer select-none items-center gap-2 px-3 py-2">
+        <summary className="flex cursor-pointer select-none items-center gap-2 px-3 py-2 hover:bg-muted/40">
           <span>🧠</span>
           <span className="font-semibold text-violet-400">Raciocínio</span>
           <span className="text-muted-foreground/60">{wordCount} palavras</span>
         </summary>
-        <pre className="bg-muted mx-3 mb-2 max-h-64 overflow-auto whitespace-pre-wrap rounded p-2 text-xs">
+        <pre className="mx-3 mb-2 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-xs">
           {thinking}
         </pre>
       </details>

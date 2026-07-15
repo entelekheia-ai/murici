@@ -1,9 +1,0 @@
-state init
-  on intent "run_enrichment" transition to enrich_memory
-
-state enrich_memory
-  goal "Extract a title (max 5 words) and a one-sentence summary for the provided content."
-  guide "You are running in a headless background process. Do NOT ask questions or interact with the user. Your ONLY action is to invoke the save_metadata tool immediately with the extracted title and summary."
-  interact
-  on intent "save_metadata" transition to init
-  on offtopic transition to enrich_memory

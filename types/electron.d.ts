@@ -24,22 +24,30 @@ export interface AgentAboutme {
   license: string
 }
 
+// An unpacked .agent bundle. Built in exactly ONE place — app/api/agent/unpack, reached
+// through lib/agents/unpack-agent-file.ts — no matter how the agent was opened.
+//
+// The Electron main process used to build a second one by hand, and that copy had gone
+// stale: it omitted `knowledge` and `guides`, so an agent opened through the desktop app
+// lost its knowledge files and a `teach "recipes.txt"` effect handed the model the bare
+// file NAME (resolveTeach in lib/runtime/advance-flow.ts falls back to it). Main now only
+// supplies the file's bytes. The arrays are REQUIRED rather than optional so that "I
+// forgot a field" cannot compile — empty is `[]`, never absent.
 export interface UnpackPayload {
   aboutme: AgentAboutme
   behaviorText: string
   descriptionText?: string
-  knowledge?: Array<{ path: string; content: string }>
-  guides?: Array<{ path: string; content: string }>
-  behaviors?: Array<{ path: string; content: string }>
+  knowledge: Array<{ path: string; content: string }>
+  guides: Array<{ path: string; content: string }>
+  behaviors: Array<{ path: string; content: string }>
 }
 
-// Carries the source filesystem path alongside the unpacked payload so it can
-// be persisted (recent-agents list) and re-resolved later via
-// electronAPI.resolveAgentFile. filePath is absent when opened from a plain
-// web build (browsers don't expose real filesystem paths).
+// An agent the OS handed to the app (macOS "open with", the launch argv, or the app
+// menu's Load Agent). Main sends the PATH, not a payload: the renderer reads the bytes
+// back via electronAPI.readAgentFile and unpacks them through the one unpack. The path
+// is also what the recent-agents list persists, so the agent can be reopened later.
 export interface OsPendingAgentFile {
-  payload: UnpackPayload
-  filePath?: string
+  filePath: string
 }
 
 export interface KernelState {
@@ -61,9 +69,9 @@ declare global {
       onOpenAgentFile?: (
         cb: (data: OsPendingAgentFile) => void
       ) => void
-      onOpenAgentFileError?: (cb: (errorMsg: string) => void) => void
       appReadyForFiles?: () => void
-      resolveAgentFile?: (filePath: string) => Promise<UnpackPayload>
+      readAgentFile?: (filePath: string) => Promise<Uint8Array>
+      getPathForFile?: (file: File) => string
       onMenuAction?: (cb: (data: { action: string }) => void) => void
       setDebugMode?: (value: boolean) => void
       setLocale?: (locale: string) => void

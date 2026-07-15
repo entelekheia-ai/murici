@@ -22,7 +22,7 @@ export const SendButton = forwardRef<HTMLButtonElement, SendButtonProps>(
           ref={ref}
           type="button"
           className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-[8px] bg-transparent text-[#3f6212] transition-opacity hover:opacity-50 select-none shrink-0",
+            "flex size-9 shrink-0 select-none items-center justify-center rounded-[8px] bg-transparent text-[#3f6212] transition-opacity hover:opacity-50",
             className
           )}
           onClick={onStop}
@@ -39,7 +39,7 @@ export const SendButton = forwardRef<HTMLButtonElement, SendButtonProps>(
         type="button"
         disabled={disabled}
         className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#3f6212] text-[#e2d7c6] transition-all select-none shrink-0",
+          "flex size-9 shrink-0 select-none items-center justify-center rounded-[8px] bg-[#3f6212] text-[#e2d7c6] transition-all",
           disabled ? "cursor-not-allowed opacity-50" : "hover:opacity-90 active:scale-95",
           className
         )}

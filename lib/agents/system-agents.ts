@@ -17,9 +17,10 @@
 import type { UnpackPayload } from "@/types/electron"
 import { unpackAgentFileFromUrl } from "./unpack-agent-file"
 
-// memory.agent (background knowledge-enrichment agent, see
-// lib/knowledge/enrich.ts) is internal-only and intentionally has no
-// equivalent here — it must never surface in user-facing agent lists.
+// background.agent (background enrichment + error-translation agent, see
+// lib/knowledge/enrich.ts and lib/errors/auto-translate.ts) is internal-only
+// and intentionally has no equivalent here — it must never surface in
+// user-facing agent lists.
 
 let onboardingPayloadPromise: Promise<UnpackPayload> | null = null
 

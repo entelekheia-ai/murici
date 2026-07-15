@@ -35,9 +35,9 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
     : null
 
   return (
-    <div className="border-border bg-muted/20 text-muted-foreground mx-4 my-2 rounded-lg border font-mono text-xs">
+    <div className="mx-4 my-2 rounded-lg border border-border bg-muted/20 font-mono text-xs text-muted-foreground">
       {/* Header */}
-      <div className="border-border flex items-center gap-2 border-b px-3 py-2">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <span>⚙</span>
         <span className="font-semibold text-blue-400">Sistema</span>
         <span className="text-muted-foreground/60">
@@ -51,17 +51,17 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
       </div>
 
       {/* Enviou */}
-      <details className="border-border border-b">
-        <summary className="hover:bg-muted/40 cursor-pointer select-none px-3 py-1.5">
+      <details className="border-b border-border">
+        <summary className="cursor-pointer select-none px-3 py-1.5 hover:bg-muted/40">
           Enviou ({debug.sentMessages.length} msgs)
         </summary>
-        <pre className="bg-muted mx-3 mb-2 max-h-48 overflow-auto whitespace-pre-wrap rounded p-2 text-xs">
+        <pre className="mx-3 mb-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-xs">
           {JSON.stringify(debug.sentMessages, null, 2)}
         </pre>
       </details>
 
       {/* Context: goal / guide / teach / intents */}
-      <div className="border-border space-y-1 border-b px-3 py-1.5">
+      <div className="space-y-1 border-b border-border px-3 py-1.5">
         {debug.goal && (
           <div>
             <span className="text-yellow-400">goal:</span> {debug.goal}
@@ -86,13 +86,13 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
       </div>
 
       {/* Dashed separator */}
-      <div className="border-border/60 mx-3 border-t border-dashed" />
+      <div className="mx-3 border-t border-dashed border-border/60" />
 
       {/* Tool phases: Recebeu / Fez / Mandou */}
       {debug.toolExchange && (
         <>
           {/* Recebeu */}
-          <div className="border-border border-b px-3 py-1.5">
+          <div className="border-b border-border px-3 py-1.5">
             <span className="font-semibold text-orange-400">Recebeu:</span>{" "}
             {toolUseBlock ? (
               <>
@@ -107,21 +107,21 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
               <summary className="cursor-pointer select-none opacity-60 hover:opacity-70">
                 raw
               </summary>
-              <pre className="bg-muted mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2">
+              <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2">
                 {JSON.stringify(debug.toolExchange[0], null, 2)}
               </pre>
             </details>
           </div>
 
           {/* Fez */}
-          <div className="border-border border-b px-3 py-1.5">
+          <div className="border-b border-border px-3 py-1.5">
             <span className="font-semibold text-green-400">Fez:</span>{" "}
             {debug.transitionEffects.length > 0 ? (
               <details className="mt-1">
                 <summary className="cursor-pointer select-none hover:opacity-70">
                   {debug.transitionEffects.length} efeito(s)
                 </summary>
-                <pre className="bg-muted mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2">
+                <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2">
                   {JSON.stringify(debug.transitionEffects, null, 2)}
                 </pre>
               </details>
@@ -131,14 +131,14 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
           </div>
 
           {/* Mandou */}
-          <div className="border-border border-b px-3 py-1.5">
+          <div className="border-b border-border px-3 py-1.5">
             <span className="font-semibold text-blue-400">Mandou:</span>{" "}
             {toolResultBlock ? (
               <details className="mt-1">
                 <summary className="cursor-pointer select-none hover:opacity-70">
                   tool result
                 </summary>
-                <pre className="bg-muted mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2">
+                <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2">
                   {JSON.stringify(debug.toolExchange[1], null, 2)}
                 </pre>
               </details>
@@ -154,7 +154,7 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
         <summary className="cursor-pointer select-none opacity-60 hover:opacity-70">
           Resposta bruta
         </summary>
-        <pre className="bg-muted mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2">
+        <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2">
           {debug.rawResponse}
         </pre>
       </details>

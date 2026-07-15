@@ -226,10 +226,10 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex h-11 w-full items-center gap-2 rounded-full border border-stroke bg-background-terciary px-4">
-        <Search className="text-foreground-secondary shrink-0" size={18} />
+        <Search className="shrink-0 text-foreground-secondary" size={18} />
         <input
           ref={inputRef}
-          className="h-full w-full bg-transparent text-sm placeholder:text-foreground-secondary outline-none border-none focus:ring-0 p-0 text-foreground-primary"
+          className="size-full border-none bg-transparent p-0 text-sm text-foreground-primary outline-none placeholder:text-foreground-secondary focus:ring-0"
           placeholder={t("Search models...")}
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -250,7 +250,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
             {accordion.local && (
               <div className="mt-1">
                 {isDiscovering && (
-                  <div className="text-muted-foreground px-2 py-1 text-xs">
+                  <div className="px-2 py-1 text-xs text-muted-foreground">
                     {t("Updating...")}
                   </div>
                 )}
@@ -279,7 +279,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
               action={
                 <button
                   onClick={e => { e.stopPropagation(); handleManage() }}
-                  className="text-muted-foreground hover:text-foreground text-xs font-semibold"
+                  className="text-xs font-semibold text-muted-foreground hover:text-foreground"
                 >
                   {t("Manage →")}
                 </button>
@@ -331,7 +331,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
                       <li
                         key={m.modelId}
                         aria-disabled="true"
-                        className="flex h-[37px] w-full cursor-not-allowed select-none items-center justify-start rounded-[8px] px-3 py-2.5 text-small-regular text-foreground-secondary"
+                        className="text-small-regular flex h-[37px] w-full cursor-not-allowed select-none items-center justify-start rounded-[8px] px-3 py-2.5 text-foreground-secondary"
                       >
                         {t("Could not load models")}
                       </li>
@@ -346,7 +346,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
 
                   return (
                     <div key={provider} className="mt-2 first:mt-0">
-                      <div className="mb-1 ml-3 text-[10px] font-bold text-foreground-secondary uppercase tracking-wider">
+                      <div className="mb-1 ml-3 text-[10px] font-bold uppercase tracking-wider text-foreground-secondary">
                         {providerLabel}
                       </div>
                       {disabledEntries.length > 0 && (
@@ -432,10 +432,10 @@ interface GroupHeaderProps {
 }
 
 const GroupHeader: FC<GroupHeaderProps> = ({ label, open, onToggle, action }) => (
-  <div className="flex w-full items-center justify-between px-1 py-1">
+  <div className="flex w-full items-center justify-between p-1">
     <button
       onClick={onToggle}
-      className="flex flex-1 items-center gap-1.5 hover:opacity-75 focus-visible:opacity-75 outline-none"
+      className="flex flex-1 items-center gap-1.5 outline-none hover:opacity-75 focus-visible:opacity-75"
     >
       <IconChevron
         size={12}

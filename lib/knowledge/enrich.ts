@@ -37,8 +37,9 @@ export async function enrichKnowledgeRecord(
     const result = await runHeadlessAgent(
       record.payload.content,
       modelData,
-      "/agents/memory.agent",
-      "run_enrichment"
+      "/agents/background.agent",
+      "run_enrichment",
+      'Respond ONLY as JSON: { "intent_name": "save_metadata", "title": "...", "summary": "..." }'
     )
     if (result && result.title && result.summary) {
       return { title: result.title, summary: result.summary }

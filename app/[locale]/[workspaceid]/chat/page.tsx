@@ -23,18 +23,38 @@ export default function ChatPage() {
     handleFocusChatInput()
   })
 
-  const { chatMessages, showSidebar, setShowSidebar, setShowRightSidebar, chats } = useContext(ChatbotUIContext)
+  const {
+    chatMessages,
+    showSidebar,
+    setShowSidebar,
+    setShowRightSidebar,
+    chats,
+    isAgentBundleLoading
+  } = useContext(ChatbotUIContext)
 
   const { knowledge, agentBundles, loading: knowledgeLoading } = useKnowledgeData()
   const headerProps = useHeaderControls()
   const [showGraphHome, setShowGraphHome] = useState(true)
 
   useEffect(() => {
-    if (chatMessages.length === 0 && showGraphHome) {
+    if (chatMessages.length === 0 && showGraphHome && !isAgentBundleLoading) {
       setShowSidebar(false)
       setShowRightSidebar(false)
     }
-  }, [chatMessages.length, showGraphHome, setShowSidebar, setShowRightSidebar])
+  }, [
+    chatMessages.length,
+    showGraphHome,
+    isAgentBundleLoading,
+    setShowSidebar,
+    setShowRightSidebar
+  ])
+
+  // An agent bundle is being attached to this (possibly brand-new) chat —
+  // skip the graph/knowledge landing view so the chat + right sidebar are
+  // visible while it loads, instead of silently opening behind KnowledgeHomeView.
+  useEffect(() => {
+    if (isAgentBundleLoading) setShowGraphHome(false)
+  }, [isAgentBundleLoading])
 
   const { handleNewChat, handleFocusChatInput } = useChatHandler()
 
@@ -43,16 +63,26 @@ export default function ChatPage() {
   return (
     <>
       {chatMessages.length === 0 && showGraphHome ? (
-        <div className="relative flex h-full w-full flex-col items-center">
+        <div className="relative flex size-full flex-col items-center">
           <KnowledgeHomeView
             knowledge={knowledge}
             chats={chats}
             agentBundles={agentBundles}
             loading={knowledgeLoading}
           />
-          <div 
-            onClickCapture={() => {
-              if (showGraphHome) {
+          <div
+            onClickCapture={e => {
+              // Only treat this as "start typing" when the click actually
+              // landed on the textarea or the wrapper's own empty background
+              // — not on any control inside ChatInput (the ".agent" pill, the
+              // attach icon, send, ...). Those already have their own onClick;
+              // firing this capture-phase handler first would flip
+              // showGraphHome, unmount/remount ChatInput, and swallow that
+              // click, requiring a second one to actually hit the button.
+              const target = e.target as HTMLElement
+              const isDirectHit =
+                target === e.currentTarget || target.tagName === "TEXTAREA"
+              if (showGraphHome && isDirectHit) {
                 setShowGraphHome(false)
                 setShowSidebar(true)
                 setTimeout(() => {

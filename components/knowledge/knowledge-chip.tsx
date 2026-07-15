@@ -92,14 +92,14 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
 
   return (
     <div
-      className="group flex items-center justify-between gap-3 py-2 cursor-pointer transition-colors w-full"
+      className="group flex w-full cursor-pointer items-center justify-between gap-3 py-2 transition-colors"
       onClick={() => !compact && setPreviewOpen(true)}
     >
-      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {editing ? (
           <input
             ref={inputRef}
-            className="bg-background w-full rounded border px-1 text-[13px] font-medium outline-none text-foreground-primary"
+            className="w-full rounded border bg-background px-1 text-[13px] font-medium text-foreground-primary outline-none"
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
             onBlur={handleTitleSave}
@@ -121,7 +121,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
         )}
         
         {record.summary && !compact && (
-          <span className="text-foreground-secondary text-[11px] leading-tight line-clamp-2 mt-0.5">
+          <span className="mt-0.5 line-clamp-2 text-[11px] leading-tight text-foreground-secondary">
             {record.summary}
           </span>
         )}

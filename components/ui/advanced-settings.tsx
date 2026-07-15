@@ -26,12 +26,12 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({ children }) => {
 
   return (
     <Collapsible
-      className="border-t border-stroke-secondary pt-4 mt-4"
+      className="mt-4 border-t border-stroke-secondary pt-4"
       open={isOpen}
       onOpenChange={handleOpenChange}
     >
       <CollapsibleTrigger className="w-full outline-none focus-visible:opacity-70">
-        <div className="flex w-full items-center justify-between text-small-semi-strong text-foreground-primary">
+        <div className="text-small-semi-strong flex w-full items-center justify-between text-foreground-primary">
           <span>{t("Advanced Settings")}</span>
           <IconChevron
             size={16}

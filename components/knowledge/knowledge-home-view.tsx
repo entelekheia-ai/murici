@@ -50,7 +50,7 @@ export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({ knowledge, chats
         {loading ? (
           <ScreenLoader />
         ) : knowledge.length === 0 ? (
-          <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2">
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
             <p className="text-lg font-medium">Nenhum artefato ainda</p>
             <p className="text-sm">
               Inicie uma conversa — blocos de código e documentos serão salvos aqui.

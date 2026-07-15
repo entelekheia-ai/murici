@@ -36,15 +36,15 @@ export const ButtonGhost: FC<ButtonGhostProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center justify-center gap-[8px] whitespace-nowrap rounded-md font-medium text-foreground-terciary transition-all hover:opacity-60 disabled:pointer-events-none disabled:opacity-50 select-none",
-        is16Px ? "text-[13px] h-8 px-2" : "text-[14px] h-9 px-3",
+        "inline-flex select-none items-center justify-center gap-[8px] whitespace-nowrap rounded-md font-medium text-foreground-terciary transition-all hover:opacity-60 disabled:pointer-events-none disabled:opacity-50",
+        is16Px ? "h-8 px-2 text-[13px]" : "h-9 px-3 text-[14px]",
         className
       )}
       type="button"
     >
       {showLeftIcon && leftIcon && (
         <span className={cn(
-          "flex items-center justify-center shrink-0",
+          "flex shrink-0 items-center justify-center",
           is16Px ? "size-[16px]" : "size-[18px]"
         )}>
           {leftIcon}
@@ -53,7 +53,7 @@ export const ButtonGhost: FC<ButtonGhostProps> = ({
       {text && <span>{text}</span>}
       {showRightIcon && rightIcon && (
         <span className={cn(
-          "flex items-center justify-center shrink-0",
+          "flex shrink-0 items-center justify-center",
           is16Px ? "size-[16px]" : "size-[18px]"
         )}>
           {rightIcon}

@@ -86,7 +86,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
     <div className="flex h-full flex-col overflow-hidden p-6">
       <div className="mb-4">
         <input
-          className="bg-muted w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2"
+          className="w-full rounded-lg border bg-muted px-3 py-2 text-sm outline-none focus:ring-2"
           placeholder="Buscar por título ou resumo…"
           value={query}
           onChange={e => setQuery(e.target.value)}
@@ -95,7 +95,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
 
       <div className="flex-1 overflow-auto rounded-lg border">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 sticky top-0">
+          <thead className="sticky top-0 bg-muted/50">
             <tr>
               {(
                 [
@@ -105,7 +105,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
               ).map(({ field, label }) => (
                 <th
                   key={field}
-                  className="hover:bg-muted cursor-pointer px-4 py-2 text-left font-medium transition-colors"
+                  className="cursor-pointer px-4 py-2 text-left font-medium transition-colors hover:bg-muted"
                   onClick={() => toggleSort(field)}
                 >
                   <span className="flex items-center gap-1">
@@ -116,7 +116,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
               ))}
               <th className="px-4 py-2 text-left font-medium">Conversa</th>
               <th
-                className="hover:bg-muted cursor-pointer px-4 py-2 text-left font-medium transition-colors"
+                className="cursor-pointer px-4 py-2 text-left font-medium transition-colors hover:bg-muted"
                 onClick={() => toggleSort("createdAt")}
               >
                 <span className="flex items-center gap-1">
@@ -132,19 +132,19 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
               return (
                 <tr
                   key={record.id}
-                  className="hover:bg-muted/50 cursor-pointer border-t transition-colors"
+                  className="cursor-pointer border-t transition-colors hover:bg-muted/50"
                   onClick={() => handleRowClick(record)}
                 >
                   <td className="px-4 py-2">{record.title}</td>
                   <td className="px-4 py-2">
-                    <span className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">
+                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
                       {record.payload.language || "text"}
                     </span>
                   </td>
                   <td className="max-w-[200px] px-4 py-2">
                     {chat ? (
                       <button
-                        className="text-foreground-primary block w-full truncate text-left hover:underline"
+                        className="block w-full truncate text-left text-foreground-primary hover:underline"
                         title={chat.name}
                         onClick={e => {
                           e.stopPropagation()
@@ -154,10 +154,10 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
                         {chat.name}
                       </button>
                     ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="text-muted-foreground whitespace-nowrap px-4 py-2 text-xs">
+                  <td className="whitespace-nowrap px-4 py-2 text-xs text-muted-foreground">
                     {formatDate(record.createdAt)}
                   </td>
                 </tr>
@@ -165,7 +165,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-muted-foreground py-8 text-center text-sm">
+                <td colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
                   Nenhum resultado para "{query}"
                 </td>
               </tr>

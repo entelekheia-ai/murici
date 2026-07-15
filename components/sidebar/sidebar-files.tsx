@@ -43,8 +43,8 @@ export const SidebarFilesContent: FC = () => {
       <div className="flex-1 overflow-auto p-2 pb-16">
         {sortedKnowledge.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center p-4 text-center">
-            <p className="text-muted-foreground text-sm font-medium">Nenhum artefato ainda</p>
-            <p className="text-muted-foreground mt-2 text-xs">
+            <p className="text-sm font-medium text-muted-foreground">Nenhum artefato ainda</p>
+            <p className="mt-2 text-xs text-muted-foreground">
               Inicie uma conversa para gerar arquivos e artefatos.
             </p>
           </div>
@@ -67,9 +67,9 @@ export const SidebarFilesContent: FC = () => {
       </div>
 
       {/* Floating Button */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[90%]">
+      <div className="absolute bottom-4 left-1/2 z-10 w-[90%] -translate-x-1/2">
         <Button
-          className="w-full bg-[#C05621] hover:bg-[#C05621]/90 text-white shadow-lg rounded-xl font-semibold text-sm"
+          className="w-full rounded-xl bg-[#C05621] text-sm font-semibold text-white shadow-lg hover:bg-[#C05621]/90"
           onClick={() => router.push(`/${locale}/${workspaceid}/graph`)}
         >
           Ver todos os arquivos

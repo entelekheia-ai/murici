@@ -16,6 +16,17 @@ import {
   injectBehaviorContextModelMessages
 } from "@/lib/runtime/dot-agent-injector"
 import { logger } from "@/lib/logger"
+import { serializeStreamError } from "@/lib/errors/api-error"
+
+// ai@7's default warning logger calls process.emitWarning() when it wants to
+// surface a deprecation/compat notice. All 9 chat routes run on the Edge
+// Runtime, where process.emitWarning exists as a stub that throws instead of
+// warning — turning a harmless notice into a full stream failure ("A Node.js
+// API is used (process.emitWarning) which is not supported in the Edge
+// Runtime"). This is the SDK's own documented escape hatch.
+if (typeof globalThis.AI_SDK_LOG_WARNINGS === "undefined") {
+  globalThis.AI_SDK_LOG_WARNINGS = false
+}
 
 interface StreamAgentArgs {
   provider: string
@@ -84,6 +95,23 @@ export async function streamAgentResponse({
     ...(streamOptions || {})
   })
 
+  // Single onError shared by both call sites below, so the client-visible text
+  // can't silently diverge between them. It matters which one actually fires:
+  // result.toUIMessageStream() called bare (as before) uses the AI SDK's own
+  // default onError ("An error occurred.", hardcoded to avoid leaking server
+  // error details by default) for a provider failure mid-generation (e.g. an
+  // Anthropic/OpenAI billing error) — that swallows the real message BEFORE it
+  // ever reaches the outer createUIMessageStream's onError, which only fires
+  // for something thrown inside this execute() body. See project/adr/0006.
+  const handleStreamError = (error: unknown): string => {
+    logger.error("chat stream failed", {
+      provider,
+      model: chatSettings?.model,
+      error: (error as any)?.message
+    })
+    return serializeStreamError(error)
+  }
+
   // Emit a transient `data-debug` part FIRST (the exact system + final model
   // messages this request sent, post-injection) so the client's onData mirrors
   // "what really went to the model" inline. onError turns a mid-stream failure
@@ -102,16 +130,9 @@ export async function streamAgentResponse({
           messages: messagesWithBehavior
         }
       } as any)
-      writer.merge(result.toUIMessageStream())
+      writer.merge(result.toUIMessageStream({ onError: handleStreamError }))
     },
-    onError: (error: any) => {
-      logger.error("chat stream failed", {
-        provider,
-        model: chatSettings?.model,
-        error: error?.message
-      })
-      return error?.message || "An error occurred while streaming the response."
-    }
+    onError: handleStreamError
   })
 
   return createUIMessageStreamResponse({ stream })

@@ -48,7 +48,11 @@ export async function POST(request: Request) {
 
     return await streamAgentResponse({
       provider: "perplexity",
-      model: custom(chatSettings.model),
+      // .chat() forces the /v1/chat/completions endpoint. @ai-sdk/openai's
+      // default custom(id) now targets the Responses API (/v1/responses),
+      // which Perplexity's OpenAI-compat endpoint doesn't implement — tool
+      // calls get rejected with "Invalid Responses API request".
+      model: custom.chat(chatSettings.model),
       chatSettings,
       agentPersona,
       behaviorState,

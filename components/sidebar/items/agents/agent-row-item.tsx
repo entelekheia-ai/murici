@@ -66,7 +66,7 @@ export const AgentRowItem: FC<AgentRowItemProps> = ({
           className="ml-2 flex shrink-0 opacity-0 group-hover:opacity-100"
         >
           <IconTrashFigma
-            className="hover:opacity-50 text-[#a3a3a3]"
+            className="text-[#a3a3a3] hover:opacity-50"
             size={14}
           />
         </div>

@@ -26,7 +26,7 @@ export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
   const { type, data } = event
 
   return (
-    <div className="border-border bg-muted/20 text-muted-foreground mx-4 my-1 rounded-lg border font-mono text-xs">
+    <div className="mx-4 my-1 rounded-lg border border-border bg-muted/20 font-mono text-xs text-muted-foreground">
       {type === "flow_context" && <FlowContextCard data={data} />}
       {type === "llm_request" && <LlmRequestCard data={data} />}
       {type === "tool_call" && <ToolCallCard data={data} />}
@@ -75,11 +75,13 @@ export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
         />
       )}
       {type === "error" && (
-        <div className="flex items-center gap-2 px-3 py-2">
-          <span>⛔</span>
-          <span className="font-semibold text-red-400">Erro</span>
-          <span className="text-muted-foreground/80">{data.message}</span>
-        </div>
+        <WireCard
+          icon="⛔"
+          label="Erro"
+          tint="text-red-400"
+          summary={data.message}
+          json={data}
+        />
       )}
     </div>
   )
@@ -94,14 +96,14 @@ const WireCard: FC<{
   json: unknown
 }> = ({ icon, label, tint, summary, json }) => (
   <details>
-    <summary className="hover:bg-muted/40 flex cursor-pointer select-none items-center gap-2 px-3 py-2">
+    <summary className="flex cursor-pointer select-none items-center gap-2 px-3 py-2 hover:bg-muted/40">
       <span>{icon}</span>
       <span className={`font-semibold ${tint}`}>{label}</span>
       {summary && (
-        <span className="text-muted-foreground/70 truncate">{summary}</span>
+        <span className="truncate text-muted-foreground/70">{summary}</span>
       )}
     </summary>
-    <pre className="bg-muted mx-3 mb-2 max-h-64 overflow-auto whitespace-pre-wrap rounded p-2 text-xs">
+    <pre className="mx-3 mb-2 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-xs">
       {typeof json === "string" ? json : JSON.stringify(json, null, 2)}
     </pre>
   </details>
@@ -110,7 +112,7 @@ const WireCard: FC<{
 /* ── flow_context ─────────────────────────────────────── */
 const FlowContextCard: FC<{ data: Record<string, any> }> = ({ data }) => (
   <div>
-    <div className="border-border flex items-center gap-2 border-b px-3 py-2">
+    <div className="flex items-center gap-2 border-b border-border px-3 py-2">
       <span>🔷</span>
       <span className="font-semibold text-violet-400">Flow</span>
       <span className="text-muted-foreground/70">
@@ -180,7 +182,7 @@ const ToolCallCard: FC<{ data: Record<string, any> }> = ({ data }) => (
 /* ── fsm_transition ───────────────────────────────────── */
 const FsmTransitionCard: FC<{ data: Record<string, any> }> = ({ data }) => (
   <div>
-    <div className="border-border flex items-center gap-2 border-b px-3 py-2">
+    <div className="flex items-center gap-2 border-b border-border px-3 py-2">
       <span>→</span>
       <span className="font-semibold text-green-400">Flow</span>
       <span className="text-muted-foreground/70">
@@ -207,7 +209,7 @@ const FsmTransitionCard: FC<{ data: Record<string, any> }> = ({ data }) => (
           <summary className="cursor-pointer select-none opacity-50 hover:opacity-70">
             {data.effects.length} efeito(s)
           </summary>
-          <pre className="bg-muted mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2">
+          <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2">
             {JSON.stringify(data.effects, null, 2)}
           </pre>
         </details>

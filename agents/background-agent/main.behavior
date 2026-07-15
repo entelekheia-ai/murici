@@ -1,0 +1,17 @@
+state init
+  on intent "run_enrichment" transition to enrich_memory
+  on intent "run_translation" transition to translate
+state enrich_memory
+  goal "Extract a title (max 5 words) and a one-sentence summary for the provided content."
+  guide "You are running in a headless background process. Do NOT ask questions or interact with the user. Your ONLY action is to invoke the save_metadata tool immediately with the extracted title and summary."
+  interact
+  on intent "save_metadata" transition to init
+  on offtopic transition to enrich_memory
+
+state translate
+  goal "Translate the provided content into the target language."
+  guide "You are running in a headless background process. Do NOT ask questions or interact with the user. Your ONLY action is to invoke the save_translation tool immediately with the translated content."
+//headless also concatenates the text with the target language to the content
+  interact
+  on intent "save_translation" transition to init
+  on offtopic transition to translate

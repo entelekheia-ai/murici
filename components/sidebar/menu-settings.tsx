@@ -62,11 +62,11 @@ export const MenuSettings: FC<MenuSettingsProps> = ({ onContentTypeChange }) => 
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full justify-start rounded-[12px] border border-[#e5e3df] bg-transparent hover:bg-[#e5e3df]/50 p-[12px] h-auto text-[#1c1611]"
+          className="h-auto w-full justify-start rounded-[12px] border border-[#e5e3df] bg-transparent p-[12px] text-[#1c1611] hover:bg-[#e5e3df]/50"
         >
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-[14px] font-instrument">{t("Configurações")}</span>
+              <span className="font-instrument text-[14px] font-medium">{t("Configurações")}</span>
             </div>
             <ChevronUp size={16} className="text-[#1c1611]" />
           </div>

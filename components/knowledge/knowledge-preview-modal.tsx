@@ -34,18 +34,18 @@ export const KnowledgePreviewModal: FC<KnowledgePreviewModalProps> = ({
   return (
     <div className={overlayClass} onClick={onClose}>
       <div
-        className="bg-background flex max-h-[80vh] w-[80vw] max-w-[1200px] flex-col overflow-hidden rounded-xl border shadow-xl"
+        className="flex max-h-[80vh] w-[80vw] max-w-[1200px] flex-col overflow-hidden rounded-xl border bg-background shadow-xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b px-6 py-4">
           <div>
             <h2 className="text-base font-semibold leading-snug">{record.title}</h2>
-            <p className="text-muted-foreground mt-0.5 text-xs">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {record.payload.language || "text"} · {chatName}
             </p>
           </div>
           <button
-            className="text-muted-foreground hover:text-foreground shrink-0 text-lg leading-none"
+            className="shrink-0 text-lg leading-none text-muted-foreground hover:text-foreground"
             onClick={onClose}
           >
             ✕
@@ -53,20 +53,20 @@ export const KnowledgePreviewModal: FC<KnowledgePreviewModalProps> = ({
         </div>
 
         {record.summary && (
-          <p className="text-muted-foreground shrink-0 border-b px-6 py-2 text-sm italic">
+          <p className="shrink-0 border-b px-6 py-2 text-sm italic text-muted-foreground">
             {record.summary}
           </p>
         )}
 
         <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
           {isMarkdown ? (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="prose prose-sm max-w-none dark:prose-invert">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {record.payload.content}
               </ReactMarkdown>
             </div>
           ) : (
-            <pre className="bg-muted overflow-auto rounded-lg p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap">
+            <pre className="overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed">
               {record.payload.content}
             </pre>
           )}

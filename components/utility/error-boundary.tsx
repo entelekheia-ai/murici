@@ -47,9 +47,9 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-8 text-center">
+        <div className="flex size-full flex-col items-center justify-center gap-2 p-8 text-center">
           <div className="text-lg font-semibold">Algo deu errado</div>
-          <div className="text-muted-foreground text-sm">
+          <div className="text-sm text-muted-foreground">
             O erro foi registrado. Recarregue a página para continuar.
           </div>
         </div>

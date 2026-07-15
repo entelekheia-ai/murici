@@ -55,7 +55,7 @@ export const QuickSettingOption: FC<QuickSettingOptionProps> = ({
           />
         ) : (
           <Bot
-            className="bg-primary text-foreground-secondary border-primary rounded border-DEFAULT p-1"
+            className="rounded border-DEFAULT border-primary bg-primary p-1 text-foreground-secondary"
             size={32}
           />
         )}

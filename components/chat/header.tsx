@@ -38,7 +38,7 @@ export const Header: FC<HeaderProps> = ({
       /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent))
 
   return (
-    <div className="drag-region flex w-full h-[40px] min-w-[400px] items-center px-6 py-3 bg-background-app shrink-0 select-none">
+    <div className="drag-region flex h-[40px] w-full min-w-[400px] shrink-0 select-none items-center bg-background-app px-6 py-3">
       {/* Spacer (only mac && chats.ishidden) */}
       {isMac && !showSidebar && <div className="w-[77px] shrink-0" />}
 
@@ -65,17 +65,17 @@ export const Header: FC<HeaderProps> = ({
       {/* Page title */}
       {title && (
         <div className="min-w-0 shrink px-2">
-          <h1 className="truncate text-sm font-semibold text-foreground-primary select-none">
+          <h1 className="select-none truncate text-sm font-semibold text-foreground-primary">
             {title}
           </h1>
         </div>
       )}
 
       {/* Right container Frame: layoutGrow: 1, justify-end */}
-      <div className="flex-1 flex items-center justify-end gap-4">
+      <div className="flex flex-1 items-center justify-end gap-4">
         {/* Debug Toggle Switch */}
-        <div className="flex items-center gap-2 no-drag">
-          <span className="text-foreground-secondary font-sans text-xs whitespace-nowrap select-none">
+        <div className="no-drag flex items-center gap-2">
+          <span className="select-none whitespace-nowrap font-sans text-xs text-foreground-secondary">
             {t("Show debug")}
           </span>
           <Switch

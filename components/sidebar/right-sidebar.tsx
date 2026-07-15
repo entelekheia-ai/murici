@@ -32,12 +32,19 @@ import { KnowledgeRecord } from "@/types/knowledge"
 import { StateGraph, parseScxml } from "../agents/state-graph"
 import { cn } from "@/lib/utils"
 import { useRouter, useParams } from "next/navigation"
-import { getMcpAndBuiltInTools, handleCreateChat } from "../chat/chat-helpers"
+import { getMcpAndBuiltInTools } from "@/lib/tools/list-available-tools"
+import {
+  createChatRowOnce,
+  prependChatOnce
+} from "@/lib/channels/chat-rows"
+import { useChannelStore } from "@/lib/store/channel-store"
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { useAgentSession } from "@/lib/hooks/use-agent-session"
 import { getSetting, setSetting } from "@/lib/local-db/settings"
 import { upsertRecentAgent } from "@/lib/local-db/recent-agents"
 import { getOnboardingAgentPayload } from "@/lib/agents/system-agents"
+import { unpackAgentFileFromPath } from "@/lib/agents/unpack-agent-file"
+import { toast } from "sonner"
 
 const APP_VERSION = "0.0.5"
 
@@ -64,11 +71,14 @@ export const RightSidebar: FC = () => {
   const {
     flowState,
     knowledge, setKnowledge, chatSettings, availableLocalModels, backgroundModel, selectedChat,
-    setShowRightSidebar, chatAgentSessionsRef, activeChatKeyRef, migrateChatAgentSession,
+    setShowRightSidebar, chatAgentSessionsRef, activeChatKeyRef,
     profile, selectedWorkspace, selectedAssistant, setSelectedChat, setChats, setChatFiles,
     osPendingAgentPayload, setOsPendingAgentPayload,
     pendingNewAgentPayload, setPendingNewAgentPayload
   } = useContext(ChatbotUIContext)
+  // The thread on screen (ADR-0007). A brand-new, unsent chat is a thread with a
+  // real id like any other — there is no "__new__" bucket any more.
+  const viewedThreadId = useChannelStore(s => s.viewedThreadId)
   const { handleNewChat } = useChatHandler()
   const agentSession = useAgentSession()
   const {
@@ -123,15 +133,14 @@ export const RightSidebar: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingAgentPayload, setPendingAgentPayload] = useState<UnpackPayload | null>(null)
 
-  // "Novo chat" always needs a chat with no agent to land the payload on.
-  // If we're already sitting on the "__new__" (unsaved) bucket, calling
-  // handleNewChat() is a no-op for selectedChat, so there's nothing to
-  // navigate to - reset that bucket in place instead of leaving the
-  // payload stuck in the queue.
+  // "Novo chat" always needs a chat with no agent to land the payload on. If we're
+  // already sitting on an unsent thread, handleNewChat() would be a no-op for
+  // selectedChat and there'd be nothing to navigate to — so swap the agent into
+  // that thread in place instead of leaving the payload stuck in the queue.
   const goToNewChatWithPayload = (payload: UnpackPayload) => {
-    if (activeChatKeyRef.current === "__new__") {
-      resetSession("__new__")
-      loadAgentBundle(payload, "__new__")
+    if (!selectedChat && viewedThreadId) {
+      resetSession(viewedThreadId)
+      loadAgentBundle(payload, viewedThreadId)
     } else {
       queueNewChatPayload(payload)
       handleNewChat()
@@ -141,20 +150,34 @@ export const RightSidebar: FC = () => {
   // Opening a .agent from the OS ("abrir com") is ambiguous about which
   // chat it targets. Enforce one-agent-per-chat: if the active chat
   // already has an agent, route straight to a new chat; otherwise ask.
+  //
+  // Main sends only the PATH — unpacking happens here, through the same route as every
+  // other way of opening an agent, so this can't drift from them.
   useEffect(() => {
-    if (osPendingAgentPayload) {
-      const { payload, filePath } = osPendingAgentPayload
-      upsertRecentAgent({
-        filePath: filePath ?? null,
-        aboutme: payload.aboutme
-      }).catch(err => console.error("[recent-agents] upsert failed", err))
-      if (hasActiveAgent(activeChatKeyRef.current)) {
-        goToNewChatWithPayload(payload)
-      } else {
-        setPendingAgentPayload(payload)
-      }
-      setOsPendingAgentPayload(null)
-    }
+    if (!osPendingAgentPayload) return
+    const { filePath } = osPendingAgentPayload
+    setOsPendingAgentPayload(null)
+
+    unpackAgentFileFromPath(filePath)
+      .then(payload => {
+        upsertRecentAgent({ filePath, aboutme: payload.aboutme }).catch(err =>
+          console.error("[recent-agents] upsert failed", err)
+        )
+        if (hasActiveAgent(activeChatKeyRef.current)) {
+          goToNewChatWithPayload(payload)
+        } else {
+          setPendingAgentPayload(payload)
+        }
+      })
+      .catch(err => {
+        // This toast used to be fired from the Electron main process (an
+        // "open-agent-file-error" IPC event), because that is where the unpack ran.
+        // The unpack lives here now, so the failure surfaces here too.
+        console.error("[agent] failed to open .agent from the OS", err)
+        toast.error(
+          `Falha ao abrir arquivo .agent: ${err?.message ?? String(err)}`
+        )
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [osPendingAgentPayload, setOsPendingAgentPayload])
 
@@ -169,17 +192,22 @@ export const RightSidebar: FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingNewAgentPayload, setPendingNewAgentPayload])
 
-  // First-run auto-load: inject the onboarding-agent into a fresh, persisted
-  // chat once per app version (settings.onboarding_seen_version), regardless
-  // of how far the user gets through the tour. Builds the session under the
-  // "__new__" bucket first, then creates the real chat and migrates the
-  // session onto it — same idiom used elsewhere for "chat didn't exist yet
-  // when we started building agent state" (see migrateChatAgentSession).
+  // First-run auto-load: inject the onboarding agent into a fresh, persisted chat
+  // once per app version (settings.onboarding_seen_version), regardless of how far
+  // the user gets through the tour.
+  //
+  // The agent is loaded into the thread that is ALREADY on screen (the unsent one),
+  // and then that thread's chat row is created UNDER THE SAME ID. No migration step:
+  // a thread is born with its final id (ADR-0007), which is what retired the old
+  // "build under __new__, then move it onto the real chat" dance — the very step
+  // that used to leak an agent into the next chat (ADR-0002).
   const onboardingCheckRef = useRef(false)
   useEffect(() => {
     if (onboardingCheckRef.current) return
-    if (!profile || !selectedWorkspace || !chatSettings) return
+    if (!profile || !selectedWorkspace || !chatSettings || !viewedThreadId) return
     onboardingCheckRef.current = true
+
+    const threadId = viewedThreadId
 
     ;(async () => {
       const seenVersion = await getSetting("onboarding_seen_version")
@@ -190,34 +218,36 @@ export const RightSidebar: FC = () => {
 
         const payload = await getOnboardingAgentPayload()
 
-        await loadAgentBundle(payload, "__new__", [
+        await loadAgentBundle(payload, threadId, [
           { domain: "context", key: "onboarding", value: "true" }
         ])
         setShowRightSidebar(true)
 
-        const setSelectedChatAndMigrateSession: typeof setSelectedChat = value => {
-          const nextChat =
-            typeof value === "function" ? (value as any)(selectedChat) : value
-          if (nextChat) migrateChatAgentSession("__new__", nextChat.id)
-          setSelectedChat(value)
-        }
-
-        await handleCreateChat(
-          chatSettings,
-          profile,
-          selectedWorkspace,
-          "Bem-vindo ao Murici",
-          selectedAssistant!,
-          [],
-          setSelectedChatAndMigrateSession,
-          setChats,
-          setChatFiles
-        )
+        // Shared with ChannelController.send(): both want a row for THIS thread, and a
+        // user who types before the .agent above finishes loading gets there first.
+        // createChatRowOnce makes whoever is second reuse the first one's row instead
+        // of creating a duplicate under the same id.
+        const createdChat = await createChatRowOnce(threadId, () => ({
+          user_id: profile.user_id,
+          workspace_id: selectedWorkspace.id,
+          assistant_id: selectedAssistant?.id || null,
+          context_length: chatSettings.contextLength,
+          include_profile_context: chatSettings.includeProfileContext,
+          include_workspace_instructions: chatSettings.includeWorkspaceInstructions,
+          model: chatSettings.model,
+          name: "Bem-vindo ao Murici",
+          prompt: chatSettings.prompt,
+          temperature: chatSettings.temperature,
+          embeddings_provider: chatSettings.embeddingsProvider
+        }))
+        setSelectedChat(createdChat)
+        setChats(chats => prependChatOnce(chats, createdChat))
       } catch (err) {
         console.error("[onboarding] auto-load failed", err)
       }
     })()
-  }, [profile, selectedWorkspace, chatSettings])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, selectedWorkspace, chatSettings, viewedThreadId])
 
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -294,11 +324,11 @@ export const RightSidebar: FC = () => {
         className="bg-inspector-bg flex h-full w-[320px] flex-col border-l border-stroke"
         onDragOver={e => e.preventDefault()}
       >
-        <div className="drag-region flex items-center justify-between border-b p-4 border-stroke/50 shrink-0">
+        <div className="drag-region flex shrink-0 items-center justify-between border-b border-stroke/50 p-4">
           <h2 className="select-none text-[15px] font-semibold text-foreground-primary">
             Detalhes
           </h2>
-          <Button size="icon" variant="ghost" className="no-drag h-6 w-6 text-foreground-primary hover:text-foreground-primary" onClick={() => setShowRightSidebar(false)}>
+          <Button size="icon" variant="ghost" className="no-drag size-6 text-foreground-primary hover:text-foreground-primary" onClick={() => setShowRightSidebar(false)}>
             <X size={16} strokeWidth={2} />
           </Button>
         </div>
@@ -307,16 +337,16 @@ export const RightSidebar: FC = () => {
           <div className="flex flex-col space-y-6">
             <Accordion type="single" collapsible defaultValue="arquivos" className="w-full border-none">
               <AccordionItem value="arquivos" className="border-none">
-                <AccordionTrigger className="text-xs uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
+                <AccordionTrigger className="py-2 text-xs font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
                   Arquivos do Chat
                 </AccordionTrigger>
                 <AccordionContent>
                   {sortedKnowledge.length === 0 ? (
-                    <p className="text-muted-foreground text-xs mt-2">
+                    <p className="mt-2 text-xs text-muted-foreground">
                       Nenhum artefato ainda nesta conversa.
                     </p>
                   ) : (
-                    <div className="flex flex-col gap-3 mt-2">
+                    <div className="mt-2 flex flex-col gap-3">
                       {sortedKnowledge.map(record => (
                         <KnowledgeChip
                           key={record.id}
@@ -326,10 +356,10 @@ export const RightSidebar: FC = () => {
                           onUpdate={handleUpdate}
                         />
                       ))}
-                      <div className="flex justify-end w-full">
+                      <div className="flex w-full justify-end">
                         <Button
                           variant="ghost"
-                          className="text-[13px] font-medium text-[#C05621] hover:text-[#C05621]/80 hover:bg-transparent h-auto p-0 justify-end"
+                          className="h-auto justify-end p-0 text-[13px] font-medium text-murici-orange hover:bg-transparent hover:text-[#C05621]/80"
                           onClick={() => {
                             setShowRightSidebar(false)
                             router.push(`/${locale}/${workspaceid}/graph`)
@@ -344,10 +374,10 @@ export const RightSidebar: FC = () => {
               </AccordionItem>
             </Accordion>
 
-            <div className="h-px w-full bg-sidebar-border" />
+            <div className="bg-sidebar-border h-px w-full" />
 
             {!agentMeta && !flowState?.currentState ? (
-              <div className="flex flex-col items-center justify-center p-6 gap-4 bg-[#F7E7D4]">
+              <div className="flex flex-col items-center justify-center gap-4 bg-[#F7E7D4] p-6">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -361,11 +391,11 @@ export const RightSidebar: FC = () => {
                   width={48}
                   height={48}
                 />
-                <h2 className="text-[20px] font-bold font-instrument-sans text-foreground-primary text-center leading-tight">
+                <h2 className="font-instrument-sans text-center text-[20px] font-bold leading-tight text-foreground-primary">
                   Inicie um .agent
                 </h2>
                 <Button
-                  className="bg-murici-orange hover:bg-murici-orange/90 text-white rounded-[12px] h-11 px-4 font-instrument-sans font-bold text-[13px] gap-2.5 flex items-center shadow-none border-none mt-1"
+                  className="font-instrument-sans mt-1 flex h-11 items-center gap-2.5 rounded-[12px] border-none bg-murici-orange px-4 text-[13px] font-bold text-white shadow-none hover:bg-murici-orange/90"
                   onClick={handleLoadAgentClick}
                   disabled={agentLoading}
                 >
@@ -376,11 +406,11 @@ export const RightSidebar: FC = () => {
             ) : (
               <div className="flex flex-col space-y-6">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-foreground-primary text-[15px]">{agentMeta?.name || "Agente"}</h3>
+                  <h3 className="text-[15px] font-semibold text-foreground-primary">{agentMeta?.name || "Agente"}</h3>
                   {agentMeta?.description && (
                     <div className="space-y-2">
-                      <h3 className="font-semibold uppercase text-[10px] text-foreground-secondary tracking-wider">Descrição do Agente</h3>
-                      <p className="text-[13px] text-foreground-primary whitespace-pre-wrap leading-relaxed">
+                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-foreground-secondary">Descrição do Agente</h3>
+                      <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground-primary">
                         {agentMeta.description}
                       </p>
                     </div>
@@ -388,9 +418,9 @@ export const RightSidebar: FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="font-semibold uppercase text-[10px] text-foreground-secondary tracking-wider">Histórico de Estados</h3>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-foreground-secondary">Histórico de Estados</h3>
                   {historyRows.length === 0 ? (
-                    <p className="text-muted-foreground text-xs">Aguardando início do fluxo...</p>
+                    <p className="text-xs text-muted-foreground">Aguardando início do fluxo...</p>
                   ) : (
                     <div>
                       {historyRows.map((row, i) => {
@@ -398,7 +428,7 @@ export const RightSidebar: FC = () => {
                         return (
                           <div key={`${row.status}-${row.state}`} className="relative flex gap-3 pb-4 last:pb-0">
                             {!isLast && (
-                              <div className="absolute left-[8px] top-5 bottom-0 w-px bg-sidebar-border" />
+                              <div className="bg-sidebar-border absolute bottom-0 left-[8px] top-5 w-px" />
                             )}
                             <div className="relative z-10 mt-0.5 shrink-0">
                               {row.status === "done" && (
@@ -416,7 +446,7 @@ export const RightSidebar: FC = () => {
                             <div className="min-w-0 flex-1">
                               <p
                                 className={cn(
-                                  "font-instrument truncate text-[13px]",
+                                  "truncate font-instrument text-[13px]",
                                   row.status === "current"
                                     ? "font-semibold text-foreground-primary"
                                     : "text-foreground-secondary"
@@ -448,14 +478,14 @@ export const RightSidebar: FC = () => {
                   <div className="space-y-3">
                     <Accordion type="single" collapsible className="w-full border-none">
                       <AccordionItem value="debug" className="border-none">
-                        <AccordionTrigger className="text-[15px] font-semibold text-foreground-primary py-2 hover:no-underline">
+                        <AccordionTrigger className="py-2 text-[15px] font-semibold text-foreground-primary hover:no-underline">
                           DEBUG
                         </AccordionTrigger>
                         <AccordionContent>
                           <Accordion type="multiple" className="w-full border-none">
                             {descriptionText && (
                               <AccordionItem value="debug-description" className="border-none">
-                                <AccordionTrigger className="text-[12px] uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
+                                <AccordionTrigger className="py-2 text-[12px] font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
                                   {`${agentMeta?.name || "Agente"}.DESCRIPTION`}
                                 </AccordionTrigger>
                                 <AccordionContent>
@@ -468,7 +498,7 @@ export const RightSidebar: FC = () => {
 
                             {behaviorText && (
                               <AccordionItem value="debug-behavior-main" className="border-none">
-                                <AccordionTrigger className="text-[12px] uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
+                                <AccordionTrigger className="py-2 text-[12px] font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
                                   {`${agentMeta?.name || "Agente"}.BEHAVIOR`}
                                 </AccordionTrigger>
                                 <AccordionContent>
@@ -481,7 +511,7 @@ export const RightSidebar: FC = () => {
 
                             {behaviors.map((b, i) => (
                               <AccordionItem key={b.path || i} value={`debug-behavior-${i}`} className="border-none">
-                                <AccordionTrigger className="text-[12px] uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
+                                <AccordionTrigger className="py-2 text-[12px] font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
                                   {`${agentMeta?.name || "Agente"}.BEHAVIOR (${b.path || `#${i + 1}`})`}
                                 </AccordionTrigger>
                                 <AccordionContent>
@@ -502,11 +532,11 @@ export const RightSidebar: FC = () => {
                   <div className="space-y-3">
                     <Accordion type="single" collapsible className="w-full border-none">
                       <AccordionItem value="graph" className="border-none">
-                        <AccordionTrigger className="text-[10px] uppercase font-semibold text-foreground-secondary py-2 hover:no-underline tracking-wider">
+                        <AccordionTrigger className="py-2 text-[10px] font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
                           Grafo de Execução
                         </AccordionTrigger>
                         <AccordionContent>
-                          <div className="bg-transparent overflow-auto rounded-lg border border-stroke p-2 min-h-[200px]">
+                          <div className="min-h-[200px] overflow-auto rounded-lg border border-stroke bg-transparent p-2">
                             <StateGraph
                               scxml={graphData}
                               visitedStates={new Set(visitedOrder)}
@@ -521,24 +551,24 @@ export const RightSidebar: FC = () => {
               </div>
             )}
 
-            <div className="h-px w-full bg-sidebar-border" />
+            <div className="bg-sidebar-border h-px w-full" />
 
             <div className="space-y-4">
-              <h3 className="font-semibold uppercase text-xs text-foreground-secondary tracking-wider">Ferramentas</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">Ferramentas</h3>
               {toolsLoading ? (
-                <p className="text-muted-foreground text-xs">Carregando...</p>
+                <p className="text-xs text-muted-foreground">Carregando...</p>
               ) : (
                 <div className="space-y-1">
                   <Accordion type="multiple" className="w-full border-none">
                     {Object.entries(groupedTools).map(([namespace, tools]) => (
                       <AccordionItem key={namespace} value={namespace} className="border-none">
-                        <AccordionTrigger className="text-[13px] font-semibold text-foreground-primary py-2 hover:no-underline tracking-wider">
+                        <AccordionTrigger className="py-2 text-[13px] font-semibold tracking-wider text-foreground-primary hover:no-underline">
                           {namespace}
                         </AccordionTrigger>
                         <AccordionContent>
-                          <div className="flex flex-col gap-3 ml-2">
+                          <div className="ml-2 flex flex-col gap-3">
                             {tools.map((t: any) => (
-                              <div key={t.name} className="text-[13px] text-foreground-secondary leading-snug">
+                              <div key={t.name} className="text-[13px] leading-snug text-foreground-secondary">
                                 <span className="font-semibold text-foreground-primary">{t.name}</span>
                                 {t.description ? `: ${t.description}` : ""}
                               </div>
@@ -553,7 +583,7 @@ export const RightSidebar: FC = () => {
             </div>
 
             {parseError && (
-              <div className="rounded border border-red-500 bg-red-500/10 p-3 text-sm text-red-500 mt-4">
+              <div className="mt-4 rounded border border-red-500 bg-red-500/10 p-3 text-sm text-red-500">
                 <div className="mb-1 font-bold">Erro de Parse</div>
                 <pre className="whitespace-pre-wrap font-mono text-xs">
                   {parseError}

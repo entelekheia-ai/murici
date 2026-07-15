@@ -14,22 +14,15 @@
  * limitations under the License.
  */
 
-import { contextBridge, ipcRenderer } from "electron"
-import type { OsPendingAgentFile, UnpackPayload } from "../types/electron"
+import { contextBridge, ipcRenderer, webUtils } from "electron"
+import type { OsPendingAgentFile } from "../types/electron"
 
 let openAgentFileCallback: ((data: OsPendingAgentFile) => void) | null = null
-let openAgentFileErrorCallback: ((errorMsg: string) => void) | null = null
 let menuActionCallback: ((data: { action: string }) => void) | null = null
 
 ipcRenderer.on("open-agent-file", (_event, data) => {
   if (openAgentFileCallback) {
     openAgentFileCallback(data)
-  }
-})
-
-ipcRenderer.on("open-agent-file-error", (_event, errorMsg) => {
-  if (openAgentFileErrorCallback) {
-    openAgentFileErrorCallback(errorMsg)
   }
 })
 
@@ -49,14 +42,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onOpenAgentFile: (cb: (data: OsPendingAgentFile) => void) => {
     openAgentFileCallback = cb
   },
-  onOpenAgentFileError: (cb: (errorMsg: string) => void) => {
-    openAgentFileErrorCallback = cb
-  },
   appReadyForFiles: () => {
     ipcRenderer.send("app-ready-for-files")
   },
-  resolveAgentFile: (filePath: string): Promise<UnpackPayload> =>
-    ipcRenderer.invoke("resolve-agent-file", filePath),
+  // The renderer cannot read an arbitrary filesystem path, so main hands over the
+  // bytes and the renderer unpacks them through /api/agent/unpack — the app's single
+  // unpack. Main deliberately does NOT return a parsed payload: a second unpack in a
+  // second process is exactly what drifted and silently dropped `knowledge`.
+  readAgentFile: async (filePath: string): Promise<Uint8Array> =>
+    new Uint8Array(await ipcRenderer.invoke("read-agent-file", filePath)),
+  // File.path was removed from renderer File objects in Electron 32+; this is
+  // the replacement (see agent-session-provider.tsx handleAgentFile).
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
   onMenuAction: (cb: (data: { action: string }) => void) => {
     menuActionCallback = cb
   },

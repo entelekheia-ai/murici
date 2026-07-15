@@ -20,7 +20,6 @@ import * as fs from "fs"
 import { startNextServer, stopNextServer } from "./next-server"
 import { setupAutoUpdater } from "./updater"
 import { readFile } from "fs/promises"
-import type { UnpackPayload } from "../types/electron"
 import { buildAppMenu, MenuAction } from "./menu"
 
 const isDev =
@@ -77,34 +76,18 @@ let mainWindow: BrowserWindow | null = null
 let serverPort = 3000
 let fileToOpen: string | null = null
 
-// SDK is ESM-only; use new Function to force a real ESM import() at runtime,
-// bypassing TypeScript's compilation of dynamic import() to require() in CJS output.
-let sdk: typeof import("@dot-agent/sdk") | null = null
-async function getSDK() {
-  if (!sdk) sdk = await (new Function("s", "return import(s)") as (s: string) => Promise<typeof import("@dot-agent/sdk")>)("@dot-agent/sdk")
-  return sdk
-}
-
-async function resolveAgentFile(filePath: string): Promise<UnpackPayload> {
-  const { loadAgent } = await getSDK()
-  const bytes = await readFile(filePath)
-  const bundle = await loadAgent(bytes)
-  const am = bundle.aboutme
-  const files = bundle.files
-  return {
-    aboutme: {
-      id: am.id,
-      name: am.name,
-      version: am.version,
-      domain: am.domain,
-      description: am.description,
-      persona: files.persona,
-      license: am.license
-    },
-    behaviorText: files.behavior,
-    descriptionText: files.description,
-    behaviors: files.behaviors ?? []
-  }
+// Main's whole job with a .agent is to hand over its BYTES. It deliberately does NOT
+// unpack: the renderer POSTs them to /api/agent/unpack, which is the app's single
+// unpack (lib/agents/unpack-agent-file.ts).
+//
+// Main used to run its own loadAgent() and build the UnpackPayload by hand — a second
+// copy of a mapping that already existed on the web side, and it had silently gone
+// stale: it dropped `knowledge` and `guides`, so every agent opened through Electron
+// lost its knowledge files. Reading a filesystem path is the only part the renderer
+// genuinely can't do; everything else belongs on one side of the wire, not two.
+async function readAgentFile(filePath: string): Promise<Buffer> {
+  if (!filePath.endsWith(".agent")) throw new Error("File must have .agent extension")
+  return readFile(filePath)
 }
 
 let menuLocale = "en"
@@ -131,14 +114,9 @@ async function handleLoadAgent(): Promise<void> {
   })
   if (result.canceled || result.filePaths.length === 0) return
 
-  const filePath = result.filePaths[0]
-  try {
-    const payload = await resolveAgentFile(filePath)
-    mainWindow.webContents.send("open-agent-file", { payload, filePath })
-  } catch (err: any) {
-    console.error("Failed to resolve agent file:", err)
-    mainWindow.webContents.send("open-agent-file-error", err.message || err.toString())
-  }
+  // Just the path: the renderer reads the bytes back through read-agent-file and
+  // unpacks them itself.
+  mainWindow.webContents.send("open-agent-file", { filePath: result.filePaths[0] })
 }
 
 ipcMain.on("murici:debug-mode-changed", (_event, value: boolean) => {
@@ -166,12 +144,7 @@ app.on("open-file", (event, filePath) => {
   if (filePath.endsWith(".agent")) {
     fileToOpen = filePath
     if (mainWindow) {
-      resolveAgentFile(filePath)
-        .then(payload => { mainWindow!.webContents.send("open-agent-file", { payload, filePath }) })
-        .catch(err => {
-          console.error("Failed to resolve agent file:", err)
-          mainWindow!.webContents.send("open-agent-file-error", err.message || err.toString())
-        })
+      mainWindow.webContents.send("open-agent-file", { filePath })
       fileToOpen = null
     } else if (app.isReady()) {
       createWindow()
@@ -185,27 +158,15 @@ if (process.argv.length >= 2) {
   if (filePath.endsWith(".agent")) fileToOpen = filePath
 }
 
-ipcMain.on("app-ready-for-files", (event) => {
+ipcMain.on("app-ready-for-files", () => {
   if (fileToOpen) {
-    // Capture before resolveAgentFile's promise settles: fileToOpen is nulled
-    // synchronously right after this call kicks off, well before the async
-    // readFile/loadAgent work finishes, so the .then() below can't read the
-    // module-level variable directly without racing that reset.
-    const resolvedPath = fileToOpen
-    resolveAgentFile(resolvedPath)
-      .then(payload => {
-        mainWindow?.webContents.send("open-agent-file", { payload, filePath: resolvedPath })
-      })
-      .catch(err => {
-        console.error("Failed to resolve agent file:", err)
-        mainWindow?.webContents.send("open-agent-file-error", err.message || err.toString())
-      })
+    mainWindow?.webContents.send("open-agent-file", { filePath: fileToOpen })
     fileToOpen = null
   }
 })
 
-ipcMain.handle("resolve-agent-file", (_event, filePath: string) =>
-  resolveAgentFile(filePath)
+ipcMain.handle("read-agent-file", (_event, filePath: string) =>
+  readAgentFile(filePath)
 )
 
 async function createWindow() {
@@ -232,6 +193,16 @@ async function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow!.show()
+  })
+
+  // Main-process console.* only covers startup/IPC — the app's actual
+  // activity happens in the renderer (Next.js/React UI). Bridge it into
+  // the same log file so main.log reflects real usage, not just launches.
+  mainWindow.webContents.on("console-message", details => {
+    const line = `[renderer] ${details.message} (${details.sourceId}:${details.lineNumber})`
+    if (details.level === "error") logger.error(line)
+    else if (details.level === "warning") logger.warn(line)
+    else logger.info(line)
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

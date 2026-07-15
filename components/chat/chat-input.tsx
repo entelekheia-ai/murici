@@ -173,7 +173,7 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
         <ChatFilesDisplay />
 
         {selectedAssistant && (
-          <div className="border-primary mx-auto flex w-fit items-center space-x-2 rounded-lg border p-1.5">
+          <div className="mx-auto flex w-fit items-center space-x-2 rounded-lg border border-primary p-1.5">
             {selectedAssistant.image_path && (
               <Image
                 className="rounded"
@@ -195,14 +195,14 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
         )}
       </div>
 
-      <div className="relative mt-3 flex w-full flex-col gap-5 rounded-[16px] border border-stroke bg-background-primary p-[16px] min-h-[100px]">
+      <div className="relative mt-3 flex min-h-[100px] w-full flex-col gap-5 rounded-[16px] border border-stroke bg-background-primary p-[16px]">
         <div className="absolute bottom-full left-0 max-h-[300px] w-full overflow-auto rounded-xl pb-2 dark:border-none">
           <ChatCommandInput />
         </div>
 
         <TextareaAutosize
           textareaRef={chatInputRef}
-          className="text-md flex w-full resize-none rounded-md border-none bg-transparent p-0 placeholder:text-foreground-secondary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 text-foreground-primary"
+          className="text-md flex w-full resize-none rounded-md border-none bg-transparent p-0 text-foreground-primary placeholder:text-foreground-secondary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={t("Como posso ajudar hoje?")}
           onValueChange={handleInputChange}
           value={userInput}
