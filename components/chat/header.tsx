@@ -38,7 +38,7 @@ export const Header: FC<HeaderProps> = ({
       /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent))
 
   return (
-    <div className="drag-region flex h-[40px] w-full min-w-[400px] shrink-0 select-none items-center bg-background-app px-6 py-3">
+    <div className="drag-region flex h-[40px] w-full min-w-[400px] shrink-0 select-none items-center px-6 py-3">
       {/* Spacer (only mac && chats.ishidden) */}
       {isMac && !showSidebar && <div className="w-[77px] shrink-0" />}
 
@@ -88,20 +88,22 @@ export const Header: FC<HeaderProps> = ({
         <ToggleTheme className="no-drag" />
 
         {/* Details Toggle Button */}
-        <ButtonGhost
-          size="16px"
-          className="no-drag font-instrument text-foreground-secondary hover:text-foreground-primary"
-          text={t("Detalhes")}
-          showLeftIcon={false}
-          rightIcon={
-            <IconSidebarToggle
-              side="right"
-              type={showRightSidebar ? "hide" : "open"}
-              size={16}
-            />
-          }
-          onClick={onToggleRightSidebar}
-        />
+        {!showRightSidebar && (
+          <ButtonGhost
+            size="16px"
+            className="no-drag font-instrument text-foreground-secondary hover:text-foreground-primary"
+            text={t("Detalhes")}
+            showLeftIcon={false}
+            rightIcon={
+              <IconSidebarToggle
+                side="right"
+                type={showRightSidebar ? "hide" : "open"}
+                size={16}
+              />
+            }
+            onClick={onToggleRightSidebar}
+          />
+        )}
       </div>
     </div>
   )

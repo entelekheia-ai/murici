@@ -86,7 +86,7 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
       <PopoverTrigger asChild>
         <PillButton
           ref={buttonRef}
-          data-dot-id="model-selector"
+          data-dot-agent-ui="model-selector"
           label={fullModel?.modelName || chatSettings.model}
           showIcon={true}
           icon={

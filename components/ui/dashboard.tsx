@@ -304,8 +304,9 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
       <CommandK />
 
       <div
+      data-dot-agent-ui="chat-list"
         className={cn(
-          "relative bg-background-primary",
+          "relative",
           !isResizing && "duration-200",
           showSidebar ? "border-r border-stroke" : ""
         )}
@@ -345,14 +346,14 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
       <div
         // sm:min-w-[320px] mirrors CENTER_MIN_WIDTH above — keep both in sync.
-        className="relative flex flex-1 flex-col overflow-hidden bg-muted/50 sm:min-w-[320px]"
+        className="relative flex flex-1 flex-col overflow-hidden sm:min-w-[320px]"
         onDrop={onFileDrop}
         onDragOver={onDragOver}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
       >
         {isDragging ? (
-          <div className="flex h-full items-center justify-center bg-black/50 text-2xl text-white">
+          <div className="flex h-full items-center justify-center text-2xl text-white">
             drop file here
           </div>
         ) : (

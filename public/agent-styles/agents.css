@@ -11,10 +11,31 @@
   transition: all 0.3s ease;
 }
 
-[data-dot-id="agent-panel"] div.flex.flex-col.space-y-6>div.flex.flex-col.space-y-6 {
+[data-dot-agent-ui="agent-panel"] 
+[data-dot-agent-ui="agent-detail"]{
   border: 2px solid #AA4C1D;
-  background: #F8F0E6;
+  background-color: #FFE4C3 !important;
   padding: 16px;
   border-radius: 12px;
   border-width: 1px 3px 3px 1px;
+  margin: 0px -4px;
+  box-shadow: 0 0 0 2px rgba(192, 86, 33, 0.6);
+  animation: dot-highlight-pulse 2.2s ease-in-out infinite;
+}
+
+div[data-dot-agent-ui="agent-panel"]{
+  background: transparent !important;
+}
+
+
+@keyframes dot-highlight-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(192, 86, 33, 0.6);
+  }
+
+  50% {
+    box-shadow: 0 0 10px 10px rgba(192, 86, 33, 0.35);
+  }
 }

@@ -84,7 +84,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${inter.variable} ${instrumentSans.variable} ${ysabeauSc.variable} ${signika.variable}`}>
+      <body className={`${inter.className} ${inter.variable} ${instrumentSans.variable} ${ysabeauSc.variable} ${signika.variable} bg-background-app`}>
         <Providers attribute="class" defaultTheme="light" enableSystem>
           <TranslationsProvider
             namespaces={i18nNamespaces}
@@ -93,7 +93,7 @@ export default async function RootLayout({
           >
             <Toaster richColors position="top-center" duration={3000} />
             <GlobalErrorReporter />
-            <div className="flex h-dvh flex-col items-center overflow-x-auto bg-background text-foreground">
+            <div className="flex h-dvh flex-col items-center overflow-x-auto text-foreground">
               <ErrorBoundary>
                 <GlobalState>
                   <ChatHandlerProvider>

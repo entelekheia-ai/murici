@@ -1,13 +1,57 @@
 /* agent-styles/theme-system.css */
 
 /* Body-wide warm accent theme, active for the duration of the guided onboarding tour */
+
 body {
-  background-color: rgb(250, 244, 237) !important;
   transition: background-color 0.4s ease;
 }
 
-body [data-sidebar],
-body .border-sidebar-border {
-  border-color: rgba(192, 86, 33, 0.25) !important;
-  transition: border-color 0.4s ease;
+html.light {
+
+  div.bg-background-primary {
+    background-color: rgba(252, 228, 200, 1);
+  }
+
+  div.bg-background-primary.border-stroke {
+    border-radius: 10px;
+    border-top: 0px solid rgba(223, 158, 25, 1);
+    border-right: 2px solid rgba(223, 158, 25, 1);
+    border-bottom: 2px solid rgba(223, 158, 25, 1);
+    border-left: 0px solid rgba(223, 158, 25, 1);
+  }
+
+  div.bg-background-secondary {
+    background-color: rgba(255, 210, 157, 1);
+  }
+
+  body.bg-background-app {
+    background: radial-gradient(234.04% 134.91% at 93.67% 100%, #F8F3EE 0%, #FFE4C3 100%);
+  }
+
+  /* div.bg-background-app,
+  div.bg-background {
+    background: none !important;
+  } */
+  [data-dot-agent-ui="chat-list"].border-stroke {
+    border-color: #FFF7EE;
+    /*rgba(245, 209, 168, 1) !important;*/
+  }
+  div[data-dot-agent-ui="agent-panel"]{
+   background-color: #FFE4C3;
+   border-color: #FFF7EE;
+  }
+}
+
+
+
+
+button[data-dot-agent-ui="chat-new"] {
+  border-radius: 10px;
+  border-right: 2px solid #DF9E19;
+  border-bottom: 2px solid #DF9E19;
+  background: #ECB01D;
+}
+
+button[data-dot-agent-ui="chat-new"]:hover {
+  background: #ECB01D;
 }

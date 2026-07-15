@@ -45,6 +45,9 @@ import { upsertRecentAgent } from "@/lib/local-db/recent-agents"
 import { getOnboardingAgentPayload } from "@/lib/agents/system-agents"
 import { unpackAgentFileFromPath } from "@/lib/agents/unpack-agent-file"
 import { toast } from "sonner"
+import { IconSidebarToggle } from "../icons/chat-icons"
+import { ButtonGhost } from "../ui/button-ghost"
+import { useTranslation } from "react-i18next"
 
 const APP_VERSION = "0.0.5"
 
@@ -64,6 +67,8 @@ function computePending(scxml: string | null, currentState: string, exclude: Set
 }
 
 export const RightSidebar: FC = () => {
+  const { t } = useTranslation()
+
   const router = useRouter()
   const params = useParams()
   const locale = (params?.locale as string) || "local"
@@ -209,43 +214,43 @@ export const RightSidebar: FC = () => {
 
     const threadId = viewedThreadId
 
-    ;(async () => {
-      const seenVersion = await getSetting("onboarding_seen_version")
-      if (seenVersion === APP_VERSION) return
+      ; (async () => {
+        const seenVersion = await getSetting("onboarding_seen_version")
+        if (seenVersion === APP_VERSION) return
 
-      try {
-        await setSetting("onboarding_seen_version", APP_VERSION)
+        try {
+          await setSetting("onboarding_seen_version", APP_VERSION)
 
-        const payload = await getOnboardingAgentPayload()
+          const payload = await getOnboardingAgentPayload()
 
-        await loadAgentBundle(payload, threadId, [
-          { domain: "context", key: "onboarding", value: "true" }
-        ])
-        setShowRightSidebar(true)
+          await loadAgentBundle(payload, threadId, [
+            { domain: "context", key: "onboarding", value: "true" }
+          ])
+          setShowRightSidebar(true)
 
-        // Shared with ChannelController.send(): both want a row for THIS thread, and a
-        // user who types before the .agent above finishes loading gets there first.
-        // createChatRowOnce makes whoever is second reuse the first one's row instead
-        // of creating a duplicate under the same id.
-        const createdChat = await createChatRowOnce(threadId, () => ({
-          user_id: profile.user_id,
-          workspace_id: selectedWorkspace.id,
-          assistant_id: selectedAssistant?.id || null,
-          context_length: chatSettings.contextLength,
-          include_profile_context: chatSettings.includeProfileContext,
-          include_workspace_instructions: chatSettings.includeWorkspaceInstructions,
-          model: chatSettings.model,
-          name: "Bem-vindo ao Murici",
-          prompt: chatSettings.prompt,
-          temperature: chatSettings.temperature,
-          embeddings_provider: chatSettings.embeddingsProvider
-        }))
-        setSelectedChat(createdChat)
-        setChats(chats => prependChatOnce(chats, createdChat))
-      } catch (err) {
-        console.error("[onboarding] auto-load failed", err)
-      }
-    })()
+          // Shared with ChannelController.send(): both want a row for THIS thread, and a
+          // user who types before the .agent above finishes loading gets there first.
+          // createChatRowOnce makes whoever is second reuse the first one's row instead
+          // of creating a duplicate under the same id.
+          const createdChat = await createChatRowOnce(threadId, () => ({
+            user_id: profile.user_id,
+            workspace_id: selectedWorkspace.id,
+            assistant_id: selectedAssistant?.id || null,
+            context_length: chatSettings.contextLength,
+            include_profile_context: chatSettings.includeProfileContext,
+            include_workspace_instructions: chatSettings.includeWorkspaceInstructions,
+            model: chatSettings.model,
+            name: "Bem-vindo ao Murici",
+            prompt: chatSettings.prompt,
+            temperature: chatSettings.temperature,
+            embeddings_provider: chatSettings.embeddingsProvider
+          }))
+          setSelectedChat(createdChat)
+          setChats(chats => prependChatOnce(chats, createdChat))
+        } catch (err) {
+          console.error("[onboarding] auto-load failed", err)
+        }
+      })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, selectedWorkspace, chatSettings, viewedThreadId])
 
@@ -320,32 +325,46 @@ export const RightSidebar: FC = () => {
         </AlertDialogContent>
       </AlertDialog>
       <div
-        data-dot-id="agent-panel"
-        className="bg-inspector-bg flex h-full w-[320px] flex-col border-l border-stroke"
+        data-dot-agent-ui="agent-panel"
+        className="flex h-full w-[320px] flex-col border-l border-stroke bg-background-secondary"
         onDragOver={e => e.preventDefault()}
       >
-        <div className="drag-region flex shrink-0 items-center justify-between border-b border-stroke/50 p-4">
-          <h2 className="select-none text-[15px] font-semibold text-foreground-primary">
-            Detalhes
-          </h2>
-          <Button size="icon" variant="ghost" className="no-drag size-6 text-foreground-primary hover:text-foreground-primary" onClick={() => setShowRightSidebar(false)}>
-            <X size={16} strokeWidth={2} />
-          </Button>
+        <div className="drag-region flex h-[40px] shrink-0 items-center justify-between px-6 py-3">
+          <p></p>
+          <ButtonGhost
+            size="16px"
+            className="no-drag font-instrument text-foreground-secondary hover:text-foreground-primary"
+            text={t("Ocultar")}
+            showLeftIcon={false}
+            rightIcon={
+              <IconSidebarToggle
+                side="right"
+                type="hide"
+                size={16}
+              />
+            }
+            onClick={() => setShowRightSidebar(false)}
+          />
         </div>
 
         <div className="flex-1 overflow-auto p-6 text-foreground-primary">
           <div className="flex flex-col space-y-6">
-            <Accordion type="single" collapsible defaultValue="arquivos" className="w-full border-none">
-              <AccordionItem value="arquivos" className="border-none">
-                <AccordionTrigger className="py-2 text-xs font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
-                  Arquivos do Chat
-                </AccordionTrigger>
-                <AccordionContent>
-                  {sortedKnowledge.length === 0 ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Nenhum artefato ainda nesta conversa.
-                    </p>
-                  ) : (
+            {sortedKnowledge.length === 0 ? (
+              <div className="flex-col">
+                <h2 className="select-none text-[15px] font-semibold text-foreground-primary">
+                  Sem itens salvos
+                </h2>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Informações que você pedir para salvar aparecerão aqui.
+                </p>
+              </div>
+            ) : (
+              <Accordion type="single" collapsible defaultValue="arquivos" className="w-full border-none">
+                <AccordionItem value="arquivos" className="border-none">
+                  <AccordionTrigger className="py-2 text-xs font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
+                    Arquivos do Chat
+                  </AccordionTrigger>
+                  <AccordionContent>
                     <div className="mt-2 flex flex-col gap-3">
                       {sortedKnowledge.map(record => (
                         <KnowledgeChip
@@ -369,12 +388,11 @@ export const RightSidebar: FC = () => {
                         </Button>
                       </div>
                     </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
 
-            <div className="bg-sidebar-border h-px w-full" />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
 
             {!agentMeta && !flowState?.currentState ? (
               <div className="flex flex-col items-center justify-center gap-4 bg-[#F7E7D4] p-6">
@@ -404,7 +422,7 @@ export const RightSidebar: FC = () => {
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-col space-y-6">
+              <div data-dot-agent-ui="agent-detail" className="flex flex-col space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-[15px] font-semibold text-foreground-primary">{agentMeta?.name || "Agente"}</h3>
                   {agentMeta?.description && (
