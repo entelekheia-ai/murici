@@ -7,17 +7,18 @@
  */
 
 import Loading from "./loading"
+import { localeHref } from "@/lib/locale-href"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
-export default function HomePage() {
+export default function HomePage({ params }: { params: { locale: string } }) {
   const router = useRouter()
   useEffect(() => {
-    router.replace("/local/chat")
-  }, [router])
+    router.replace(localeHref(params.locale, "/local/chat"))
+  }, [router, params.locale])
   // Render the spinner instead of null: if the redirect ever stalls or fails
   // (the exact failure mode that caused the locale-less-navigation blank
-  // screen — see i18nConfig.js's noPrefix comment), the user sees a loading
-  // state instead of a blank window with no way to tell what's happening.
+  // screen — see issue #3), the user sees a loading state instead of a blank
+  // window with no way to tell what's happening.
   return <Loading />
 }

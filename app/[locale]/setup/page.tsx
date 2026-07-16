@@ -9,15 +9,16 @@
 // Setup page is not needed in the local-only fork.
 // Redirects directly to the local workspace.
 import Loading from "../loading"
+import { localeHref } from "@/lib/locale-href"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
-export default function SetupPage() {
+export default function SetupPage({ params }: { params: { locale: string } }) {
   const router = useRouter()
 
   useEffect(() => {
-    router.replace("/local/chat")
-  }, [router])
+    router.replace(localeHref(params.locale, "/local/chat"))
+  }, [router, params.locale])
 
   // See app/[locale]/page.tsx — a stalled redirect should show a spinner,
   // not a blank screen.

@@ -7,6 +7,7 @@
 import { FC, useContext, useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useTranslation } from "react-i18next"
+import { localeHref } from "@/lib/locale-href"
 import { ChatbotUIContext } from "@/context/context"
 import { KnowledgeChip } from "@/components/knowledge/knowledge-chip"
 import { Button } from "@/components/ui/button"
@@ -18,6 +19,7 @@ export const SidebarFilesContent: FC = () => {
   const { chats, models, availableLocalModels } = useContext(ChatbotUIContext)
   const router = useRouter()
   const params = useParams()
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const [allKnowledge, setAllKnowledge] = useState<KnowledgeRecord[]>([])
@@ -73,7 +75,9 @@ export const SidebarFilesContent: FC = () => {
       <div className="absolute bottom-4 left-1/2 z-10 w-[90%] -translate-x-1/2">
         <Button
           className="w-full rounded-xl bg-murici-orange text-sm font-semibold text-white shadow-lg hover:bg-[#C05621]/90"
-          onClick={() => router.push(`/${workspaceid}/graph`)}
+          onClick={() =>
+            router.push(localeHref(locale, `/${workspaceid}/graph`))
+          }
         >
           Ver todos os arquivos
         </Button>

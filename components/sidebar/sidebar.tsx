@@ -17,6 +17,7 @@ import { updateChat } from "@/db/chats"
 import { updateFile } from "@/db/files"
 import { updateModel } from "@/db/models"
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
+import { localeHref } from "@/lib/locale-href"
 
 import { TabsContent } from "../ui/tabs"
 import { SidebarContent } from "./sidebar-content"
@@ -49,6 +50,7 @@ export const Sidebar: FC<SidebarProps> = ({
   const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
+  const locale = (params?.locale as string) || "en"
 
   const {
     folders,
@@ -86,7 +88,9 @@ export const Sidebar: FC<SidebarProps> = ({
   const handleSelectItem = (item: DataItemType) => {
     if (!selectedWorkspace) return
     if (contentType === "chats") {
-      router.push(`/${selectedWorkspace.id}/chat/${item.id}`)
+      router.push(
+        localeHref(locale, `/${selectedWorkspace.id}/chat/${item.id}`)
+      )
     }
   }
 

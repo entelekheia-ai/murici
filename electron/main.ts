@@ -216,7 +216,26 @@ async function createWindow() {
     }
   })
 
-  mainWindow.loadURL(`http://localhost:${serverPort}`)
+  // A summary error like ERR_TOO_MANY_REDIRECTS doesn't say which URLs were
+  // actually chained, and the app-level "Toggle Dev Tools" menu item can't
+  // help either (it's gated behind debugMode, which the renderer only
+  // reports once it has loaded — no use when it never does). This hook is
+  // cheap in steady state — a correctly-built URL now redirects at most
+  // once, if ever — so it stays on permanently as a diagnostic breadcrumb.
+  mainWindow.webContents.session.webRequest.onBeforeRedirect(
+    { urls: ["http://localhost/*", "http://127.0.0.1/*"] },
+    details => {
+      logger.info(
+        `[net] redirect ${details.statusCode} ${details.url} -> ${details.redirectURL}`
+      )
+    }
+  )
+
+  // Load the fully-resolved locale-prefixed workspace URL directly (rather
+  // than bare "/") — skips both the server's one-time locale-detection
+  // redirect and the client-side root page's own redirect, so first paint
+  // needs zero round-trips through next-i18n-router's middleware at all.
+  mainWindow.loadURL(`http://localhost:${serverPort}/${menuLocale}/local/chat`)
 
   mainWindow.once("ready-to-show", () => {
     mainWindow!.show()

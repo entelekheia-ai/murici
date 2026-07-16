@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next"
 import { Network } from "vis-network"
 import type { Node, Edge, Options } from "vis-network"
 import { DataSet } from "vis-data"
+import { localeHref } from "@/lib/locale-href"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
 import { AgentBundleRecord } from "@/lib/local-db/schema"
@@ -233,6 +234,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
   const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -780,7 +782,12 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
       if (params.nodes.length === 0) return
       const nodeId = params.nodes[0] as string
       if (nodeId.startsWith("conv-")) {
-        router.push(`/${workspaceid}/chat/${nodeId.replace("conv-", "")}`)
+        router.push(
+          localeHref(
+            locale,
+            `/${workspaceid}/chat/${nodeId.replace("conv-", "")}`
+          )
+        )
       } else if (nodeId.startsWith("know-")) {
         const record = knowledge.find(k => k.id === nodeId.replace("know-", ""))
         if (record) {

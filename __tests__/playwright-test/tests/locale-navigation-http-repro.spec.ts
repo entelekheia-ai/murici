@@ -6,89 +6,90 @@
 import { test, expect } from "@playwright/test"
 
 /*
- * HTTP-LAYER REGRESSION GUARD — locale-less internal navigation must never
- * 307-redirect (see locale-navigation-blank-screen.spec.ts for the
- * user-facing symptom this used to cause, and issue #3 for the full
- * root-cause writeup).
+ * HTTP-LAYER REGRESSION GUARD — locale-less internal navigation used to
+ * blank the app on a non-default locale (issue #3).
  *
- * Before the fix, i18nConfig.js had prefixDefault:false with a URL-prefixed
- * locale scheme: a locale-less path (e.g. "/local/chat", built by
- * router.replace/push calls that never included a locale segment) rewrote
- * cleanly (200) only on the default locale ("en"); on any other locale the
- * middleware 307-redirected it to the prefixed path. For a client-side (RSC)
- * soft-navigation, that 307 carried no component payload, so the App
- * Router's RSC fetch failed and fell back to a hard reload — which is what
- * surfaced as a blank screen / ERR_TOO_MANY_REDIRECTS in Electron.
+ * Root cause: several router.push/replace calls built a locale-less path
+ * (e.g. "/local/chat"). Two fixes were tried and reverted before landing on
+ * the current one:
+ *   1. i18nConfig's noPrefix:true — worked under `next dev`, but caused a
+ *      runaway rewrite recursion in the packaged standalone production
+ *      server.
+ *   2. prefixDefault:false (the original setting) + a locale-href helper
+ *      that omitted the prefix for the default locale — this removed the
+ *      app's locale-less navigations, but the middleware still had to
+ *      NextResponse.rewrite() bare default-locale requests, and under real
+ *      (concurrent) Electron browser traffic that rewrite target got
+ *      re-processed by the middleware a second time, redirecting back to
+ *      bare and producing a self-redirect loop that curl could never
+ *      reproduce.
  *
- * The fix sets noPrefix:true: the middleware now always internally rewrites
- * (never redirects), on every locale, so locale-less paths are universally
- * correct and a visibly-prefixed path (e.g. "/pt/local/chat") is no longer a
- * route the app ever constructs (verified 404 below).
+ * Fix: i18nConfig.js sets prefixDefault:true, and lib/locale-href.ts's
+ * localeHref() always includes the active locale, including the default
+ * one. Once a request already carries its locale prefix, the middleware
+ * does a plain passthrough (NextResponse.next()) — no rewrite is ever
+ * involved for a correctly-built href, on any locale. Only a locale-less
+ * path (which the app must never construct) still redirects, exactly once.
  */
 
-const INTERNAL_PATH = "/local/chat"
+const WORKSPACE_PATH = "/local/chat"
 
-test.describe("locale-less internal navigation vs next-i18n-router (noPrefix)", () => {
-  test("a locale-less internal path resolves 200 on a non-default locale", async ({
+test.describe("locale-aware navigation vs next-i18n-router (prefixDefault:true)", () => {
+  test("a locale-prefixed path resolves 200 with no redirect, on the default locale", async ({
+    playwright
+  }) => {
+    const ctx = await playwright.request.newContext({
+      baseURL: "http://localhost:3000"
+    })
+    const res = await ctx.get(`/en${WORKSPACE_PATH}`, { maxRedirects: 0 })
+    expect(res.status()).toBe(200)
+    await ctx.dispose()
+  })
+
+  test("a locale-prefixed path resolves 200 with no redirect, on a non-default locale", async ({
+    playwright
+  }) => {
+    const ctx = await playwright.request.newContext({
+      baseURL: "http://localhost:3000"
+    })
+    const res = await ctx.get(`/pt${WORKSPACE_PATH}`, { maxRedirects: 0 })
+    expect(res.status()).toBe(200)
+    await ctx.dispose()
+  })
+
+  test("a locale-LESS path redirects to the default locale exactly once (the app must never construct this)", async ({
+    playwright
+  }) => {
+    const ctx = await playwright.request.newContext({
+      baseURL: "http://localhost:3000"
+    })
+    const res = await ctx.get(WORKSPACE_PATH, { maxRedirects: 0 })
+    expect(res.status()).toBe(307)
+    expect(res.headers()["location"]).toContain(`/en${WORKSPACE_PATH}`)
+    await ctx.dispose()
+  })
+
+  test("a locale-LESS path redirects to a non-default cookie locale exactly once", async ({
     playwright
   }) => {
     const ctx = await playwright.request.newContext({
       baseURL: "http://localhost:3000",
       extraHTTPHeaders: { Cookie: "NEXT_LOCALE=pt" }
     })
-    const res = await ctx.get(INTERNAL_PATH, { maxRedirects: 0 })
-    expect(res.status()).toBe(200)
+    const res = await ctx.get(WORKSPACE_PATH, { maxRedirects: 0 })
+    expect(res.status()).toBe(307)
+    expect(res.headers()["location"]).toContain(`/pt${WORKSPACE_PATH}`)
     await ctx.dispose()
   })
 
-  test("an RSC soft-navigation request to that path also resolves 200 (no stranded fetch)", async ({
+  test("following that single redirect lands cleanly with no further redirect", async ({
     playwright
   }) => {
     const ctx = await playwright.request.newContext({
-      baseURL: "http://localhost:3000",
-      extraHTTPHeaders: { Cookie: "NEXT_LOCALE=pt", RSC: "1" }
+      baseURL: "http://localhost:3000"
     })
-    const res = await ctx.get(INTERNAL_PATH, { maxRedirects: 0 })
+    const res = await ctx.get(WORKSPACE_PATH)
     expect(res.status()).toBe(200)
-    await ctx.dispose()
-  })
-
-  test("the same path resolves 200 on the default locale too", async ({
-    playwright
-  }) => {
-    const ctx = await playwright.request.newContext({
-      baseURL: "http://localhost:3000",
-      extraHTTPHeaders: { Cookie: "NEXT_LOCALE=en" }
-    })
-    const res = await ctx.get(INTERNAL_PATH, { maxRedirects: 0 })
-    expect(res.status()).toBe(200)
-    await ctx.dispose()
-  })
-
-  test("resolves 200 even with no cookie at all (first-launch, no prior locale pinned)", async ({
-    playwright
-  }) => {
-    const ctx = await playwright.request.newContext({
-      baseURL: "http://localhost:3000",
-      extraHTTPHeaders: { "Accept-Language": "pt-BR" }
-    })
-    const res = await ctx.get(INTERNAL_PATH, { maxRedirects: 0 })
-    expect(res.status()).toBe(200)
-    await ctx.dispose()
-  })
-
-  test("a visibly-prefixed path is no longer a route the app should reach (guards against regression)", async ({
-    playwright
-  }) => {
-    // With noPrefix, nothing should ever construct "/pt/..." — if this starts
-    // returning 200 again, a call site regressed back to manual locale
-    // prefixing (the pattern removed from knowledge-graph-canvas.tsx et al.).
-    const ctx = await playwright.request.newContext({
-      baseURL: "http://localhost:3000",
-      extraHTTPHeaders: { Cookie: "NEXT_LOCALE=pt" }
-    })
-    const res = await ctx.get("/pt/local/chat", { maxRedirects: 0 })
-    expect(res.status()).toBe(404)
     await ctx.dispose()
   })
 })
