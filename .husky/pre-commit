@@ -7,12 +7,17 @@ set -e
 # and never `git add .` (that used to silently sweep in unrelated pending
 # edits and untracked files sitting elsewhere in the working tree into
 # whatever commit happened to run next).
-staged_ts=$(git diff --cached --name-only --diff-filter=ACM -z -- "*.ts" "*.tsx")
+#
+# Newline-separated (not -z): a shell command substitution cannot hold NUL
+# bytes, so `$(... -z)` would collapse the list into one concatenated blob.
+# Matches the convention already used by scripts/ensure-license-headers.sh.
+# Assumes staged paths contain no newlines (true for this repo).
+staged_ts=$(git diff --cached --name-only --diff-filter=ACM -- "*.ts" "*.tsx")
 
 if [ -n "$staged_ts" ]; then
-  printf '%s' "$staged_ts" | xargs -0 npx eslint --fix
-  printf '%s' "$staged_ts" | xargs -0 npx prettier --write
-  printf '%s' "$staged_ts" | xargs -0 git add
+  echo "$staged_ts" | xargs npx eslint --fix
+  echo "$staged_ts" | xargs npx prettier --write
+  echo "$staged_ts" | xargs git add
 fi
 
 bash scripts/ensure-license-headers.sh
