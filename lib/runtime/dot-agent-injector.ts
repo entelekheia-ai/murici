@@ -37,7 +37,7 @@ export interface BehaviorStateInfo {
 //    conversation to achieve it, then silently call trigger_intent with the
 //    matching intent from allowed_intents once achieved.
 // 2.b. IF the user's message requires data or context from another state
-// SILENTLY call trigger_intent without generating a text response. 
+// SILENTLY call trigger_intent without generating a text response.
 // Wait for the new state information to answer.
 // 3. IF no goal is provided: classify the user's message into one of
 //    allowed_intents and immediately call trigger_intent with the matching name.
@@ -45,7 +45,6 @@ export interface BehaviorStateInfo {
 //    to the current goal: silently call trigger_intent with intent_name="offtopic".
 // 5. Never explain, mention, or reveal your tool calls to the user.
 // </RULES>`
-
 
 const RULES_BLOCK = `<RULES>
 1. Adopt the persona and behavior defined in <PERSONA>.
@@ -61,12 +60,9 @@ silently call \`trigger_intent\` to move the flow forward.
 5. Never explain, mention, or reveal your tool calls to the user.
 </RULES>`
 
-
-  //  - IF the matched intent requires moving to a DIFFERENT state
-  //   (e.g., needing context/data from another state, or triggering "offtopic" / "Out of scope"), 
-  //   you MUST SILENTLY call \`trigger_intent\` without generating ANY text response. Wait for the new state information.
-
-
+//  - IF the matched intent requires moving to a DIFFERENT state
+//   (e.g., needing context/data from another state, or triggering "offtopic" / "Out of scope"),
+//   you MUST SILENTLY call \`trigger_intent\` without generating ANY text response. Wait for the new state information.
 
 // Split so buildBasePrompt can place <PERSONA> at its current early position
 // and <RULES> at the very end of the static prompt (max salience, right before

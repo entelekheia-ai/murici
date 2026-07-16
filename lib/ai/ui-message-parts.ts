@@ -12,7 +12,6 @@ import {
 } from "ai"
 import { logger } from "@/lib/logger"
 
-
 export type ToolInvocation = {
   toolCallId: string
   toolName: string
@@ -37,7 +36,9 @@ export function getMessageText(message: UIMessage | undefined | null): string {
 
 // Built-in tools (registered via `tool()`) surface as static `tool-<name>` parts;
 // MCP tools (registered via `dynamicTool()`) surface as `dynamic-tool` parts.
-export function getToolInvocations(message: UIMessage | undefined | null): ToolInvocation[] {
+export function getToolInvocations(
+  message: UIMessage | undefined | null
+): ToolInvocation[] {
   if (!message) {
     logger.info("getToolInvocations called with null/undefined message")
     return []
@@ -91,7 +92,9 @@ export function dedupeToolCallParts<T extends UIMessage>(messages: T[]): T[] {
   return out
 }
 
-export function getReasoningText(message: UIMessage | undefined | null): string {
+export function getReasoningText(
+  message: UIMessage | undefined | null
+): string {
   if (!message) {
     logger.info("getReasoningText called with null/undefined message")
     return ""

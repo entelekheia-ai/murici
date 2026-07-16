@@ -7,6 +7,7 @@
 
 import { Tables } from "@/types/database"
 import { LLM, OpenRouterLLM } from "@/types"
+import { t } from "@/lib/i18n-instance"
 import { toast } from "sonner"
 import { LLM_LIST_MAP } from "./llm/llm-list"
 import { buildApiKeys } from "./build-api-keys"
@@ -65,7 +66,9 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
     if (!profile.use_azure_openai) {
       const apiKeys = buildApiKeys(profile)
       const hasAnyRemoteKey = REMOTE_DISCOVERABLE_PROVIDERS.some(
-        provider => (apiKeys as Record<string, string | undefined>)[provider] || envKeyMap[provider]
+        provider =>
+          (apiKeys as Record<string, string | undefined>)[provider] ||
+          envKeyMap[provider]
       )
 
       if (hasAnyRemoteKey) {
@@ -87,7 +90,12 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
                 modelsToAdd.push(...(result.models ?? []))
               } else if (result.status === "auth_error") {
                 toast.error(
-                  `${provider} API key inválida. Verifique em Configurações de perfil.`
+                  t(
+                    "{{provider}} API key invalid. Check it in Profile settings.",
+                    {
+                      provider
+                    }
+                  )
                 )
               } else {
                 // Transient failure (network/timeout/5xx/429) with a

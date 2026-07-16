@@ -36,7 +36,11 @@ function ensureConfigExists() {
   }
 
   if (!fs.existsSync(CONFIG_FILE)) {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG, null, 2), "utf8")
+    fs.writeFileSync(
+      CONFIG_FILE,
+      JSON.stringify(DEFAULT_CONFIG, null, 2),
+      "utf8"
+    )
   }
 }
 
@@ -45,7 +49,7 @@ function ensureConfigExists() {
  */
 export function getMCPConfig(): MCPConfig {
   ensureConfigExists()
-  
+
   try {
     const data = fs.readFileSync(CONFIG_FILE, "utf8")
     return JSON.parse(data) as MCPConfig
@@ -60,7 +64,7 @@ export function getMCPConfig(): MCPConfig {
  */
 export function saveMCPConfig(config: MCPConfig): void {
   ensureConfigExists()
-  
+
   try {
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), "utf8")
   } catch (error) {

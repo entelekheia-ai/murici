@@ -10,7 +10,6 @@ import { useRouter, useParams } from "next/navigation"
 import { ChatbotUIContext } from "@/context/context"
 import { KnowledgeRecord } from "@/types/knowledge"
 
-
 function languageColor(lang: string): string {
   const palette = [
     "bg-blue-500/20 text-blue-400",
@@ -22,7 +21,8 @@ function languageColor(lang: string): string {
     "bg-yellow-500/20 text-yellow-400"
   ]
   let hash = 0
-  for (let i = 0; i < lang.length; i++) hash = (hash * 31 + lang.charCodeAt(i)) & 0xffff
+  for (let i = 0; i < lang.length; i++)
+    hash = (hash * 31 + lang.charCodeAt(i)) & 0xffff
   return palette[hash % palette.length]
 }
 
@@ -36,7 +36,10 @@ export const KnowledgeSidebarSection: FC = () => {
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const recent = [...knowledge]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
     .slice(0, 3)
 
   if (knowledge.length === 0) return null
@@ -76,7 +79,9 @@ const MiniChip: FC<{ record: KnowledgeRecord }> = ({ record }) => {
   const lang = record.payload.language || "text"
   return (
     <div className="flex items-center gap-2 truncate rounded bg-muted/50 px-2 py-1">
-      <span className={`shrink-0 rounded px-1 py-0.5 font-mono text-[10px] ${languageColor(lang)}`}>
+      <span
+        className={`shrink-0 rounded px-1 py-0.5 font-mono text-[10px] ${languageColor(lang)}`}
+      >
         {lang}
       </span>
       <span className="truncate text-xs" title={record.title}>

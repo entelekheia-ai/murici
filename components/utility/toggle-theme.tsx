@@ -14,11 +14,15 @@ interface ToggleThemeProps {
   className?: string
 }
 
-export const ToggleTheme: FC<ToggleThemeProps> = ({ mode, onClick, className }) => {
+export const ToggleTheme: FC<ToggleThemeProps> = ({
+  mode,
+  onClick,
+  className
+}) => {
   const { setTheme, theme } = useTheme()
 
   const currentTheme = theme === "dark" ? "dark" : "light"
-  
+
   // Resolve mode: if mode prop is provided, use it. Otherwise, use active theme.
   // Figma Mode=Dark shows sun. Figma Mode=Light shows moon.
   const resolvedMode = mode || (currentTheme === "dark" ? "Dark" : "Light")

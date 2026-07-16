@@ -16,6 +16,7 @@
  */
 
 import { FC } from "react"
+import { useTranslation } from "react-i18next"
 
 interface MessageThinkingBlockProps {
   thinking: string
@@ -24,6 +25,7 @@ interface MessageThinkingBlockProps {
 export const MessageThinkingBlock: FC<MessageThinkingBlockProps> = ({
   thinking
 }) => {
+  const { t } = useTranslation()
   const wordCount = thinking.trim().split(/\s+/).filter(Boolean).length
 
   return (
@@ -34,8 +36,12 @@ export const MessageThinkingBlock: FC<MessageThinkingBlockProps> = ({
       <details>
         <summary className="flex cursor-pointer select-none items-center gap-2 px-3 py-2 hover:bg-muted/40">
           <span>🧠</span>
-          <span className="font-semibold text-violet-400">Raciocínio</span>
-          <span className="text-muted-foreground/60">{wordCount} palavras</span>
+          <span className="font-semibold text-violet-400">
+            {t("Reasoning")}
+          </span>
+          <span className="text-muted-foreground/60">
+            {t("{{count}} words", { count: wordCount })}
+          </span>
         </summary>
         <pre className="mx-3 mb-2 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-xs">
           {thinking}

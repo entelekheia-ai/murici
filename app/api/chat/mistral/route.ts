@@ -5,7 +5,10 @@
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
  */
 
-import { checkApiKey, getProfileFromBody } from "@/lib/server/server-chat-helpers"
+import {
+  checkApiKey,
+  getProfileFromBody
+} from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { createOpenAI } from "@ai-sdk/openai"
 import { convertToModelMessages } from "ai"
@@ -18,7 +21,14 @@ export const runtime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools, agentPersona } = json as {
+  const {
+    chatSettings,
+    messages,
+    tools: rawTools,
+    behaviorState,
+    mcpTools,
+    agentPersona
+  } = json as {
     chatSettings: ChatSettings
     messages: any[]
     tools?: any[]
@@ -60,7 +70,11 @@ export async function POST(request: Request) {
       tools
     })
   } catch (error: any) {
-    logger.error("chat route failed", { provider: "mistral", model: chatSettings?.model, error: error.message })
+    logger.error("chat route failed", {
+      provider: "mistral",
+      model: chatSettings?.model,
+      error: error.message
+    })
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
 

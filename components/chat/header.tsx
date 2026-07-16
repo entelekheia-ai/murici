@@ -48,15 +48,9 @@ export const Header: FC<HeaderProps> = ({
           <ButtonGhost
             size="16px"
             className="no-drag font-instrument text-foreground-secondary hover:text-foreground-primary"
-            text={t("Conversas")}
+            text={t("Chats")}
             showRightIcon={false}
-            leftIcon={
-              <IconSidebarToggle
-                side="left"
-                type="open"
-                size={16}
-              />
-            }
+            leftIcon={<IconSidebarToggle side="left" type="open" size={16} />}
             onClick={onToggleSidebar}
           />
         </div>
@@ -92,7 +86,7 @@ export const Header: FC<HeaderProps> = ({
           <ButtonGhost
             size="16px"
             className="no-drag font-instrument text-foreground-secondary hover:text-foreground-primary"
-            text={t("Detalhes")}
+            text={t("Details")}
             showLeftIcon={false}
             rightIcon={
               <IconSidebarToggle

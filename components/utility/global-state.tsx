@@ -123,8 +123,10 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [showSidebar, setShowSidebar] = useState<boolean>(false)
   const [showRightSidebar, setShowRightSidebar] = useState<boolean>(false)
   const [showDebugPanels, setShowDebugPanels] = useState<boolean>(false)
-  const [osPendingAgentPayload, setOsPendingAgentPayload] = useState<OsPendingAgentFile | null>(null)
-  const [pendingNewAgentPayload, setPendingNewAgentPayload] = useState<UnpackPayload | null>(null)
+  const [osPendingAgentPayload, setOsPendingAgentPayload] =
+    useState<OsPendingAgentFile | null>(null)
+  const [pendingNewAgentPayload, setPendingNewAgentPayload] =
+    useState<UnpackPayload | null>(null)
   const [isAgentBundleLoading, setIsAgentBundleLoading] = useState(false)
 
   useEffect(() => {
@@ -144,7 +146,9 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [sourceCount, setSourceCount] = useState<number>(4)
 
   // FLOW ENGINE STORE
-  const [agentKnowledgeFiles, setAgentKnowledgeFiles] = useState<Array<{ path: string; content: string }>>([])
+  const [agentKnowledgeFiles, setAgentKnowledgeFiles] = useState<
+    Array<{ path: string; content: string }>
+  >([])
   const [agentPersona, setAgentPersona] = useState<string | null>(null)
   const [flowEngine, setFlowEngine] = useState<any | null>(null)
   const [flowState, setFlowState] = useState<{
@@ -185,7 +189,10 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
     (agentSessionId: string, patch: Partial<ChatAgentSession>) => {
       const existing = chatAgentSessionsRef.current.get(agentSessionId)
       if (!existing) return
-      chatAgentSessionsRef.current.set(agentSessionId, { ...existing, ...patch })
+      chatAgentSessionsRef.current.set(agentSessionId, {
+        ...existing,
+        ...patch
+      })
     },
     []
   )

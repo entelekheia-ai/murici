@@ -39,7 +39,9 @@ export const KnowledgePreviewModal: FC<KnowledgePreviewModalProps> = ({
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b px-6 py-4">
           <div>
-            <h2 className="text-base font-semibold leading-snug">{record.title}</h2>
+            <h2 className="text-base font-semibold leading-snug">
+              {record.title}
+            </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {record.payload.language || "text"} · {chatName}
             </p>

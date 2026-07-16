@@ -1,0 +1,370 @@
+<title>Ollama → murici — Relatório de integração</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #eceef1;
+    --border: #dbdfe4;
+    --text: #1b1e23;
+    --text-dim: #565c66;
+    --text-faint: #868c96;
+    --accent: #2f7dd1;
+    --accent-soft: rgba(47, 125, 209, 0.10);
+    --accent-line: rgba(47, 125, 209, 0.35);
+    --ok: #2f8f5b;
+    --ok-soft: rgba(47, 143, 91, 0.12);
+    --warn: #a3760f;
+    --warn-soft: rgba(163, 118, 15, 0.12);
+    --block: #7451c0;
+    --block-soft: rgba(116, 81, 192, 0.12);
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1114;
+    --surface: #171a1f;
+    --surface-2: #1c2027;
+    --border: #2a2f37;
+    --text: #e7e5e0;
+    --text-dim: #9ba0a8;
+    --text-faint: #6b7078;
+    --accent: #5b9fe3;
+    --accent-soft: rgba(91, 159, 227, 0.12);
+    --accent-line: rgba(91, 159, 227, 0.35);
+    --ok: #6dc294;
+    --ok-soft: rgba(109, 194, 148, 0.12);
+    --warn: #e0b954;
+    --warn-soft: rgba(224, 185, 84, 0.12);
+    --block: #a98cec;
+    --block-soft: rgba(169, 140, 236, 0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1114;
+      --surface: #171a1f;
+      --surface-2: #1c2027;
+      --border: #2a2f37;
+      --text: #e7e5e0;
+      --text-dim: #9ba0a8;
+      --text-faint: #6b7078;
+      --accent: #5b9fe3;
+      --accent-soft: rgba(91, 159, 227, 0.12);
+      --accent-line: rgba(91, 159, 227, 0.35);
+      --ok: #6dc294;
+      --ok-soft: rgba(109, 194, 148, 0.12);
+      --warn: #e0b954;
+      --warn-soft: rgba(224, 185, 84, 0.12);
+      --block: #a98cec;
+      --block-soft: rgba(169, 140, 236, 0.14);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    margin: 0;
+    padding: 4rem 1.5rem 6rem;
+  }
+  main { max-width: 860px; margin: 0 auto; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    letter-spacing: -0.01em;
+    margin: 0.5rem 0 0.4rem;
+    text-wrap: balance;
+  }
+  h1 .arrow { color: var(--text-faint); font-weight: 400; margin: 0 0.35em; }
+  .subtitle { color: var(--text-dim); font-size: 1.02rem; max-width: 60ch; text-wrap: balance; }
+  .meta-row {
+    display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.1rem;
+    font-family: var(--mono); font-size: 0.78rem; color: var(--text-faint);
+  }
+  .meta-row code { color: var(--text-dim); }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 2.2rem; margin-bottom: 2.6rem; }
+  section { margin-bottom: 3.2rem; }
+  section > .eyebrow { display: block; margin-bottom: 0.5rem; }
+  h2 {
+    font-family: var(--mono); font-size: 1.15rem; font-weight: 600; letter-spacing: -0.005em;
+    margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-family: var(--sans); font-size: 1rem; font-weight: 700; margin: 1.6rem 0 0.6rem; }
+  p { color: var(--text); margin: 0.7rem 0; }
+  p.dim { color: var(--text-dim); }
+  ul, ol { padding-left: 1.3rem; margin: 0.7rem 0; }
+  li { margin: 0.35rem 0; }
+  a { color: var(--accent); }
+  strong { color: var(--text); }
+  code, .code {
+    font-family: var(--mono); font-size: 0.86em; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em;
+  }
+  pre {
+    font-family: var(--mono); font-size: 0.82rem; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1rem;
+    overflow-x: auto; line-height: 1.55;
+  }
+  pre code { background: none; border: none; padding: 0; }
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; margin: 1.2rem 0 1.6rem;
+  }
+  .stat { background: var(--surface); padding: 1.1rem 1.2rem; }
+  .stat .n {
+    font-family: var(--mono); font-size: 1.5rem; font-variant-numeric: tabular-nums;
+    color: var(--accent); display: block;
+  }
+  .stat .l { font-size: 0.8rem; color: var(--text-dim); margin-top: 0.15rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; background: var(--surface); }
+  thead th {
+    text-align: left; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-faint); background: var(--surface-2);
+    padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  tbody td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-dim); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.path, td code.ep { font-family: var(--mono); color: var(--text); font-size: 0.84em; white-space: nowrap; }
+  td.feature { color: var(--text); font-weight: 600; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.35em; font-family: var(--mono);
+    font-size: 0.72rem; letter-spacing: 0.02em; padding: 0.2em 0.6em; border-radius: 999px;
+    white-space: nowrap; font-weight: 600;
+  }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.block { background: var(--block-soft); color: var(--block); }
+  .legend { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: 0.9rem 0 1.4rem; font-size: 0.82rem; color: var(--text-dim); }
+  .legend span { display: inline-flex; align-items: center; gap: 0.5em; }
+  blockquote {
+    margin: 1rem 0; padding: 0.15rem 0 0.15rem 1rem; border-left: 2px solid var(--accent-line);
+    color: var(--text-dim); font-size: 0.92rem;
+  }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem 1.4rem; margin: 1rem 0; }
+  .card h4 { font-family: var(--mono); font-size: 0.92rem; margin: 0 0 0.5rem; color: var(--text); }
+  .card .why { color: var(--text-dim); font-size: 0.88rem; margin-top: 0.5rem; }
+  .card .why b { color: var(--text); }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; font-size: 0.86rem; margin-top: 0.6rem; }
+  .kv dt { color: var(--text-faint); font-family: var(--mono); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 0.15rem; }
+  .kv dd { margin: 0; color: var(--text-dim); }
+  .callout {
+    display: flex; gap: 0.8rem; align-items: flex-start; background: var(--accent-soft);
+    border: 1px solid var(--accent-line); border-radius: 10px; padding: 1rem 1.2rem; margin: 1.2rem 0;
+    font-size: 0.9rem; color: var(--text-dim);
+  }
+  .callout b { color: var(--text); }
+  footer {
+    margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+    color: var(--text-faint); font-size: 0.78rem; font-family: var(--mono);
+  }
+  @media (max-width: 600px) {
+    body { padding: 2.5rem 1rem 4rem; }
+    .kv { grid-template-columns: 1fr; }
+  }
+</style>
+
+<main>
+
+<header>
+  <span class="eyebrow">Relatório técnico · 2026-07-11</span>
+  <h1>Ollama <span class="arrow">→</span> murici</h1>
+  <p class="subtitle">O que o servidor Ollama expõe hoje — nativo e OpenAI-compat — que o murici ainda não consome, e por que boa parte dessa lacuna não precisa de PR upstream: é arquitetural do lado do cliente.</p>
+  <div class="meta-row">
+    <span>fonte: <code>github.com/ollama/ollama</code> · MIT · público</span>
+    <span>consumidor: <code>github.com/entelekheia-ai/murici</code></span>
+  </div>
+</header>
+
+<section id="resumo">
+  <span class="eyebrow">Resumo</span>
+  <h2>O essencial</h2>
+  <div class="stats">
+    <div class="stat"><span class="n">6</span><span class="l">campos de timing na API nativa (<code>Metrics</code>), todos em nanossegundos</span></div>
+    <div class="stat"><span class="n">3</span><span class="l">campos sobrevivem na camada OpenAI-compat que o murici usa hoje</span></div>
+    <div class="stat"><span class="n">/api/ps</span><span class="l">endpoint de "modelos ativos" — público, sem auth de admin</span></div>
+    <div class="stat"><span class="n">0</span><span class="l">rota de PR necessária pra maioria dos ganhos — é troca de endpoint, não de servidor</span></div>
+  </div>
+  <p>Diferente do relatório anterior sobre oMLX, aqui a notícia é melhor: a telemetria rica do Ollama — <code>load_duration</code>, <code>prompt_eval_duration</code>, <code>eval_duration</code>, modelos ativos com VRAM/RAM, progresso de download — <strong>é toda pública</strong>, sem cookie de admin, sem chave especial. O problema não é acesso, é rota: o murici já distingue Ollama na descoberta (<code>probeOllama</code>, endpoint nativo <code>/api/tags</code>), mas depois joga tudo pro mesmo caminho genérico OpenAI-compat, que descarta as durações e devolve só <code>prompt_tokens</code>/<code>completion_tokens</code>/<code>total_tokens</code>.</p>
+  <p>Isso muda o formato das recomendações: a maior parte é <strong>"trocar de endpoint no cliente"</strong>, não <strong>"esperar um PR ser aceito"</strong>. As duas exceções reais — tokens/s pré-computado e visibilidade de cache hit — viram propostas de PR na seção 4.</p>
+</section>
+
+<section id="ollama-api">
+  <span class="eyebrow">01 · Superfície do Ollama</span>
+  <h2>Nativo vs. OpenAI-compat: dois níveis de detalhe</h2>
+  <p class="dim">Go, sem auth por padrão em instalação local. Duas famílias de rota coexistem no mesmo processo: a API nativa do Ollama (<code>/api/*</code>) e uma camada de compatibilidade OpenAI/Anthropic (<code>/v1/*</code>) — a segunda é um adaptador fino sobre a primeira, e <strong>descarta</strong> a maior parte dos campos de timing ao converter.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Endpoint</th><th>Camada</th><th>Dado relevante para murici</th></tr></thead>
+      <tbody>
+        <tr><td class="path"><code class="ep">POST /api/chat</code></td><td><span class="pill ok">nativa</span></td><td><code>Metrics</code> completo: <code>total_duration</code>, <code>load_duration</code>, <code>prompt_eval_count</code>, <code>prompt_eval_duration</code>, <code>eval_count</code>, <code>eval_duration</code> — tudo em <b>nanossegundos</b></td></tr>
+        <tr><td class="path"><code class="ep">POST /api/generate</code></td><td><span class="pill ok">nativa</span></td><td>Mesmo <code>Metrics</code>, mais <code>context[]</code> (deprecated) pra continuação sem re-enviar histórico</td></tr>
+        <tr><td class="path"><code class="ep">GET /api/ps</code></td><td><span class="pill ok">nativa</span></td><td>Modelos carregados agora: <code>size</code>, <code>size_vram</code>, <code>context_length</code>, <code>expires_at</code> (keep_alive) — <b>sem auth de admin</b></td></tr>
+        <tr><td class="path"><code class="ep">POST /api/show</code></td><td><span class="pill ok">nativa</span></td><td><code>Details</code>: <code>family</code>, <code>parameter_size</code>, <code>quantization_level</code>, <code>context_length</code>; mais <code>ModelInfo</code> com metadados GGUF crus</td></tr>
+        <tr><td class="path"><code class="ep">GET /api/tags</code></td><td><span class="pill ok">nativa</span></td><td>Lista de modelos instalados — já é o que <code>probeOllama</code> usa hoje na descoberta</td></tr>
+        <tr><td class="path"><code class="ep">POST /api/pull</code> · <code>/api/push</code></td><td><span class="pill ok">nativa</span></td><td>NDJSON de progresso: <code>status</code>, <code>digest</code>, <code>total</code>, <code>completed</code> (bytes)</td></tr>
+        <tr><td class="path"><code class="ep">POST /v1/chat/completions</code></td><td><span class="pill warn">OpenAI-compat</span></td><td><b>É o que o murici usa hoje.</b> <code>usage</code> só com <code>prompt_tokens</code>/<code>completion_tokens</code>/<code>total_tokens</code> — todas as durações são descartadas na conversão</td></tr>
+        <tr><td class="path"><code class="ep">POST /v1/messages</code></td><td><span class="pill warn">Anthropic-compat</span></td><td>Mesma limitação; <code>cache_control</code> de prompt caching explicitamente <b>não suportado</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>O formato nativo — e a armadilha das unidades</h3>
+  <p>Toda resposta de <code>/api/chat</code> e <code>/api/generate</code> embute isto (nanossegundos, não milissegundos — <code>docs/api.md:27-29</code> avisa explicitamente):</p>
+  <pre><code>{
+  "total_duration": 10706818083,
+  "load_duration": 12871000,
+  "prompt_eval_count": 26,
+  "prompt_eval_duration": 267510000,
+  "eval_count": 298,
+  "eval_duration": 10396087000,
+  "done": true,
+  "done_reason": "stop"
+}</code></pre>
+  <p class="dim">Tokens/s <b>não vem pronto</b> — o próprio doc do Ollama documenta a fórmula manual: <code>tokens/s = eval_count / (eval_duration / 1e9)</code>. Isso é o inverso do oMLX, que já entrega <code>generation_tokens_per_second</code> calculado.</p>
+
+  <h3>Cache: existe internamente, mas some antes de chegar na API</h3>
+  <p>O processo <code>llama-server</code> por trás do Ollama já sabe quanto do prompt veio do cache — internamente ele reporta <code>cache_n</code> (tokens do cache) e <code>prompt_n</code> (tokens novos) separados. Mas o handler do Ollama soma os dois (<code>promptEvalCount() = CacheN + PromptN</code>, <code>llm/llama_server.go:1456-1462</code>) antes de expor como <code>prompt_eval_count</code> — o split se perde. Não existe, em nenhuma rota, um equivalente ao <code>cached_tokens</code> do oMLX/OpenAI.</p>
+
+  <h3>Hardware: computado, nunca servido</h3>
+  <p>O pacote <code>discover/</code> já sonda GPU/VRAM por dispositivo pra decidir onde alocar cada modelo (<code>server/sched.go</code>) — mas nenhuma rota HTTP expõe isso. <code>/api/ps</code> só devolve os agregados <code>size</code> (total) e <code>size_vram</code> (quanto está na GPU); a diferença dá uma aproximação de RAM, mas não há split por GPU nem inventário de hardware via API.</p>
+</section>
+
+<section id="murici-hoje">
+  <span class="eyebrow">02 · Estado atual</span>
+  <h2>O que o murici já faz com Ollama — mais do que com oMLX</h2>
+  <ul>
+    <li><strong>Ollama já é tratado como caso especial na descoberta</strong> — diferente do oMLX. <code>app/api/models/discover/route.ts:70-95</code> tem um <code>probeOllama()</code> dedicado que chama <code>/api/tags</code> nativo, não o genérico <code>/v1/models</code>.</li>
+    <li><strong><code>NEXT_PUBLIC_OLLAMA_URL</code></strong> (default <code>http://localhost:11434</code>) é usado como fallback em três lugares: <code>discover/route.ts:104-105</code>, <code>components/chat/chat-helpers/index.ts:46,590,650</code>, e <code>lib/runtime/headless-runner.ts:27</code>.</li>
+    <li><strong>Mas isso para na descoberta.</strong> Uma vez que o modelo é listado, ele entra no mesmo balde genérico <code>provider: "local"</code> que oMLX, LM Studio e Oobabooga — não existe valor <code>"ollama"</code> em nenhum enum (<code>types/llms.ts</code>, <code>db/models.ts</code>, <code>lib/local-db/models.ts</code>: zero hits).</li>
+    <li><strong>O chat de fato roda por <code>app/api/chat/custom/route.ts</code></strong>, com <code>createOpenAI({baseURL, apiKey})</code> do Vercel AI SDK — sempre a camada compat, nunca <code>/api/chat</code> nativo. É por isso que os campos de duração nunca chegam: eles são descartados no <code>openai/openai.go</code> do próprio Ollama antes mesmo da resposta sair do servidor.</li>
+    <li><strong>Mesma lacuna de UI</strong> do relatório de oMLX: nenhuma ocorrência de <code>usage</code>, <code>tokensPerSecond</code> ou <code>duration</code> em <code>components/</code> — o problema de exibição é idêntico nos dois casos, só a fonte de dado muda.</li>
+  </ul>
+  <div class="callout">
+    <span><b>Ponto de atenção:</b> como não existe um marcador <code>engine: "ollama"</code> persistido no registro do modelo, o murici hoje não tem como saber, no momento do chat, se deve chamar <code>/api/chat</code> nativo (Ollama) ou só <code>/v1/chat/completions</code> (oMLX e outros). Chamar a rota nativa errada em outro servidor local dá 404. Isso é pré-requisito de qualquer recomendação abaixo — ver plano na seção 5.</span>
+  </div>
+</section>
+
+<section id="recomendacoes">
+  <span class="eyebrow">03 · Recomendações</span>
+  <h2>Funcionalidades pra implementar no murici</h2>
+  <div class="legend">
+    <span class="pill ok">pronto</span> dado público, só precisa trocar de endpoint
+    <span class="pill warn">parcial</span> dá pra aproximar, com limitação
+    <span class="pill block">precisa upstream</span> dado não existe em rota nenhuma hoje
+  </div>
+
+  <div class="card">
+    <h4>Badge de duração (load / prompt-eval / eval) + tok/s calculado por mensagem</h4>
+    <p class="why">Chamar <code>/api/chat</code> nativo em vez de <code>/v1/chat/completions</code> quando o modelo é Ollama, e calcular <code>eval_count / (eval_duration/1e9)</code> no cliente. Maior ganho do relatório — é o único jeito de recuperar dado que o próprio Ollama descarta na camada compat.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>POST /api/chat</code> → <code>Metrics</code></dd>
+      <dt>Acesso</dt><dd><span class="pill ok">pronto</span></dd>
+      <dt>Esforço</dt><dd>Médio-alto — precisa de uma rota de chat paralela (ver §5), não é só ler um campo como no caso oMLX</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Painel "modelos ativos" (VRAM/RAM, expiração)</h4>
+    <p class="why"><code>GET /api/ps</code> dá exatamente o que o dashboard admin do oMLX dá — modelos carregados, memória, tempo até descarregar — só que sem nenhuma autenticação especial. É o equivalente ao card "precisa upstream" do relatório de oMLX, mas aqui já funciona.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>GET /api/ps</code></dd>
+      <dt>Acesso</dt><dd><span class="pill ok">pronto</span></dd>
+      <dt>Esforço</dt><dd>Médio — hook de polling novo, mesmo padrão sugerido pro <code>/api/status</code> do oMLX</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Badge de modelo no seletor: quantização, parâmetros, contexto</h4>
+    <p class="why"><code>POST /api/show</code> devolve <code>parameter_size</code> ("8.0B"), <code>quantization_level</code> ("Q4_K_M") e <code>context_length</code> prontos pra exibir — sem precisar adivinhar pelo nome do arquivo do modelo.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>POST /api/show</code> → <code>Details</code></dd>
+      <dt>Acesso</dt><dd><span class="pill ok">pronto</span></dd>
+      <dt>Esforço</dt><dd>Baixo</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Barra de progresso no download de modelo</h4>
+    <p class="why"><code>/api/pull</code> transmite NDJSON com <code>completed</code>/<code>total</code> em bytes por camada — dá pra desenhar uma barra de progresso real (não spinner) na UI de gerenciamento de modelos, algo que hoje não existe pra nenhum provider local.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>POST /api/pull</code> (streaming)</dd>
+      <dt>Acesso</dt><dd><span class="pill ok">pronto</span></dd>
+      <dt>Esforço</dt><dd>Médio</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Indicador de uso da janela de contexto</h4>
+    <p class="why">Combinar <code>prompt_eval_count + eval_count</code> (por resposta) com <code>context_length</code> de <code>/api/show</code> pra mostrar "3.2k / 8k tokens de contexto usados" — mesmo cálculo do lado oMLX, mas cada engine expõe o <code>num_ctx</code> num lugar diferente.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>Metrics</code> + <code>/api/show</code></dd>
+      <dt>Acesso</dt><dd><span class="pill warn">parcial</span></dd>
+      <dt>Esforço</dt><dd>Médio</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Indicador de cache hit / offload por GPU</h4>
+    <p class="why">Nenhum dos dois existe em rota pública hoje — <code>cache_n</code> some dentro de <code>prompt_eval_count</code>, e o breakdown por GPU nunca sai de <code>discover/</code>. Não dá pra implementar client-side; ver seção 4.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd>nenhuma rota atual</dd>
+      <dt>Acesso</dt><dd><span class="pill block">precisa upstream</span></dd>
+      <dt>Esforço</dt><dd>Bloqueado sem mudança no servidor</dd>
+    </div>
+  </div>
+</section>
+
+<section id="fork-pr">
+  <span class="eyebrow">04 · Contribuição upstream</span>
+  <h2>Vale a pena um fork ou PR pro Ollama?</h2>
+  <p>O Ollama já é o projeto oficial (<code>ollama/ollama</code>, MIT, altíssima atividade — centenas de branches de contribuidores). Como no caso do oMLX, não há "abrir" a fazer — só propor PRs escopados pras duas lacunas reais que não dá pra contornar no cliente:</p>
+
+  <div class="card">
+    <h4>1. Pré-computar <code>tokens_per_second</code> e adicionar ao <code>Metrics</code></h4>
+    <p class="why">Hoje todo cliente reimplementa a mesma divisão (<code>eval_count / (eval_duration/1e9)</code>) documentada em texto no <code>docs/api.md</code>. Adicionar <code>eval_tokens_per_second</code> e <code>prompt_tokens_per_second</code> ao struct <code>Metrics</code> é aritmética pura sobre campos que já existem — baixíssimo risco. O oMLX já faz exatamente isso; citar como prior art ajuda a justificar o PR.</p>
+  </div>
+
+  <div class="card">
+    <h4>2. Separar <code>cache_n</code> de <code>prompt_eval_count</code> na resposta pública</h4>
+    <p class="why">O dado já existe em <code>llamaServerTimings.CacheN</code> — é só parar de somar antes de serializar. Expor como campo novo (<code>cached_tokens</code>, seguindo a nomenclatura que OpenAI e oMLX já usam) sem remover <code>prompt_eval_count</code> mantém compatibilidade retroativa. Maior valor do PR: nenhum cliente Ollama hoje consegue mostrar "esse prompt reaproveitou cache", inclusive concorrentes do murici.</p>
+  </div>
+
+  <div class="card">
+    <h4>3. Expor breakdown de GPU em <code>/api/ps</code></h4>
+    <p class="why"><code>runnerRef.gpus []ml.DeviceID</code> já existe internamente em <code>server/sched.go</code>. Adicionar um array opcional <code>gpus: [{id, size_vram}]</code> ao <code>ProcessModelResponse</code> é estender um struct já serializado, sem tocar em lógica de agendamento.</p>
+  </div>
+
+  <p class="dim">Diferença importante em relação ao relatório de oMLX: nenhuma dessas propostas desbloqueia dado <em>hoje inacessível por auth</em> — são melhorias de ergonomia (poupar o cliente de recalcular ou de perder informação já computada). Prioridade sugerida: item 2 primeiro (é o único gap de <em>informação</em>, os outros dois são conveniência).</p>
+</section>
+
+<section id="plano">
+  <span class="eyebrow">05 · Plano de implementação</span>
+  <h2>Por onde começar no murici</h2>
+  <ol>
+    <li><strong>Marcar o engine na descoberta.</strong> Em <code>app/api/models/discover/route.ts</code>, os modelos vindos de <code>probeOllama()</code> (linhas 70-95) devem carregar um marcador <code>engine: "ollama"</code> (hoje só existe <code>provider: "local"</code>) — sem isso, o roteamento de chat não tem como saber se pode chamar <code>/api/chat</code> nativo com segurança.</li>
+    <li><strong>Nova rota de chat nativa</strong>, paralela a <code>app/api/chat/custom/route.ts</code> (ex.: <code>app/api/chat/ollama/route.ts</code>), que chama <code>{base_url}/api/chat</code> diretamente em vez de passar pelo client OpenAI-compat do AI SDK — só assim os campos de <code>Metrics</code> sobrevivem. Alternativa com menos código: avaliar o provider comunitário <code>ollama-ai-provider</code> pro Vercel AI SDK, que mapeia os campos nativos pra <code>providerMetadata</code>; checar compatibilidade com AI SDK v5 antes de adotar.</li>
+    <li><strong>Propagar como <code>data-ollama-metrics</code></strong>, reaproveitando o mesmo padrão de UI-message-part já usado por <code>data-debug</code> em <code>lib/server/agent-stream.ts</code> — mesmo mecanismo recomendado no relatório de oMLX, mesma renderização em <code>components/messages/message.tsx</code>.</li>
+    <li><strong>Hook de polling</strong> para <code>GET /api/ps</code>, reaproveitável no mesmo painel de "atividade" sugerido pro <code>/api/status</code> do oMLX — os dois podem compartilhar componente de UI, com adaptadores diferentes por engine.</li>
+    <li><strong>Mesma RFC de destino.</strong> Como no caso oMLX, isso encaixa como continuação de <code>project/rfc/0001-local-model-autodiscovery.md</code>, que já teve o campo "VRAM / hardware metrics" deferido — uma RFC única cobrindo os dois engines evita duas propostas de design concorrentes pra UI que vai ser, na prática, a mesma.</li>
+  </ol>
+</section>
+
+<footer>
+  fontes: ollama/server/routes.go · ollama/api/types.go · ollama/openai/openai.go · ollama/llm/llama_server.go · ollama/discover/*.go · ollama/docs/api.md<br>
+  murici/app/api/models/discover/route.ts · murici/app/api/chat/custom/route.ts · murici/components/chat/chat-helpers/index.ts · murici/lib/runtime/headless-runner.ts · murici/project/rfc/0001-local-model-autodiscovery.md
+</footer>
+
+</main>

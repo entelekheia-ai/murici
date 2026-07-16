@@ -23,10 +23,7 @@ import { getMessageText, getToolInvocations } from "@/lib/ai/ui-message-parts"
  * Hook to automatically synchronize the FSM state and Vercel AI SDK events
  * into the `flowDebugLog` without relying on network polling.
  */
-export function useDebugSync(
-  messages: any[],
-  isLoading: boolean
-) {
+export function useDebugSync(messages: any[], isLoading: boolean) {
   const { flowState, setFlowDebugLog } = useContext(ChatbotUIContext)
   const currentSequenceRef = useRef<number>(0)
 
@@ -34,7 +31,7 @@ export function useDebugSync(
   useEffect(() => {
     if (isLoading && flowState) {
       const seq = ++currentSequenceRef.current
-      setFlowDebugLog((prev) => ({
+      setFlowDebugLog(prev => ({
         ...prev,
         [seq]: {
           sequenceNumber: seq,
@@ -57,28 +54,36 @@ export function useDebugSync(
   useEffect(() => {
     if (!isLoading || messages.length === 0) return
     const lastMessage = messages[messages.length - 1]
-    
+
     const toolInvocations = getToolInvocations(lastMessage)
 
     if (lastMessage.role === "assistant" && toolInvocations.length > 0) {
-      setFlowDebugLog((prev) => {
+      setFlowDebugLog(prev => {
         const seqNums = Object.keys(prev).map(Number)
         if (seqNums.length === 0) return prev
         const latestSeq = Math.max(...seqNums)
         const latest = prev[latestSeq]
 
         // Check if trigger_intent was called
-        const intentCall = toolInvocations.find(t => t.toolName === "trigger_intent")
+        const intentCall = toolInvocations.find(
+          t => t.toolName === "trigger_intent"
+        )
 
         return {
           ...prev,
           [latestSeq]: {
             ...latest,
             rawResponse: getMessageText(lastMessage),
-            intentFound: intentCall ? (intentCall.input as any)?.intent_name : latest.intentFound,
+            intentFound: intentCall
+              ? (intentCall.input as any)?.intent_name
+              : latest.intentFound,
             toolExchange: toolInvocations.map(t => ({
               role: "tool",
-              content: { toolName: t.toolName, args: t.input, result: t.output ?? "pending..." }
+              content: {
+                toolName: t.toolName,
+                args: t.input,
+                result: t.output ?? "pending..."
+              }
             }))
           }
         }

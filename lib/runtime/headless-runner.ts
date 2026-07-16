@@ -61,7 +61,7 @@ export async function runHeadlessAgent(
     if (!unpackRes.ok) throw new Error("Failed to unpack agent")
     const data = await unpackRes.json()
     behaviorText = data.behaviorText
-    
+
     if (behaviorText) {
       agentCache.set(agentUrl, behaviorText)
     } else {
@@ -81,8 +81,11 @@ export async function runHeadlessAgent(
   const preState = kernel.get_current_state()
   const effects = await kernel.send_intent(initialIntent)
   const postState = kernel.get_current_state()
-  
-  console.log(`[Headless] preState=${preState}, intent=${initialIntent}, postState=${postState}, effects=`, effects)
+
+  console.log(
+    `[Headless] preState=${preState}, intent=${initialIntent}, postState=${postState}, effects=`,
+    effects
+  )
 
   const goal = effects.find(e => e.type === "goal")?.text || ""
   const guide = effects.find(e => e.type === "guide")?.text || ""
@@ -133,7 +136,11 @@ export async function runHeadlessAgent(
   }
 
   if (!response.ok) {
-    console.error("Headless LLM returned !ok response:", response.status, await response.text().catch(() => ""))
+    console.error(
+      "Headless LLM returned !ok response:",
+      response.status,
+      await response.text().catch(() => "")
+    )
     return null
   }
 

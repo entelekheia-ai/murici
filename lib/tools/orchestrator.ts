@@ -56,7 +56,7 @@ export async function executeClientTool(
       const parts = toolName.split("__")
       const serverName = parts[1]
       const tName = parts[2]
-      
+
       const res = await fetch("/api/mcp/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,7 +73,9 @@ export async function executeClientTool(
 
     throw new Error(`Unknown tool: ${toolName}`)
   } catch (err: any) {
-    logger.error(`[ToolOrchestrator] Failed to execute ${toolName}`, { error: err.message })
+    logger.error(`[ToolOrchestrator] Failed to execute ${toolName}`, {
+      error: err.message
+    })
     return { error: err.message || "Execution failed" }
   }
 }

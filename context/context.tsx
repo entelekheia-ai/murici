@@ -18,10 +18,19 @@ import {
 import { FlowTurnDebug } from "@/types"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { AssistantImage } from "@/types/images/assistant-image"
-import { AgentAboutme, OsPendingAgentFile, UnpackPayload } from "@/types/electron"
+import {
+  AgentAboutme,
+  OsPendingAgentFile,
+  UnpackPayload
+} from "@/types/electron"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { KernelProxy } from "@/lib/kernel-proxy"
-import { Dispatch, MutableRefObject, SetStateAction, createContext } from "react"
+import {
+  Dispatch,
+  MutableRefObject,
+  SetStateAction,
+  createContext
+} from "react"
 
 export interface ChatAgentSession {
   proxy: KernelProxy
@@ -174,7 +183,9 @@ interface ChatbotUIContext {
 
   // FLOW ENGINE STORE
   agentKnowledgeFiles: Array<{ path: string; content: string }>
-  setAgentKnowledgeFiles: Dispatch<SetStateAction<Array<{ path: string; content: string }>>>
+  setAgentKnowledgeFiles: Dispatch<
+    SetStateAction<Array<{ path: string; content: string }>>
+  >
   agentPersona: string | null
   setAgentPersona: Dispatch<SetStateAction<string | null>>
   flowEngine: any | null

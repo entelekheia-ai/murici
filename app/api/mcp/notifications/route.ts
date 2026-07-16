@@ -24,20 +24,20 @@ export async function GET(req: Request) {
   // A placeholder for the SSE endpoint that pushes spontaneous MCP events to the frontend.
   // In a full implementation, this would attach a listener to mcpClientManager's active clients
   // and pipe events into a ReadableStream.
-  
+
   const stream = new ReadableStream({
     start(controller) {
       // Send initial heartbeat
-      controller.enqueue(`data: ${JSON.stringify({ type: 'connected' })}\n\n`)
-      
+      controller.enqueue(`data: ${JSON.stringify({ type: "connected" })}\n\n`)
+
       const interval = setInterval(() => {
-        controller.enqueue(`data: ${JSON.stringify({ type: 'ping' })}\n\n`)
+        controller.enqueue(`data: ${JSON.stringify({ type: "ping" })}\n\n`)
       }, 30000)
 
-      // When clients get disconnected or connected, or tool progress events occur, 
+      // When clients get disconnected or connected, or tool progress events occur,
       // they would be enqueued here.
 
-      req.signal.addEventListener('abort', () => {
+      req.signal.addEventListener("abort", () => {
         clearInterval(interval)
         controller.close()
       })
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive"
+      Connection: "keep-alive"
     }
   })
 }

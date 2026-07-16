@@ -58,7 +58,10 @@ async function fetchText(url: string): Promise<string> {
   return res.text()
 }
 
-async function buildRuntime(grammarWasm: string, highlightsScm: string): Promise<LangRuntime> {
+async function buildRuntime(
+  grammarWasm: string,
+  highlightsScm: string
+): Promise<LangRuntime> {
   const [language, scmSource] = await Promise.all([
     Language.load(`${WASM_BASE}/${grammarWasm}`),
     fetchText(`${WASM_BASE}/${highlightsScm}`)
@@ -70,9 +73,14 @@ async function buildRuntime(grammarWasm: string, highlightsScm: string): Promise
 }
 
 function doInit(): Promise<Record<DslLangId, LangRuntime>> {
-  return Parser.init({ locateFile: () => `${WASM_BASE}/web-tree-sitter.wasm` }).then(async () => {
+  return Parser.init({
+    locateFile: () => `${WASM_BASE}/web-tree-sitter.wasm`
+  }).then(async () => {
     const [description, behavior] = await Promise.all([
-      buildRuntime("tree-sitter-description.wasm", "highlights-description.scm"),
+      buildRuntime(
+        "tree-sitter-description.wasm",
+        "highlights-description.scm"
+      ),
       buildRuntime("tree-sitter-behavior.wasm", "highlights-behavior.scm")
     ])
     return { description, behavior }
@@ -90,7 +98,10 @@ function getRuntimes(): Promise<Record<DslLangId, LangRuntime>> {
  * the exact same node range, the later pattern in highlights.scm wins,
  * matching tree-sitter's own "last matching pattern takes precedence" rule.
  */
-export async function highlightDsl(langId: DslLangId, text: string): Promise<DslToken[]> {
+export async function highlightDsl(
+  langId: DslLangId,
+  text: string
+): Promise<DslToken[]> {
   const runtimes = await getRuntimes()
   const { parser, query } = runtimes[langId]
   const tree: Tree | null = parser.parse(text)
@@ -100,10 +111,15 @@ export async function highlightDsl(langId: DslLangId, text: string): Promise<Dsl
   // same node range (e.g. a generic `@type` pattern and a more specific
   // `@namespace` pattern below it), the later-declared pattern's name wins
   // in the Map regardless of the incidental order captures() returns.
-  const captures = [...query.captures(tree.rootNode)].sort((a, b) => a.patternIndex - b.patternIndex)
+  const captures = [...query.captures(tree.rootNode)].sort(
+    (a, b) => a.patternIndex - b.patternIndex
+  )
   const byRange = new Map<string, string>()
   for (const capture of captures) {
-    byRange.set(`${capture.node.startIndex}-${capture.node.endIndex}`, capture.name)
+    byRange.set(
+      `${capture.node.startIndex}-${capture.node.endIndex}`,
+      capture.name
+    )
   }
 
   const ranges = Array.from(byRange.entries())
@@ -118,7 +134,10 @@ export async function highlightDsl(langId: DslLangId, text: string): Promise<Dsl
   for (const { start, end, name } of ranges) {
     if (start < cursor) continue // nested/overlapping sub-range of an already-emitted token
     if (start > cursor) tokens.push({ text: text.slice(cursor, start) })
-    tokens.push({ text: text.slice(start, end), className: CAPTURE_STYLES[name] })
+    tokens.push({
+      text: text.slice(start, end),
+      className: CAPTURE_STYLES[name]
+    })
     cursor = end
   }
   if (cursor < text.length) tokens.push({ text: text.slice(cursor) })

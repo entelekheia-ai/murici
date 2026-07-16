@@ -32,7 +32,10 @@ describe("buildAiSdkTools", () => {
         function: {
           name: "get_weather",
           description: "Get the weather",
-          parameters: { type: "object", properties: { city: { type: "string" } } }
+          parameters: {
+            type: "object",
+            properties: { city: { type: "string" } }
+          }
         }
       }
     ]

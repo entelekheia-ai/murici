@@ -18,13 +18,18 @@ import { Effect } from "@/types/kernel-effect"
 import { KernelState } from "@/types/electron"
 
 let sharedWorker: Worker | null = null
-let pendingCalls = new Map<string, { resolve: (val: any) => void, reject: (err: any) => void }>()
+let pendingCalls = new Map<
+  string,
+  { resolve: (val: any) => void; reject: (err: any) => void }
+>()
 
 function getSharedWorker() {
   if (typeof window === "undefined") return null
   if (!sharedWorker) {
-    sharedWorker = new Worker(new URL('../worker/fsm.worker.ts', import.meta.url))
-    sharedWorker.onmessage = (e) => {
+    sharedWorker = new Worker(
+      new URL("../worker/fsm.worker.ts", import.meta.url)
+    )
+    sharedWorker.onmessage = e => {
       const { id, state, error } = e.data
       const pending = pendingCalls.get(id)
       if (pending) {
@@ -50,7 +55,11 @@ export class KernelProxy {
   destroy() {
     const worker = getSharedWorker()
     if (worker) {
-      worker.postMessage({ id: "destroy", method: "DESTROY", payload: { sessionId: this._sessionId } })
+      worker.postMessage({
+        id: "destroy",
+        method: "DESTROY",
+        payload: { sessionId: this._sessionId }
+      })
     }
   }
 
@@ -77,7 +86,13 @@ export class KernelProxy {
     behaviors: Array<{ path: string; content: string }> = [],
     initialMemory: Array<{ domain: string; key: string; value: string }> = []
   ): Promise<Effect[]> {
-    const state = await this._call("load", { behaviorText: text, knowledge, guides, behaviors, initialMemory })
+    const state = await this._call("load", {
+      behaviorText: text,
+      knowledge,
+      guides,
+      behaviors,
+      initialMemory
+    })
     return this._updateCache(state)
   }
 
@@ -91,7 +106,11 @@ export class KernelProxy {
     return this._updateCache(state)
   }
 
-  async inject_memory(domain: string, key: string, value: string): Promise<Effect[]> {
+  async inject_memory(
+    domain: string,
+    key: string,
+    value: string
+  ): Promise<Effect[]> {
     const state = await this._call("injectMemory", { domain, key, value })
     return this._updateCache(state)
   }
@@ -101,7 +120,10 @@ export class KernelProxy {
     return this._updateCache(state)
   }
 
-  private async _call(method: string, payload: Record<string, any> = {}): Promise<KernelState> {
+  private async _call(
+    method: string,
+    payload: Record<string, any> = {}
+  ): Promise<KernelState> {
     const worker = getSharedWorker()
     if (!worker) throw new Error("Worker not initialized")
     const id = Math.random().toString(36).slice(2)

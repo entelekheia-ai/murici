@@ -1,5 +1,11 @@
 "use client"
-import { File, AlertCircle, MessageSquare, Brain, LayoutGrid } from "lucide-react"
+import {
+  File,
+  AlertCircle,
+  MessageSquare,
+  Brain,
+  LayoutGrid
+} from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -16,11 +22,7 @@ import { useTranslation } from "react-i18next"
 import { WithTooltip } from "../ui/with-tooltip"
 import { ProfileSettings } from "../utility/profile-settings"
 import { Button } from "../ui/button"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from "../ui/popover"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { ChatbotUIContext } from "@/context/context"
 
 export const SIDEBAR_ICON_SIZE = 22

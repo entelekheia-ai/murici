@@ -3,7 +3,10 @@
  * Licensed under the Apache License, Version 2.0
  */
 
-import { BehaviorStateInfo, buildTriggerIntentTool } from "@/lib/runtime/dot-agent-injector"
+import {
+  BehaviorStateInfo,
+  buildTriggerIntentTool
+} from "@/lib/runtime/dot-agent-injector"
 
 /**
  * The tools available to the model right now, in OpenAI function-calling shape:
@@ -35,7 +38,10 @@ export async function getMcpAndBuiltInTools(
               type: "string",
               description: "A short, descriptive title for the document."
             },
-            theme: { type: "string", description: "The general theme or topic." },
+            theme: {
+              type: "string",
+              description: "The general theme or topic."
+            },
             summary: {
               type: "string",
               description: "A one-sentence summary of the content."

@@ -9,7 +9,13 @@ import { updateChat } from "@/db/chats"
 import { createChatRowOnce, prependChatOnce } from "@/lib/channels/chat-rows"
 import { createMessages } from "@/db/messages"
 import { ChatAgentSession } from "@/context/context"
-import { ChatMessage, ChatSettings, FlowEvent, FlowEventType, LLM } from "@/types"
+import {
+  ChatMessage,
+  ChatSettings,
+  FlowEvent,
+  FlowEventType,
+  LLM
+} from "@/types"
 import { Message, Tables } from "@/types/database"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { executeClientTool } from "@/lib/tools/orchestrator"
@@ -430,7 +436,9 @@ export class ChannelController {
         // when the user comes back to it. (For the viewed chat AgentSessionProvider
         // recomputes the same thing off the global flowState below; both paths agree,
         // and doing it here is what makes the background path complete on its own.)
-        const visitedOrder = session?.visitedOrder?.includes(advanced.currentState)
+        const visitedOrder = session?.visitedOrder?.includes(
+          advanced.currentState
+        )
           ? session.visitedOrder
           : [...(session?.visitedOrder ?? []), advanced.currentState]
         const graphData = engineFsm.get_graph?.() ?? session?.graphData ?? null
@@ -464,7 +472,9 @@ export class ChannelController {
         report(payload)
       } catch (err: any) {
         logger.error("trigger_intent advance failed", { error: err.message })
-        this.reportError({ message: err.message || "Failed to advance the flow" })
+        this.reportError({
+          message: err.message || "Failed to advance the flow"
+        })
         report({ error: err.message || "Failed to advance the flow" })
       }
       return
@@ -716,7 +726,10 @@ export class ChannelController {
       })
       channelStore
         .getState()
-        .patchChannel(this.threadId, { status: "error", firstTokenReceived: false })
+        .patchChannel(this.threadId, {
+          status: "error",
+          firstTokenReceived: false
+        })
     } finally {
       this.isSending = false
     }

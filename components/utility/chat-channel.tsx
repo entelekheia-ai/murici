@@ -122,7 +122,8 @@ export const ChatChannel: FC<ChatChannelProps> = ({ threadId }) => {
     experimental_throttle: 50,
     onData: part => controller.onData(part),
     sendAutomaticallyWhen: ({ messages }) => {
-      if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return false
+      if (!lastAssistantMessageIsCompleteWithToolCalls({ messages }))
+        return false
       return controller.shouldAutoResubmit(messages as any[])
     },
     onToolCall: ({ toolCall }) => controller.onToolCall(toolCall),
@@ -162,7 +163,8 @@ export const ChatChannel: FC<ChatChannelProps> = ({ threadId }) => {
       // the global flowState/persona here is what made a message sent in chat B
       // travel with chat A's FSM and come back classified as "offtopic".
       getAgentSession: id => context.chatAgentSessionsRef.current.get(id),
-      updateAgentSession: (id, patch) => context.updateChatAgentSession(id, patch),
+      updateAgentSession: (id, patch) =>
+        context.updateChatAgentSession(id, patch),
 
       isViewed: () => isViewedRef.current,
 
@@ -227,7 +229,13 @@ export const ChatChannel: FC<ChatChannelProps> = ({ threadId }) => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId, isViewed, isBusy, context.selectedChat?.id, context.chatMessages])
+  }, [
+    threadId,
+    isViewed,
+    isBusy,
+    context.selectedChat?.id,
+    context.chatMessages
+  ])
 
   // The one-way projection: SDK messages -> DB-shaped rows. Runs for background
   // channels too (each keeps its own list current, which is what its sequence

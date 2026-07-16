@@ -33,7 +33,10 @@ export async function POST(req: Request) {
     const { message } = body
 
     if (!message) {
-      return NextResponse.json({ error: "message is required" }, { status: 400 })
+      return NextResponse.json(
+        { error: "message is required" },
+        { status: 400 }
+      )
     }
 
     // Forward the whole payload, not just a fixed allowlist — callers pass
@@ -44,7 +47,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true })
   } catch (error: any) {
-    logger.error("Failed to record client-side error report", { error: error.message })
+    logger.error("Failed to record client-side error report", {
+      error: error.message
+    })
     return NextResponse.json({ error: "internal error" }, { status: 500 })
   }
 }

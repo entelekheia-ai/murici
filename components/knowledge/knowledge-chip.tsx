@@ -6,10 +6,14 @@ import { Copy, Check, Pencil } from "lucide-react"
  */
 
 import { FC, useState, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { LLM } from "@/types"
 import { updateKnowledgeRecord } from "@/lib/local-db/knowledge"
-import { enrichKnowledgeRecord, triggerEnrichment } from "@/lib/knowledge/enrich"
+import {
+  enrichKnowledgeRecord,
+  triggerEnrichment
+} from "@/lib/knowledge/enrich"
 import { Button } from "@/components/ui/button"
 
 import { ChatbotUIContext } from "@/context/context"
@@ -17,7 +21,6 @@ import { useContext } from "react"
 import { KnowledgePreviewModal } from "./knowledge-preview-modal"
 
 const PLACEHOLDER_TITLE_RE = /^.+ · \d{2}:\d{2}$/
-
 
 interface KnowledgeChipProps {
   record: KnowledgeRecord
@@ -34,6 +37,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
   chatName,
   onUpdate
 }) => {
+  const { t } = useTranslation()
   const [previewOpen, setPreviewOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(record.title)
@@ -44,7 +48,6 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
 
   const isPlaceholder = PLACEHOLDER_TITLE_RE.test(record.title)
   const showNamingButton = (isPlaceholder || !record.summary) && !compact
-
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -119,7 +122,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
             {record.title}
           </span>
         )}
-        
+
         {record.summary && !compact && (
           <span className="mt-0.5 line-clamp-2 text-[11px] leading-tight text-foreground-secondary">
             {record.summary}
@@ -127,48 +130,48 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
         )}
       </div>
 
-        <div className="flex shrink-0 items-center gap-1">
-          {showNamingButton && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-xs"
-              onClick={handleNaming}
-              disabled={naming}
-            >
-              {naming ? "..." : "✦ nomear"}
-            </Button>
+      <div className="flex shrink-0 items-center gap-1">
+        {showNamingButton && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-xs"
+            onClick={handleNaming}
+            disabled={naming}
+          >
+            {naming ? "..." : "✦ nomear"}
+          </Button>
+        )}
+        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          {!compact && (
+            <>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-6"
+                onClick={handleTitleClick}
+                title={t("Edit title")}
+              >
+                <Pencil size={12} />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-6"
+                onClick={handleCopy}
+                title={t("Copy content")}
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+              </Button>
+            </>
           )}
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-            {!compact && (
-              <>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="size-6"
-                  onClick={handleTitleClick}
-                  title="Editar título"
-                >
-                  <Pencil size={12} />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="size-6"
-                  onClick={handleCopy}
-                  title="Copiar conteúdo"
-                >
-                  {copied ? <Check size={12} /> : <Copy size={12} />}
-                </Button>
-              </>
-            )}
-          </div>
         </div>
+      </div>
 
       {previewOpen && (
         <KnowledgePreviewModal
           record={record}
-          chatName={chatName ?? "Conversa"}
+          chatName={chatName ?? t("Conversation")}
           onClose={() => setPreviewOpen(false)}
         />
       )}

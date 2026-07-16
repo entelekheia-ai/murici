@@ -39,3 +39,18 @@ export function loadMenuStrings(locale: string): (key: string) => string {
   const fallback = locale === "en" ? primary : loadLocaleFile("en")
   return (key: string) => primary[key] ?? fallback[key] ?? key
 }
+
+// Only these have a shipped public/locales/<locale>/translation.json —
+// keep in sync with lib/locale-names.ts's SUPPORTED_LOCALES.
+const SHIPPED_LOCALES = ["en", "pt", "pt-BR", "es", "de"]
+
+// Best-effort mapping from the OS locale (Electron's app.getLocale(), e.g.
+// "pt-PT" or "pt_BR") to one of our shipped locales, used before the
+// renderer has had a chance to report its own resolved locale over IPC.
+export function resolveInitialLocale(systemLocale: string): string {
+  const normalized = systemLocale.replace("_", "-")
+  if (SHIPPED_LOCALES.includes(normalized)) return normalized
+  const primary = normalized.split("-")[0]
+  const match = SHIPPED_LOCALES.find(l => l.split("-")[0] === primary)
+  return match ?? "en"
+}

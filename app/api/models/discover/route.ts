@@ -8,7 +8,7 @@ import { readFile } from "fs/promises"
 import { homedir } from "os"
 import { join } from "path"
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
 const DISCOVERY_TIMEOUT_MS = 5000
 
@@ -37,7 +37,9 @@ async function probeOpenAICompat(
   const timer = setTimeout(() => controller.abort(), DISCOVERY_TIMEOUT_MS)
 
   try {
-    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json"
+    }
     if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`
 
     const res = await fetch(`${baseUrl}/v1/models`, {
@@ -72,7 +74,10 @@ async function probeOllama(baseUrl: string): Promise<LLM[]> {
   const timer = setTimeout(() => controller.abort(), DISCOVERY_TIMEOUT_MS)
 
   try {
-    const res = await fetch(`${baseUrl}/api/tags`, { signal: controller.signal, cache: "no-store" })
+    const res = await fetch(`${baseUrl}/api/tags`, {
+      signal: controller.signal,
+      cache: "no-store"
+    })
     if (!res.ok) return []
 
     const json = await res.json()
@@ -106,17 +111,17 @@ export async function GET() {
 
   const probes = [
     probeOllama("http://localhost:11434"),
-    probeOpenAICompat("http://localhost:1234"),           // LM Studio
-    probeOpenAICompat("http://localhost:8080"),           // LocalAI / Llama.cpp
-    probeOpenAICompat(omlxBaseUrl, omlxApiKey),          // oMLX / vLLM
-    probeOpenAICompat("http://localhost:5000")            // Oobabooga
-  ];
+    probeOpenAICompat("http://localhost:1234"), // LM Studio
+    probeOpenAICompat("http://localhost:8080"), // LocalAI / Llama.cpp
+    probeOpenAICompat(omlxBaseUrl, omlxApiKey), // oMLX / vLLM
+    probeOpenAICompat("http://localhost:5000") // Oobabooga
+  ]
 
   if (ollamaBaseUrl !== "http://localhost:11434") {
-    probes.push(probeOllama(ollamaBaseUrl));
+    probes.push(probeOllama(ollamaBaseUrl))
   }
 
-  const results = await Promise.allSettled(probes);
+  const results = await Promise.allSettled(probes)
 
   const models: LLM[] = results.flatMap(r =>
     r.status === "fulfilled" ? r.value : []

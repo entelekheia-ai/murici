@@ -46,7 +46,11 @@ async function timedFetch(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    return await fetch(url, { ...init, signal: controller.signal, cache: "no-store" })
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      cache: "no-store"
+    })
   } finally {
     clearTimeout(timer)
   }
@@ -82,7 +86,10 @@ const MODELS_DEV_PROVIDER_ALIASES: Record<RemoteProvider, string[]> = {
 let modelsDevCache: { data: any; fetchedAt: number } | null = null
 
 async function getModelsDevCatalog(): Promise<any | null> {
-  if (modelsDevCache && Date.now() - modelsDevCache.fetchedAt < MODELS_DEV_TTL_MS) {
+  if (
+    modelsDevCache &&
+    Date.now() - modelsDevCache.fetchedAt < MODELS_DEV_TTL_MS
+  ) {
     return modelsDevCache.data
   }
   try {
@@ -253,7 +260,8 @@ function classifyModels(
 // including non-chat entries (embeddings, whisper, tts, dall-e, moderation,
 // legacy completion snapshots) that would just error out if picked in the
 // chat model dropdown.
-const NON_CHAT_OPENAI_MODEL = /embedding|whisper|tts|dall-e|moderation|davinci-002|babbage-002/i
+const NON_CHAT_OPENAI_MODEL =
+  /embedding|whisper|tts|dall-e|moderation|davinci-002|babbage-002/i
 
 async function discoverOpenAICompat(
   provider: "openai" | "groq",
@@ -270,7 +278,8 @@ async function discoverOpenAICompat(
     const json = await res.json()
     // Groq's response additionally includes "created" and "active"; OpenAI's
     // doesn't have "active" at all (stays undefined, never filters anything).
-    const items: { id: string; created?: number; active?: boolean }[] = json?.data ?? []
+    const items: { id: string; created?: number; active?: boolean }[] =
+      json?.data ?? []
     const raw: RawModel[] = items
       .filter(item => !NON_CHAT_OPENAI_MODEL.test(item.id))
       .map(item => ({
@@ -282,12 +291,18 @@ async function discoverOpenAICompat(
 
     return { status: "ok", models: classifyModels(provider, raw, catalog) }
   } catch (error: any) {
-    logger.warn("remote model discovery failed", { provider, error: error?.message })
+    logger.warn("remote model discovery failed", {
+      provider,
+      error: error?.message
+    })
     return { status: "error" }
   }
 }
 
-async function discoverAnthropic(apiKey: string, catalog: any): Promise<ProviderResult> {
+async function discoverAnthropic(
+  apiKey: string,
+  catalog: any
+): Promise<ProviderResult> {
   try {
     const res = await timedFetch("https://api.anthropic.com/v1/models", {
       headers: {
@@ -307,12 +322,18 @@ async function discoverAnthropic(apiKey: string, catalog: any): Promise<Provider
 
     return { status: "ok", models: classifyModels("anthropic", raw, catalog) }
   } catch (error: any) {
-    logger.warn("remote model discovery failed", { provider: "anthropic", error: error?.message })
+    logger.warn("remote model discovery failed", {
+      provider: "anthropic",
+      error: error?.message
+    })
     return { status: "error" }
   }
 }
 
-async function discoverGoogle(apiKey: string, catalog: any): Promise<ProviderResult> {
+async function discoverGoogle(
+  apiKey: string,
+  catalog: any
+): Promise<ProviderResult> {
   try {
     const res = await timedFetch(
       `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`
@@ -343,7 +364,9 @@ async function discoverGoogle(apiKey: string, catalog: any): Promise<ProviderRes
     // generate chat content at all — without this filter they'd dominate
     // the dropdown.
     const raw: RawModel[] = items
-      .filter(item => item.supportedGenerationMethods?.includes("generateContent"))
+      .filter(item =>
+        item.supportedGenerationMethods?.includes("generateContent")
+      )
       .map(item => {
         const id = item.name.replace(/^models\//, "")
         // Google has no per-model creation date via this API, and — despite
@@ -354,12 +377,18 @@ async function discoverGoogle(apiKey: string, catalog: any): Promise<ProviderRes
 
     return { status: "ok", models: classifyModels("google", raw, catalog) }
   } catch (error: any) {
-    logger.warn("remote model discovery failed", { provider: "google", error: error?.message })
+    logger.warn("remote model discovery failed", {
+      provider: "google",
+      error: error?.message
+    })
     return { status: "error" }
   }
 }
 
-async function discoverMistral(apiKey: string, catalog: any): Promise<ProviderResult> {
+async function discoverMistral(
+  apiKey: string,
+  catalog: any
+): Promise<ProviderResult> {
   try {
     const res = await timedFetch("https://api.mistral.ai/v1/models", {
       headers: { Authorization: `Bearer ${apiKey}` }
@@ -378,7 +407,10 @@ async function discoverMistral(apiKey: string, catalog: any): Promise<ProviderRe
 
     return { status: "ok", models: classifyModels("mistral", raw, catalog) }
   } catch (error: any) {
-    logger.warn("remote model discovery failed", { provider: "mistral", error: error?.message })
+    logger.warn("remote model discovery failed", {
+      provider: "mistral",
+      error: error?.message
+    })
     return { status: "error" }
   }
 }
@@ -437,20 +469,23 @@ export async function POST(request: Request) {
     groq: profile.groq_api_key
   }
 
-  const entries = (Object.entries(providerKeys) as [RemoteProvider, string | null][]).filter(
-    (entry): entry is [RemoteProvider, string] => !!entry[1]
-  )
+  const entries = (
+    Object.entries(providerKeys) as [RemoteProvider, string | null][]
+  ).filter((entry): entry is [RemoteProvider, string] => !!entry[1])
 
   const catalog = await getModelsDevCatalog()
 
   const settled = await Promise.allSettled(
-    entries.map(([provider, apiKey]) => discoverProvider(provider, apiKey, catalog))
+    entries.map(([provider, apiKey]) =>
+      discoverProvider(provider, apiKey, catalog)
+    )
   )
 
   const results: Partial<Record<RemoteProvider, ProviderResult>> = {}
   entries.forEach(([provider], i) => {
     const outcome = settled[i]
-    results[provider] = outcome.status === "fulfilled" ? outcome.value : { status: "error" }
+    results[provider] =
+      outcome.status === "fulfilled" ? outcome.value : { status: "error" }
   })
 
   return Response.json({ results })

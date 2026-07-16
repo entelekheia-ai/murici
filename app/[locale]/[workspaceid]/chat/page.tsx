@@ -32,7 +32,11 @@ export default function ChatPage() {
     isAgentBundleLoading
   } = useContext(ChatbotUIContext)
 
-  const { knowledge, agentBundles, loading: knowledgeLoading } = useKnowledgeData()
+  const {
+    knowledge,
+    agentBundles,
+    loading: knowledgeLoading
+  } = useKnowledgeData()
   const headerProps = useHeaderControls()
   const [showGraphHome, setShowGraphHome] = useState(true)
 

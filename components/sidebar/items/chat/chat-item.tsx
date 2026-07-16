@@ -55,7 +55,12 @@ export const ChatItem: FC<ChatItemProps> = ({
       onKeyDown={handleKeyDown}
       onClick={onClick}
     >
-      <div className={cn("flex-1 truncate text-sm", isActive ? "font-semibold" : "font-normal")}>
+      <div
+        className={cn(
+          "flex-1 truncate text-sm",
+          isActive ? "font-semibold" : "font-normal"
+        )}
+      >
         {chat.name}
       </div>
 

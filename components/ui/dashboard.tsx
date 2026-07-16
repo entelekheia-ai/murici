@@ -16,7 +16,12 @@ import { ChatbotUIContext } from "@/context/context"
 import { ContentType } from "@/types"
 import { OsPendingAgentFile } from "@/types/electron"
 
-import { usePathname, useRouter, useSearchParams, useParams } from "next/navigation"
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+  useParams
+} from "next/navigation"
 import dynamic from "next/dynamic"
 import { FC, useEffect, useState, useContext, useCallback, useRef } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
@@ -79,7 +84,13 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const [contentType, setContentType] = useState<ContentType>(
     tabValue as ContentType
   )
-  const { showSidebar, setShowSidebar, showRightSidebar, setShowRightSidebar, setOsPendingAgentPayload } = useContext(ChatbotUIContext)
+  const {
+    showSidebar,
+    setShowSidebar,
+    showRightSidebar,
+    setShowRightSidebar,
+    setOsPendingAgentPayload
+  } = useContext(ChatbotUIContext)
 
   // Main hands over the PATH of a .agent the OS opened; right-sidebar unpacks it (and
   // reports its own failures). There is no "open-agent-file-error" channel any more —
@@ -132,10 +143,14 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
           window.dispatchEvent(new Event("murici:profile-open"))
           break
         case "view-chat":
-          window.dispatchEvent(new CustomEvent("murici:sidebar-navigate", { detail: "chats" }))
+          window.dispatchEvent(
+            new CustomEvent("murici:sidebar-navigate", { detail: "chats" })
+          )
           break
         case "view-agents":
-          window.dispatchEvent(new CustomEvent("murici:sidebar-navigate", { detail: "agents" }))
+          window.dispatchEvent(
+            new CustomEvent("murici:sidebar-navigate", { detail: "agents" })
+          )
           break
         case "view-knowledge":
           router.push(`/${locale}/${workspaceid}/graph`)
@@ -153,7 +168,14 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
           break
       }
     })
-  }, [handleNewChat, locale, workspaceid, router, setShowSidebar, setShowRightSidebar])
+  }, [
+    handleNewChat,
+    locale,
+    workspaceid,
+    router,
+    setShowSidebar,
+    setShowRightSidebar
+  ])
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(280)
   const [isResizing, setIsResizing] = useState(false)
@@ -304,7 +326,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
       <CommandK />
 
       <div
-      data-dot-agent-ui="chat-list"
+        data-dot-agent-ui="chat-list"
         className={cn(
           "relative",
           !isResizing && "duration-200",

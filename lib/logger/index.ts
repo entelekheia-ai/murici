@@ -29,7 +29,8 @@ class UniversalLogger {
   // being imported in a non-browser environment (observed under Jest with
   // certain module combinations), without it having a real `document`. A
   // real browser/jsdom window always has `.document`.
-  private isServer = typeof window === "undefined" || typeof window.document === "undefined"
+  private isServer =
+    typeof window === "undefined" || typeof window.document === "undefined"
 
   // debug is off by default (both server and client) — it's meant to be
   // turned on ad hoc while investigating something (NEXT_PUBLIC_LOG_LEVEL is
@@ -66,7 +67,7 @@ class UniversalLogger {
     if (this.isServer) {
       // On the server, we rely on the global console which is intercepted by winston in main.ts
       // or we can import winston directly if we are in Next.js.
-      // For now, since electron/main.ts intercepts console methods, 
+      // For now, since electron/main.ts intercepts console methods,
       // standard console methods are written to main.log.
       const payload = meta ? `${message} ${JSON.stringify(meta)}` : message
       switch (level) {

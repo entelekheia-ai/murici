@@ -8,7 +8,11 @@
 import { ChatSettings } from "@/types"
 import { ServerRuntime } from "next"
 import { createOpenAI } from "@ai-sdk/openai"
-import { extractReasoningMiddleware, wrapLanguageModel, convertToModelMessages } from "ai"
+import {
+  extractReasoningMiddleware,
+  wrapLanguageModel,
+  convertToModelMessages
+} from "ai"
 import { buildAiSdkTools } from "@/lib/server/model-message-adapter"
 import { getBuiltInTools, mapMcpTools } from "@/lib/tools/registry"
 import { streamAgentResponse } from "@/lib/server/agent-stream"
@@ -18,7 +22,15 @@ export const runtime: ServerRuntime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, customModel, tools: rawTools, behaviorState, mcpTools, agentPersona } = json as {
+  const {
+    chatSettings,
+    messages,
+    customModel,
+    tools: rawTools,
+    behaviorState,
+    mcpTools,
+    agentPersona
+  } = json as {
     chatSettings: ChatSettings
     messages: any[]
     customModel: { api_key: string; base_url: string; model_id: string }
@@ -29,9 +41,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    logger.info("Custom chat route body", { 
-      messagesCount: json.messages?.length, 
-      messages: json.messages?.map((m: any) => ({ role: m.role, content: m.content?.slice?.(0, 50) || m.content })) 
+    logger.info("Custom chat route body", {
+      messagesCount: json.messages?.length,
+      messages: json.messages?.map((m: any) => ({
+        role: m.role,
+        content: m.content?.slice?.(0, 50) || m.content
+      }))
     })
 
     if (!customModel?.base_url) {
@@ -48,9 +63,8 @@ export async function POST(request: Request) {
       ? bareBaseUrl
       : `${bareBaseUrl}/v1`
 
-    const { withReasoningContentAsThink } = await import(
-      "@/lib/server/providers/reasoning-content-fetch"
-    )
+    const { withReasoningContentAsThink } =
+      await import("@/lib/server/providers/reasoning-content-fetch")
 
     const custom = createOpenAI({
       apiKey: customModel.api_key || "",
@@ -83,9 +97,12 @@ export async function POST(request: Request) {
       return m
     })
 
-    const modelMessages = await convertToModelMessages(normalizedMessages, { tools })
+    const modelMessages = await convertToModelMessages(normalizedMessages, {
+      tools
+    })
 
-    const { extractToolCallMiddleware } = await import("@/lib/server/providers/tool-call-leak-middleware")
+    const { extractToolCallMiddleware } =
+      await import("@/lib/server/providers/tool-call-leak-middleware")
 
     // Wrap model to automatically extract <think> tags into reasoning protocol
     // and extract raw leaked <tool_call> tags from local models
@@ -115,7 +132,12 @@ export async function POST(request: Request) {
       tools
     })
   } catch (error: any) {
-    logger.error("chat route failed", { provider: "custom", model: chatSettings?.model, error: error.message, stack: error.stack })
+    logger.error("chat route failed", {
+      provider: "custom",
+      model: chatSettings?.model,
+      error: error.message,
+      stack: error.stack
+    })
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
 

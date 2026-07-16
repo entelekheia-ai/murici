@@ -14,7 +14,4 @@ export type DataListType =
   | Tables<"models">[]
 
 export type DataItemType =
-  | Tables<"chats">
-  | Tables<"files">
-  | Tables<"assistants">
-  | Tables<"models">
+  Tables<"chats"> | Tables<"files"> | Tables<"assistants"> | Tables<"models">

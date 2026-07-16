@@ -18,7 +18,10 @@
  * @jest-environment node
  */
 import { extractToolCallMiddleware } from "./tool-call-leak-middleware"
-import { convertArrayToReadableStream, convertReadableStreamToArray } from "ai/test"
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray
+} from "ai/test"
 
 async function runMiddleware(chunks: any[]): Promise<any[]> {
   const result: any = await (extractToolCallMiddleware.wrapStream as any)({
@@ -38,9 +41,12 @@ describe("extractToolCallMiddleware", () => {
     const out = await runMiddleware(chunks)
 
     expect(out.some((c: any) => c.type === "tool-call")).toBe(false)
-    expect(out.filter((c: any) => c.type === "text-delta").map((c: any) => c.delta).join("")).toBe(
-      "hello world"
-    )
+    expect(
+      out
+        .filter((c: any) => c.type === "text-delta")
+        .map((c: any) => c.delta)
+        .join("")
+    ).toBe("hello world")
     expect(out[out.length - 1]).toEqual({ type: "text-end", id: "1" })
   })
 
@@ -94,15 +100,22 @@ describe("extractToolCallMiddleware", () => {
   it("falls back to emitting the raw tag text when the leaked JSON is malformed", async () => {
     const chunks = [
       { type: "text-start", id: "1" },
-      { type: "text-delta", id: "1", delta: "<tool_call>{not valid json}</tool_call>" },
+      {
+        type: "text-delta",
+        id: "1",
+        delta: "<tool_call>{not valid json}</tool_call>"
+      },
       { type: "text-end", id: "1" }
     ]
     const out = await runMiddleware(chunks)
 
     expect(out.some((c: any) => c.type === "tool-call")).toBe(false)
-    expect(out.filter((c: any) => c.type === "text-delta").map((c: any) => c.delta).join("")).toBe(
-      "<tool_call>{not valid json}</tool_call>"
-    )
+    expect(
+      out
+        .filter((c: any) => c.type === "text-delta")
+        .map((c: any) => c.delta)
+        .join("")
+    ).toBe("<tool_call>{not valid json}</tool_call>")
   })
 
   it("never emits a text-delta after text-end for the same id (buffer flushes before close)", async () => {
@@ -118,14 +131,24 @@ describe("extractToolCallMiddleware", () => {
 
     const endIndex = out.findIndex((c: any) => c.type === "text-end")
     expect(endIndex).toBeGreaterThanOrEqual(0)
-    expect(out.slice(endIndex + 1).some((c: any) => c.type === "text-delta")).toBe(false)
-    expect(out.filter((c: any) => c.type === "text-delta").map((c: any) => c.delta).join("")).toBe(
-      "hi"
-    )
+    expect(
+      out.slice(endIndex + 1).some((c: any) => c.type === "text-delta")
+    ).toBe(false)
+    expect(
+      out
+        .filter((c: any) => c.type === "text-delta")
+        .map((c: any) => c.delta)
+        .join("")
+    ).toBe("hi")
   })
 
   it("passes through non-text chunks (e.g. native tool-call events) unchanged", async () => {
-    const nativeToolCall = { type: "tool-call", toolCallId: "x", toolName: "native_tool", input: "{}" }
+    const nativeToolCall = {
+      type: "tool-call",
+      toolCallId: "x",
+      toolName: "native_tool",
+      input: "{}"
+    }
     const out = await runMiddleware([nativeToolCall])
     expect(out).toEqual([nativeToolCall])
   })

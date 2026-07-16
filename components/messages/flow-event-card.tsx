@@ -17,12 +17,14 @@
 
 import { FlowEvent } from "@/types"
 import { FC } from "react"
+import { useTranslation } from "react-i18next"
 
 interface FlowEventCardProps {
   event: FlowEvent
 }
 
 export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
+  const { t } = useTranslation()
   const { type, data } = event
 
   return (
@@ -35,7 +37,7 @@ export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
       {type === "client_request" && (
         <WireCard
           icon="⬆"
-          label="cliente → rota"
+          label={t("client → route")}
           tint="text-slate-400"
           summary={`${data.messageCount} msgs · POST ${data.api}`}
           json={data.body}
@@ -44,7 +46,7 @@ export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
       {type === "server_prompt" && (
         <WireCard
           icon="⚙"
-          label="rota → modelo"
+          label={t("route → model")}
           tint="text-blue-400"
           summary={`${data.messages?.length ?? 0} msgs${
             data.system ? " · +system" : ""
@@ -55,7 +57,7 @@ export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
       {type === "tool_result" && (
         <WireCard
           icon="↩"
-          label="tool → modelo"
+          label={t("tool → model")}
           tint="text-green-400"
           summary={data.toolName}
           json={data.output}
@@ -64,7 +66,7 @@ export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
       {type === "llm_response" && (
         <WireCard
           icon="⬇"
-          label="modelo → cliente"
+          label={t("model → client")}
           tint="text-teal-400"
           summary={
             data.text
@@ -77,7 +79,7 @@ export const FlowEventCard: FC<FlowEventCardProps> = ({ event }) => {
       {type === "error" && (
         <WireCard
           icon="⛔"
-          label="Erro"
+          label={t("Error")}
           tint="text-red-400"
           summary={data.message}
           json={data}
@@ -180,49 +182,55 @@ const ToolCallCard: FC<{ data: Record<string, any> }> = ({ data }) => (
 )
 
 /* ── fsm_transition ───────────────────────────────────── */
-const FsmTransitionCard: FC<{ data: Record<string, any> }> = ({ data }) => (
-  <div>
-    <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-      <span>→</span>
-      <span className="font-semibold text-green-400">Flow</span>
-      <span className="text-muted-foreground/70">
-        <strong>{data.from}</strong>
-        <span className="mx-1 text-green-400">→</span>
-        <strong>{data.to}</strong>
-      </span>
+const FsmTransitionCard: FC<{ data: Record<string, any> }> = ({ data }) => {
+  const { t } = useTranslation()
+  return (
+    <div>
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <span>→</span>
+        <span className="font-semibold text-green-400">Flow</span>
+        <span className="text-muted-foreground/70">
+          <strong>{data.from}</strong>
+          <span className="mx-1 text-green-400">→</span>
+          <strong>{data.to}</strong>
+        </span>
+      </div>
+      <div className="space-y-1 px-3 py-1.5">
+        {data.newGoal && (
+          <div>
+            <span className="text-yellow-400">goal:</span>{" "}
+            <span className="opacity-80">{data.newGoal}</span>
+          </div>
+        )}
+        {data.newGuide && (
+          <div>
+            <span className="text-green-400">guide:</span>{" "}
+            <span className="opacity-80">{data.newGuide}</span>
+          </div>
+        )}
+        {data.effects?.length > 0 && (
+          <details>
+            <summary className="cursor-pointer select-none opacity-50 hover:opacity-70">
+              {t("{{count}} effect(s)", { count: data.effects.length })}
+            </summary>
+            <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2">
+              {JSON.stringify(data.effects, null, 2)}
+            </pre>
+          </details>
+        )}
+      </div>
     </div>
-    <div className="space-y-1 px-3 py-1.5">
-      {data.newGoal && (
-        <div>
-          <span className="text-yellow-400">goal:</span>{" "}
-          <span className="opacity-80">{data.newGoal}</span>
-        </div>
-      )}
-      {data.newGuide && (
-        <div>
-          <span className="text-green-400">guide:</span>{" "}
-          <span className="opacity-80">{data.newGuide}</span>
-        </div>
-      )}
-      {data.effects?.length > 0 && (
-        <details>
-          <summary className="cursor-pointer select-none opacity-50 hover:opacity-70">
-            {data.effects.length} efeito(s)
-          </summary>
-          <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2">
-            {JSON.stringify(data.effects, null, 2)}
-          </pre>
-        </details>
-      )}
-    </div>
-  </div>
-)
+  )
+}
 
 /* ── second_turn ──────────────────────────────────────── */
-const SecondTurnCard: FC = () => (
-  <div className="flex items-center gap-2 px-3 py-2">
-    <span>⚙</span>
-    <span className="font-semibold text-slate-400">chatbot-ui → LLM</span>
-    <span className="text-muted-foreground/70">segundo turno</span>
-  </div>
-)
+const SecondTurnCard: FC = () => {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center gap-2 px-3 py-2">
+      <span>⚙</span>
+      <span className="font-semibold text-slate-400">chatbot-ui → LLM</span>
+      <span className="text-muted-foreground/70">{t("second turn")}</span>
+    </div>
+  )
+}

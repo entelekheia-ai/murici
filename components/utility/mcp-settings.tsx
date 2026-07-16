@@ -23,14 +23,16 @@ import { MCPConfig } from "@/types/mcp"
 export const MCPSettings: FC = () => {
   const [config, setConfig] = useState<MCPConfig | null>(null)
   const [addingType, setAddingType] = useState<"stdio" | "sse" | null>(null)
-  
+
   const [newName, setNewName] = useState("")
   const [newCommand, setNewCommand] = useState("")
   const [newArgs, setNewArgs] = useState("")
   const [newUrl, setNewUrl] = useState("")
-  
+
   useEffect(() => {
-    fetch("/api/mcp/config").then(res => res.json()).then(setConfig)
+    fetch("/api/mcp/config")
+      .then(res => res.json())
+      .then(setConfig)
   }, [])
 
   const saveConfig = async (newConfig: MCPConfig) => {
@@ -44,7 +46,7 @@ export const MCPSettings: FC = () => {
 
   const handleSaveAdd = () => {
     if (!newName) return
-    
+
     if (addingType === "stdio") {
       if (!newCommand) return
       saveConfig({
@@ -71,7 +73,7 @@ export const MCPSettings: FC = () => {
         }
       })
     }
-    
+
     setAddingType(null)
     setNewName("")
     setNewCommand("")
@@ -93,45 +95,94 @@ export const MCPSettings: FC = () => {
       <div className="flex items-center justify-between">
         <Label>Installed MCP Servers</Label>
         <div className="space-x-2">
-          <Button variant="outline" size="sm" onClick={() => setAddingType("stdio")}>+ Stdio Server</Button>
-          <Button variant="outline" size="sm" onClick={() => setAddingType("sse")}>+ SSE Server</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAddingType("stdio")}
+          >
+            + Stdio Server
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAddingType("sse")}
+          >
+            + SSE Server
+          </Button>
         </div>
       </div>
-      
+
       {addingType && (
         <div className="space-y-3 rounded-md border bg-muted/50 p-3">
-          <div className="text-sm font-bold">Add {addingType === "stdio" ? "Stdio" : "SSE"} Server</div>
+          <div className="text-sm font-bold">
+            Add {addingType === "stdio" ? "Stdio" : "SSE"} Server
+          </div>
           <div className="space-y-2">
-            <Input placeholder="Server name" value={newName} onChange={e => setNewName(e.target.value)} />
+            <Input
+              placeholder="Server name"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+            />
             {addingType === "stdio" ? (
               <>
-                <Input placeholder="Command (e.g. npx)" value={newCommand} onChange={e => setNewCommand(e.target.value)} />
-                <Input placeholder="Args (comma separated)" value={newArgs} onChange={e => setNewArgs(e.target.value)} />
+                <Input
+                  placeholder="Command (e.g. npx)"
+                  value={newCommand}
+                  onChange={e => setNewCommand(e.target.value)}
+                />
+                <Input
+                  placeholder="Args (comma separated)"
+                  value={newArgs}
+                  onChange={e => setNewArgs(e.target.value)}
+                />
               </>
             ) : (
-              <Input placeholder="URL" value={newUrl} onChange={e => setNewUrl(e.target.value)} />
+              <Input
+                placeholder="URL"
+                value={newUrl}
+                onChange={e => setNewUrl(e.target.value)}
+              />
             )}
             <div className="flex space-x-2 pt-2">
-              <Button size="sm" onClick={handleSaveAdd}>Save</Button>
-              <Button size="sm" variant="ghost" onClick={() => setAddingType(null)}>Cancel</Button>
+              <Button size="sm" onClick={handleSaveAdd}>
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setAddingType(null)}
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </div>
       )}
-      
+
       {Object.keys(config.mcpServers || {}).length === 0 && !addingType ? (
         <div className="text-sm opacity-50">No MCP servers configured.</div>
       ) : (
         <div className="mt-4 space-y-2">
           {Object.entries(config.mcpServers || {}).map(([name, server]) => (
-            <div key={name} className="flex items-center justify-between rounded-md border p-3">
+            <div
+              key={name}
+              className="flex items-center justify-between rounded-md border p-3"
+            >
               <div>
                 <div className="text-sm font-bold">{name}</div>
                 <div className="mt-1 text-xs opacity-70">
-                  {server.transport === "stdio" ? `[Stdio] ${server.command} ${server.args?.join(" ")}` : `[SSE] ${server.url}`}
+                  {server.transport === "stdio"
+                    ? `[Stdio] ${server.command} ${server.args?.join(" ")}`
+                    : `[SSE] ${server.url}`}
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => handleRemove(name)}>Remove</Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleRemove(name)}
+              >
+                Remove
+              </Button>
             </div>
           ))}
         </div>

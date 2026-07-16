@@ -71,7 +71,8 @@ export async function unpackAgentFileFromPath(
   filePath: string
 ): Promise<UnpackPayload> {
   const read = window.electronAPI?.readAgentFile
-  if (!read) throw new Error("Reading agent files by path requires the desktop app")
+  if (!read)
+    throw new Error("Reading agent files by path requires the desktop app")
   const bytes = await read(filePath)
   const filename = filePath.split(/[\\/]/).pop() || "agent.agent"
   return unpackAgentBytes(new Blob([bytes as any]), filename)

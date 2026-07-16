@@ -25,10 +25,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const fileName = encodedName ? decodeURIComponent(encodedName) : null
 
     if (!fileName) {
-      return NextResponse.json(
-        { error: "No file provided" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
     if (!fileName.endsWith(".agent")) {

@@ -203,7 +203,7 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
         <TextareaAutosize
           textareaRef={chatInputRef}
           className="text-md flex w-full resize-none rounded-md border-none bg-transparent p-0 text-foreground-primary placeholder:text-foreground-secondary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-          placeholder={t("Como posso ajudar hoje?")}
+          placeholder={t("How can I help today?")}
           onValueChange={handleInputChange}
           value={userInput}
           minRows={1}
@@ -241,7 +241,7 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
             {!agentMeta && (
               <>
                 <PillButton
-                  label={t("Iniciar um .agent")}
+                  label={t("Start a .agent")}
                   showIcon={false}
                   className="bg-foreground-primary text-background-light hover:opacity-90"
                   onClick={() => {
@@ -257,7 +257,8 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
                   onChange={async e => {
                     if (!e.target.files) return
                     await handleAgentFile(e.target.files[0])
-                    if (agentFileInputRef.current) agentFileInputRef.current.value = ""
+                    if (agentFileInputRef.current)
+                      agentFileInputRef.current.value = ""
                   }}
                   accept=".agent"
                 />

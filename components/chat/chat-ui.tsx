@@ -148,7 +148,10 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
         {backgroundQueue && backgroundQueue.length > 0 && (
           <div className="absolute -bottom-1 left-1/2 flex -translate-x-1/2 items-center space-x-1.5 text-xs text-muted-foreground opacity-80 sm:bottom-2">
             <span className="animate-pulse">🧠</span>
-            <span>Processando {backgroundQueue.length} tarefa{backgroundQueue.length > 1 ? "s" : ""} em segundo plano...</span>
+            <span>
+              Processando {backgroundQueue.length} tarefa
+              {backgroundQueue.length > 1 ? "s" : ""} em segundo plano...
+            </span>
           </div>
         )}
       </div>

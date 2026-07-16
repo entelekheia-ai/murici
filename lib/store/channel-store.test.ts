@@ -36,40 +36,66 @@ beforeEach(() => {
 
 describe("ingestCssEffects", () => {
   it("creates the thread's activeCss entry from apply_css effects", () => {
-    useChannelStore.getState().ingestCssEffects("thread-a", [applyCss("theme.css")])
-    expect(useChannelStore.getState().activeCss["thread-a"]).toEqual(["theme.css"])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-a", [applyCss("theme.css")])
+    expect(useChannelStore.getState().activeCss["thread-a"]).toEqual([
+      "theme.css"
+    ])
   })
 
   it("does not touch other threads' entries", () => {
-    useChannelStore.getState().ingestCssEffects("thread-a", [applyCss("theme.css")])
-    useChannelStore.getState().ingestCssEffects("thread-b", [applyCss("other.css")])
-    expect(useChannelStore.getState().activeCss["thread-a"]).toEqual(["theme.css"])
-    expect(useChannelStore.getState().activeCss["thread-b"]).toEqual(["other.css"])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-a", [applyCss("theme.css")])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-b", [applyCss("other.css")])
+    expect(useChannelStore.getState().activeCss["thread-a"]).toEqual([
+      "theme.css"
+    ])
+    expect(useChannelStore.getState().activeCss["thread-b"]).toEqual([
+      "other.css"
+    ])
   })
 
   it("removes a value via remove_css", () => {
-    useChannelStore.getState().ingestCssEffects("thread-a", [applyCss("theme.css")])
-    useChannelStore.getState().ingestCssEffects("thread-a", [removeCss("theme.css")])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-a", [applyCss("theme.css")])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-a", [removeCss("theme.css")])
     expect(useChannelStore.getState().activeCss["thread-a"]).toEqual([])
   })
 
   it("is a no-op on the top-level state object when the fold produces no change", () => {
-    useChannelStore.getState().ingestCssEffects("thread-a", [applyCss("theme.css")])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-a", [applyCss("theme.css")])
     const stateBefore = useChannelStore.getState()
 
     // Re-applying the same value is a no-op fold (foldCssEffects returns the
     // same array reference), so ingestCssEffects must skip the state update
     // entirely — this is what keeps a background thread's repeated effects
     // from spuriously re-rendering subscribers of unrelated store slices.
-    useChannelStore.getState().ingestCssEffects("thread-a", [applyCss("theme.css")])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-a", [applyCss("theme.css")])
     expect(useChannelStore.getState()).toBe(stateBefore)
   })
 
   it("ingests effects for a thread that is in the background (not the viewed thread)", () => {
     useChannelStore.setState({ viewedThreadId: "thread-viewed" })
-    useChannelStore.getState().ingestCssEffects("thread-background", [applyCss("theme.css")])
-    expect(useChannelStore.getState().activeCss["thread-background"]).toEqual(["theme.css"])
-    expect(useChannelStore.getState().activeCss["thread-viewed"]).toBeUndefined()
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-background", [applyCss("theme.css")])
+    expect(useChannelStore.getState().activeCss["thread-background"]).toEqual([
+      "theme.css"
+    ])
+    expect(
+      useChannelStore.getState().activeCss["thread-viewed"]
+    ).toBeUndefined()
   })
 })
 
@@ -82,11 +108,15 @@ describe("dropChannel", () => {
 
   it("does NOT clear the thread's activeCss entry — a background chat's ChatChannel unmounts (and disposes/drops) the moment its reply finishes and it isn't viewed, which is exactly the off-screen scenario the pipeline exists for; wiping activeCss here would erase an agent's theme before the user ever switched back to see it", () => {
     useChannelStore.getState().patchChannel("thread-a", { status: "streaming" })
-    useChannelStore.getState().ingestCssEffects("thread-a", [applyCss("theme.css")])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-a", [applyCss("theme.css")])
 
     useChannelStore.getState().dropChannel("thread-a")
 
-    expect(useChannelStore.getState().activeCss["thread-a"]).toEqual(["theme.css"])
+    expect(useChannelStore.getState().activeCss["thread-a"]).toEqual([
+      "theme.css"
+    ])
   })
 
   it("is a no-op when the thread has no channel entry", () => {
@@ -107,13 +137,19 @@ describe("selectViewedActiveCss", () => {
   })
 
   it("returns the viewed thread's desired CSS set", () => {
-    useChannelStore.getState().ingestCssEffects("thread-a", [applyCss("theme.css")])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-a", [applyCss("theme.css")])
     useChannelStore.setState({ viewedThreadId: "thread-a" })
-    expect(selectViewedActiveCss(useChannelStore.getState())).toEqual(["theme.css"])
+    expect(selectViewedActiveCss(useChannelStore.getState())).toEqual([
+      "theme.css"
+    ])
   })
 
   it("does not leak a background thread's CSS into the viewed selector", () => {
-    useChannelStore.getState().ingestCssEffects("thread-background", [applyCss("theme.css")])
+    useChannelStore
+      .getState()
+      .ingestCssEffects("thread-background", [applyCss("theme.css")])
     useChannelStore.setState({ viewedThreadId: "thread-viewed" })
     expect(selectViewedActiveCss(useChannelStore.getState())).toEqual([])
   })

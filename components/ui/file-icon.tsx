@@ -1,9 +1,15 @@
-import { File, FileText, AlertCircle, Image as ImageIcon, FileSpreadsheet, FileJson } from "lucide-react"
+import {
+  File,
+  FileText,
+  AlertCircle,
+  Image as ImageIcon,
+  FileSpreadsheet,
+  FileJson
+} from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
-
 
 import { FC } from "react"
 

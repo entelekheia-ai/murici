@@ -144,11 +144,11 @@ export const Sidebar: FC<SidebarProps> = ({
   const getNewChatButtonLabel = () => {
     switch (contentType) {
       case "chats":
-        return t("Novo chat")
+        return t("New Chat")
       case "models":
-        return t("Novo modelo")
+        return t("New Model")
       default:
-        return t("Novo")
+        return t("New")
     }
   }
 

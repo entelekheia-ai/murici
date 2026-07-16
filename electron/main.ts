@@ -21,6 +21,7 @@ import { startNextServer, stopNextServer } from "./next-server"
 import { setupAutoUpdater } from "./updater"
 import { readFile } from "fs/promises"
 import { buildAppMenu, MenuAction } from "./menu"
+import { resolveInitialLocale } from "./menu-i18n"
 
 const isDev =
   process.env.NODE_ENV === "development" ||
@@ -90,7 +91,7 @@ async function readAgentFile(filePath: string): Promise<Buffer> {
   return readFile(filePath)
 }
 
-let menuLocale = "en"
+let menuLocale = resolveInitialLocale(app.getLocale())
 let menuDebugMode = false
 let menuShowChatList = false
 let menuShowDetails = false
@@ -225,7 +226,7 @@ app.whenReady().then(async () => {
     if (!isDev) serverPort = await startNextServer()
     await createWindow()
     rebuildMenu()
-    if (!isDev) setupAutoUpdater()
+    if (!isDev) setupAutoUpdater(() => menuLocale)
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()

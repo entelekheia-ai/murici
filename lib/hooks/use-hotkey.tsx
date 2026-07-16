@@ -7,7 +7,9 @@ import { useEffect } from "react"
 
 const isMac = (): boolean =>
   typeof window !== "undefined" &&
-  (window.electronAPI?.platform ?? navigator.platform).toLowerCase().includes("mac")
+  (window.electronAPI?.platform ?? navigator.platform)
+    .toLowerCase()
+    .includes("mac")
 
 const useHotkey = (key: string, callback: () => void): void => {
   useEffect(() => {

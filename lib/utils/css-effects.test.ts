@@ -69,7 +69,12 @@ describe("foldCssEffects", () => {
     const prev = ["a.css"]
     const result = foldCssEffects(prev, [
       { type: "goal", text: "x" },
-      { type: "run_script", target: "open_agents_panel", parameters: null, silent: false }
+      {
+        type: "run_script",
+        target: "open_agents_panel",
+        parameters: null,
+        silent: false
+      }
     ])
     expect(result).toBe(prev)
   })

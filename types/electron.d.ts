@@ -66,18 +66,19 @@ declare global {
         node: string
         chrome: string
       }
-      onOpenAgentFile?: (
-        cb: (data: OsPendingAgentFile) => void
-      ) => void
+      onOpenAgentFile?: (cb: (data: OsPendingAgentFile) => void) => void
       appReadyForFiles?: () => void
       readAgentFile?: (filePath: string) => Promise<Uint8Array>
       getPathForFile?: (file: File) => string
       onMenuAction?: (cb: (data: { action: string }) => void) => void
       setDebugMode?: (value: boolean) => void
       setLocale?: (locale: string) => void
-      setSidebarState?: (state: { showSidebar?: boolean; showRightSidebar?: boolean }) => void
+      setSidebarState?: (state: {
+        showSidebar?: boolean
+        showRightSidebar?: boolean
+      }) => void
     }
   }
 }
 
-export { }
+export {}

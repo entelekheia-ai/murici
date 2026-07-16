@@ -43,19 +43,23 @@ export const ButtonGhost: FC<ButtonGhostProps> = ({
       type="button"
     >
       {showLeftIcon && leftIcon && (
-        <span className={cn(
-          "flex shrink-0 items-center justify-center",
-          is16Px ? "size-[16px]" : "size-[18px]"
-        )}>
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center",
+            is16Px ? "size-[16px]" : "size-[18px]"
+          )}
+        >
           {leftIcon}
         </span>
       )}
       {text && <span>{text}</span>}
       {showRightIcon && rightIcon && (
-        <span className={cn(
-          "flex shrink-0 items-center justify-center",
-          is16Px ? "size-[16px]" : "size-[18px]"
-        )}>
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center",
+            is16Px ? "size-[16px]" : "size-[18px]"
+          )}
+        >
           {rightIcon}
         </span>
       )}

@@ -40,7 +40,9 @@ export function getBuiltInTools(behaviorState?: BehaviorStateInfo) {
       description:
         "Signals a state transition in the deterministic flow engine when the current state's goal is achieved or the message is off-topic. Call this only when the conversation goal has been fulfilled or the message is off-topic.",
       inputSchema: z.object({
-        intent_name: z.enum(behaviorState.validIntents as [string, ...string[]]).describe("The exact intent name to trigger.")
+        intent_name: z
+          .enum(behaviorState.validIntents as [string, ...string[]])
+          .describe("The exact intent name to trigger.")
       })
     })
 

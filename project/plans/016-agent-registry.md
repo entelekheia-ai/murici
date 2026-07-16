@@ -1,69 +1,116 @@
-# 016 — Registered `.agent` bundles (register/unregister at runtime)
+<!--
+ Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 
-**Status:** briefing / não iniciado. Gerado a partir de contexto já levantado numa sessão sobre
-dot-agent-cli, sem exploração dedicada do repo murici — precisa de uma sessão própria antes de
-virar plano executável.
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-## Contexto
+ https://www.apache.org/licenses/LICENSE-2.0
+-->
 
-Murici hoje tem dois jeitos de um `.agent` bundle chegar ao runtime:
+# Plan-016: Registered `.agent` Bundles at Runtime
 
-1. **System agents buildados** (`murici/agents/onboarding-agent/`, `murici/agents/background-agent/`)
-   — compilados em build-time por `scripts/build-agents.js` (via `@dot-agent/compiler`'s `pack()`)
-   pra `public/agents/<name>.agent`, carregados por `lib/agents/system-agents.ts`
-   (`getOnboardingAgentPayload()` etc). Fixos no bundle da aplicação, não instaláveis/atualizáveis
-   em runtime sem um novo build+release do murici.
-2. **Drag-and-drop de usuário** (`app/api/agent/unpack/route.ts`) — carrega um `.agent` arbitrário
-   sob demanda, mas (até onde essa sessão levantou) parece ser um load pontual pra uma sessão de
-   chat, não uma instalação persistente/gerenciada.
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-15 |
+| Author | Danilo Borges |
 
-Não existe hoje um terceiro conceito: um `.agent` **instalado e persistido** por fora do build
-(nem system agent, nem drag-and-drop pontual), que sobrevive a reinícios do murici, pode ser
-atualizado quando uma nova versão aparece, e pode ser removido. Esse conceito é o que motivou este
-briefing: o dot-agent-cli quer poder instalar/manter atualizado o seu `dot-agent-helper.agent`
-(ensina o formato `.agent`) dentro do murici, dando ao usuário final do murici — não só a um
-assistente de código conectado via MCP — uma forma nativa, dentro do próprio chat, de aprender a
-criar agentes. Isso só faz sentido se murici tiver onde guardar/gerenciar esse tipo de instalação.
+> **Note:** This plan was drafted from context gathered during a dot-agent-cli session, without
+> dedicated exploration of the murici repo. It needs its own exploration session before it can be
+> treated as an executable plan.
 
-## Precedente estrutural mais próximo: MCP config
+---
 
-Murici já resolveu um problema parecido pra servidores MCP — vale espelhar a forma, não o conteúdo:
+## Summary
 
-- `lib/mcp/config-store.ts` — manifesto JSON simples em `~/.config/murici/mcp.json`
-  (`getMCPConfig()`/`saveMCPConfig()`, leitura/escrita direta em disco, sem cache).
-- `app/api/mcp/config/route.ts` — API Next.js `GET`/`POST` sobre esse manifesto.
-- `components/utility/mcp-settings.tsx` — aba de settings pra listar/adicionar servidores.
+Implement a persistent registry for user-installed and third-party `.agent` bundles that survive application restarts and can be updated or removed. This enables external tools like dot-agent-cli to install and maintain agents at runtime without requiring an application rebuild.
 
-Um sistema de "registered agents" provavelmente quer a mesma forma: um manifesto persistente +
-rotas de API (`list`/`register`/`unregister`) + uma aba de settings — mas com um conteúdo genuinamente
-diferente (não é só ponteiro pra um comando externo como MCP; é preciso decidir se o manifesto
-aponta pra um path externo no disco ou se murici copia os bytes do `.agent` pra dentro do seu
-próprio diretório de config, pra sobreviver caso o path de origem suma).
+## Goals
 
-## Perguntas em aberto (não resolvidas aqui — pauta pra quando este briefing virar plano de verdade)
+- Introduce a third category of agents: registered (installed at runtime, persisted across restarts).
+- Provide system agents and runtime registration as distinct loading paths.
+- Mirror the existing MCP config store pattern for consistency.
+- Enable dot-agent-cli to install its helper agent persistently in Murici.
 
-1. **Armazenamento**: manifesto apontando pra um path externo (ex.: o path que
-   `dot-agent agents path helper` resolve, do lado do dot-agent-cli) vs. copiar os bytes do
-   `.agent` pra dentro de `~/.config/murici/agents/<name>.agent` — a cópia é mais resiliente
-   (sobrevive a um `npm uninstall -g @dot-agent/cli`), o ponteiro é mais simples e sempre reflete a
-   versão mais nova sem re-copiar.
-2. **Versionamento/atualização**: todo `.agent` bundle carrega um `aboutme.json` com versão — dá
-   pra comparar e decidir se uma reinstalação deve substituir a existente. Precisa decidir a
-   política (sempre atualizar automaticamente? perguntar? nunca sobrescrever silenciosamente?).
-3. **Distinção de system agents**: um agente "registrado" (instalado depois do build, por um
-   usuário ou por uma ferramenta externa) deveria aparecer misturado com `onboarding-agent`/
-   `background-agent` na mesma lista, ou ser uma categoria visualmente/arquiteturalmente separada?
-4. **Superfície de API/UI**: rotas tipo `app/api/agents/registry` (`GET` lista, `POST` registra,
-   `DELETE` desregistra), reaproveitando a lógica de unpack/validação que já existe em
-   `app/api/agent/unpack/route.ts`; mais uma aba de settings espelhando `mcp-settings.tsx`.
-5. **Quem dispara o registro**: se a ideia é o dot-agent-cli chamar essa API automaticamente (via
-   um futuro `dot-agent configure --murici`, usando o path resolvido por `dot-agent agents path
-   helper`), isso só funciona enquanto o murici estiver de fato rodando localmente (app Electron
-   desktop, não um serviço sempre-ativo) — vale decidir se o fluxo é "murici puxa quando abre" em
-   vez de "CLI empurra a qualquer momento".
+## Scope
 
-## Não-objetivos (por ora)
+### In Scope
 
-- Não é sobre o registro de servidores MCP (isso já existe e funciona: `lib/mcp/*`).
-- Não é sobre mudar como `onboarding-agent`/`background-agent` são buildados/carregados hoje.
-- Não resolve a pergunta 5 (quem dispara) — só documenta que ela existe.
+- Design and implement a persistent manifest system for registered agents (analogous to `lib/mcp/config-store.ts`).
+- API routes for listing, registering, and unregistering agents.
+- Settings UI to display and manage registered agents.
+- Decide how registered agents load and integrate with existing system agents.
+
+### Out of Scope
+
+- MCP server registration (already exists and works: `lib/mcp/*`).
+- Changes to how built-in system agents (`onboarding-agent`, `background-agent`) are currently built or loaded.
+- Resolving Open Question #5 (who triggers registration) — this plan only documents that the question exists.
+
+---
+
+## Design
+
+### Current State
+
+Murici today has two ways `.agent` bundles reach runtime:
+
+1. **System agents (build-time)** — Compiled by `scripts/build-agents.js` into `public/agents/<name>.agent`, loaded by `lib/agents/system-agents.ts`. Fixed in the app bundle, not updatable at runtime.
+
+2. **Drag-and-drop (runtime, transient)** — Loaded by `app/api/agent/unpack/route.ts` for a single chat session, not persisted or managed.
+
+Missing: A third concept of a registered agent — installed and persisted outside the build, survives restarts, can be updated or removed.
+
+### Structural Precedent: MCP Config
+
+Murici already solved a similar problem for MCP servers. The pattern to mirror:
+
+- `lib/mcp/config-store.ts` — Simple JSON manifest in `~/.config/murici/mcp.json` (read/write to disk, no cache).
+- `app/api/mcp/config/route.ts` — HTTP API routes for `GET`/`POST` on the manifest.
+- `components/utility/mcp-settings.tsx` — Settings tab to list and manage servers.
+
+A registered agents system likely mirrors the same shape: persistent manifest + API routes (`list`/`register`/`unregister`) + settings UI — but with different content and storage decisions (path reference vs. copying bytes into Murici's config directory).
+
+---
+
+## Success Criteria
+
+*Not yet defined — this plan needs a dedicated exploration session on the murici repo before
+success criteria can be set (see status note above).*
+
+---
+
+## Tracks
+
+*Not yet broken into tracks — pending the dedicated exploration session referenced above.*
+
+---
+
+## Dependencies
+
+*None identified yet.* Note: Open Question #5 (who triggers registration) is intentionally **not**
+resolved by this plan — it only documents that the question exists (see Open Questions and Out of
+Scope).
+
+---
+
+## Open Questions
+
+1. **Storage** — Should the manifest point to an external path (e.g., where dot-agent-cli installs globally) or should Murici copy the `.agent` bytes into `~/.config/murici/agents/<name>.agent`? Path reference is simpler and always reflects the latest version; copying is more resilient (survives if the origin disappears).
+
+2. **Versioning & Replacement** — Every `.agent` bundle carries a version in `aboutme.json`. Should a reinstall automatically replace an existing agent, require user approval, or never silently overwrite?
+
+3. **System vs. Registered Distinction** — Should registered agents appear in the same list as built-in system agents in the UI, or be visually/architecturally separated?
+
+4. **Who Triggers Installation** — If dot-agent-cli wants to auto-install the helper agent, should it call the Murici API directly (requires Murici to be running locally) or should Murici pull from a well-known location on startup (more resilient)?
+
+5. **Initial Creation** — Should the registry manifest be created on first app launch, or only when the first agent is registered?
+
+---
+
+## Related
+
+- MCP config store pattern in `lib/mcp/config-store.ts`
+- Existing agent unpack logic in `app/api/agent/unpack/route.ts`
+- System agents loading in `lib/agents/system-agents.ts`

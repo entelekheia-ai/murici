@@ -15,8 +15,9 @@
  */
 
 import { dialog } from "electron"
+import { loadMenuStrings } from "./menu-i18n"
 
-export function setupAutoUpdater() {
+export function setupAutoUpdater(getLocale: () => string) {
   let autoUpdater: any
   try {
     autoUpdater = require("electron-updater").autoUpdater
@@ -34,12 +35,16 @@ export function setupAutoUpdater() {
   })
 
   autoUpdater.on("update-downloaded", (info: any) => {
+    const t = loadMenuStrings(getLocale())
     dialog
       .showMessageBox({
         type: "info",
-        title: "Atualização disponível",
-        message: `Versão ${info.version} baixada. Reiniciar para aplicar?`,
-        buttons: ["Reiniciar agora", "Depois"]
+        title: t("Update available"),
+        message: t("Version {{version}} downloaded. Restart to apply?").replace(
+          "{{version}}",
+          info.version
+        ),
+        buttons: [t("Restart now"), t("Later")]
       })
       .then(({ response }: { response: number }) => {
         if (response === 0) autoUpdater.quitAndInstall()

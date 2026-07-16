@@ -36,7 +36,9 @@ const DEFAULT_ACCORDION: AccordionState = {
 function readAccordion(): AccordionState {
   try {
     const raw = localStorage.getItem(ACCORDION_KEY)
-    return raw ? { ...DEFAULT_ACCORDION, ...JSON.parse(raw) } : DEFAULT_ACCORDION
+    return raw
+      ? { ...DEFAULT_ACCORDION, ...JSON.parse(raw) }
+      : DEFAULT_ACCORDION
   } catch {
     return DEFAULT_ACCORDION
   }
@@ -109,7 +111,9 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   const [search, setSearch] = useState("")
   const [isDiscovering, setIsDiscovering] = useState(false)
   const [accordion, setAccordion] = useState<AccordionState>(DEFAULT_ACCORDION)
-  const [tierAccordion, setTierAccordion] = useState<Record<string, boolean>>({})
+  const [tierAccordion, setTierAccordion] = useState<Record<string, boolean>>(
+    {}
+  )
 
   useEffect(() => {
     setAccordion(readAccordion())
@@ -130,7 +134,9 @@ export const ModelSelect: FC<ModelSelectProps> = ({
 
   const isTierOpen = (provider: string, tier: ModelTier) => {
     const tierKey = `${provider}:${tier}`
-    return tierKey in tierAccordion ? tierAccordion[tierKey] : DEFAULT_TIER_OPEN[tier]
+    return tierKey in tierAccordion
+      ? tierAccordion[tierKey]
+      : DEFAULT_TIER_OPEN[tier]
   }
 
   const toggleTier = (provider: string, tier: ModelTier) => {
@@ -148,7 +154,9 @@ export const ModelSelect: FC<ModelSelectProps> = ({
     const real = pModels.filter(m => !m.disabled)
     const tiersPresent = new Set(real.map(m => m.tier ?? "current"))
     if (tiersPresent.size <= 1) return pModels
-    return pModels.filter(m => m.disabled || isTierOpen(provider, m.tier ?? "current"))
+    return pModels.filter(
+      m => m.disabled || isTierOpen(provider, m.tier ?? "current")
+    )
   }
 
   const handleSelectModel = async (modelId: LLMID | string) => {
@@ -206,10 +214,14 @@ export const ModelSelect: FC<ModelSelectProps> = ({
           visibleHostedModels(provider, pModels).filter(selectableFilter)
         )
       : []),
-    ...(accordion.openrouter ? availableOpenRouterModels.filter(selectableFilter) : [])
+    ...(accordion.openrouter
+      ? availableOpenRouterModels.filter(selectableFilter)
+      : [])
   ][0]
 
-  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleSearchKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ) => {
     // The search input had no key handling at all — Enter and Escape both
     // fell through and did nothing, which reads as the picker being broken.
     if (event.key === "Enter" && firstVisibleMatch) {
@@ -238,7 +250,6 @@ export const ModelSelect: FC<ModelSelectProps> = ({
       </div>
 
       <div className="space-y-4">
-
         {/* ── LOCAL ── */}
         {(availableLocalModels.length > 0 || isDiscovering) && (
           <div>
@@ -254,7 +265,11 @@ export const ModelSelect: FC<ModelSelectProps> = ({
                     {t("Updating...")}
                   </div>
                 )}
-                <ul role="listbox" aria-label={t("LOCAL")} className="space-y-[2px]">
+                <ul
+                  role="listbox"
+                  aria-label={t("LOCAL")}
+                  className="space-y-[2px]"
+                >
                   {availableLocalModels.filter(filter).map(m => (
                     <ListItem
                       key={m.modelId}
@@ -278,7 +293,10 @@ export const ModelSelect: FC<ModelSelectProps> = ({
               onToggle={() => toggle("custom")}
               action={
                 <button
-                  onClick={e => { e.stopPropagation(); handleManage() }}
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleManage()
+                  }}
                   className="text-xs font-semibold text-muted-foreground hover:text-foreground"
                 >
                   {t("Manage →")}
@@ -287,7 +305,11 @@ export const ModelSelect: FC<ModelSelectProps> = ({
             />
             {accordion.custom && (
               <div className="mt-1">
-                <ul role="listbox" aria-label={t("CUSTOM")} className="space-y-[2px]">
+                <ul
+                  role="listbox"
+                  aria-label={t("CUSTOM")}
+                  className="space-y-[2px]"
+                >
                   {customModels.filter(filter).map(m => (
                     <ListItem
                       key={m.modelId}
@@ -315,9 +337,10 @@ export const ModelSelect: FC<ModelSelectProps> = ({
                 {Object.entries(hostedByProvider).map(([provider, pModels]) => {
                   const filtered = pModels.filter(filter)
                   if (!filtered.length) return null
-                  const providerLabel = provider === "openai" && profile.use_azure_openai
-                    ? "Azure OpenAI"
-                    : provider
+                  const providerLabel =
+                    provider === "openai" && profile.use_azure_openai
+                      ? "Azure OpenAI"
+                      : provider
 
                   const disabledEntries = filtered.filter(m => m.disabled)
                   const realModels = filtered.filter(m => !m.disabled)
@@ -350,12 +373,20 @@ export const ModelSelect: FC<ModelSelectProps> = ({
                         {providerLabel}
                       </div>
                       {disabledEntries.length > 0 && (
-                        <ul role="listbox" aria-label={providerLabel} className="space-y-[2px]">
+                        <ul
+                          role="listbox"
+                          aria-label={providerLabel}
+                          className="space-y-[2px]"
+                        >
                           {disabledEntries.map(renderRow)}
                         </ul>
                       )}
                       {!useSubAccordion ? (
-                        <ul role="listbox" aria-label={providerLabel} className="space-y-[2px]">
+                        <ul
+                          role="listbox"
+                          aria-label={providerLabel}
+                          className="space-y-[2px]"
+                        >
                           {realModels.map(renderRow)}
                         </ul>
                       ) : (
@@ -402,7 +433,11 @@ export const ModelSelect: FC<ModelSelectProps> = ({
             />
             {accordion.openrouter && (
               <div className="mt-1">
-                <ul role="listbox" aria-label={t("OPENROUTER")} className="space-y-[2px]">
+                <ul
+                  role="listbox"
+                  aria-label={t("OPENROUTER")}
+                  className="space-y-[2px]"
+                >
                   {availableOpenRouterModels.filter(filter).map(m => (
                     <ListItem
                       key={m.modelId}
@@ -416,7 +451,6 @@ export const ModelSelect: FC<ModelSelectProps> = ({
             )}
           </div>
         )}
-
       </div>
     </div>
   )
@@ -431,7 +465,12 @@ interface GroupHeaderProps {
   action?: React.ReactNode
 }
 
-const GroupHeader: FC<GroupHeaderProps> = ({ label, open, onToggle, action }) => (
+const GroupHeader: FC<GroupHeaderProps> = ({
+  label,
+  open,
+  onToggle,
+  action
+}) => (
   <div className="flex w-full items-center justify-between p-1">
     <button
       onClick={onToggle}

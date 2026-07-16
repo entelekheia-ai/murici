@@ -4,8 +4,6 @@ import { Loader2 } from "lucide-react"
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
-
-
 export default function Loading() {
   return (
     <div className="flex size-full flex-col items-center justify-center">
