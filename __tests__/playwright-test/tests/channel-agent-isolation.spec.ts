@@ -179,9 +179,12 @@ test("a BACKGROUND chat advances its OWN agent, while a different agent chat is 
   await page.getByRole("button", { name: "Configurações" }).click()
   await page.getByRole("menuitem", { name: "Agents" }).click()
   await page.getByText("Murici Helper").first().click()
-  await expect(page.getByRole("heading", { name: "Detalhes" })).toBeVisible({
-    timeout: 15_000
-  })
+  // "Detalhes" is only the button that opens the panel when closed (header.tsx);
+  // it disappears once open. "Histórico de Estados" is the agent-detail panel's
+  // own unconditional heading — see settleOnboarding in helpers/agent-chat.ts.
+  await expect(
+    page.getByRole("heading", { name: "Histórico de Estados" })
+  ).toBeVisible({ timeout: 15_000 })
 
   // Chat #2 is now the chat on screen. Release chat #1's tool call: it will run in
   // the BACKGROUND, against a kernel nobody is looking at.

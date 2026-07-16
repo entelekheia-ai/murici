@@ -40,9 +40,9 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
 
   useEffect(() => {
     const handleOpen = () => setOpen(true)
-    window.addEventListener("murici:model-selector-open", handleOpen)
+    window.addEventListener("chat:models-selector-open", handleOpen)
     return () => {
-      window.removeEventListener("murici:model-selector-open", handleOpen)
+      window.removeEventListener("chat:models-selector-open", handleOpen)
     }
   }, [])
 

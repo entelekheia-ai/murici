@@ -11,6 +11,7 @@ import { ChatHandlerProvider } from "@/components/utility/chat-handler-provider"
 import { ErrorBoundary } from "@/components/utility/error-boundary"
 import { GlobalErrorReporter } from "@/components/utility/global-error-reporter"
 import { GlobalState } from "@/components/utility/global-state"
+import { KernelPresentationHost } from "@/components/utility/kernel-presentation-host"
 import { Providers } from "@/components/utility/providers"
 import TranslationsProvider from "@/components/utility/translations-provider"
 import initTranslations from "@/lib/i18n"
@@ -97,6 +98,7 @@ export default async function RootLayout({
               <ErrorBoundary>
                 <GlobalState>
                   <ChatHandlerProvider>
+                    <KernelPresentationHost />
                     <AgentSessionProvider>{children}</AgentSessionProvider>
                   </ChatHandlerProvider>
                 </GlobalState>

@@ -73,12 +73,15 @@ test("opening the onboarding agent while an existing chat is active lands on the
   // Must NOT land on the knowledge home view (its header is "Conhecimento").
   await expect(page.getByText("Conhecimento")).toHaveCount(0)
 
-  // The right "Detalhes" sidebar should be visible with the agent loaded —
-  // proves we're on a real chat view (blank, brand-new chat, by design —
-  // clicking an agent row always starts a new chat), not stuck behind the
-  // knowledge/graph landing page with the sidebar force-closed.
-  await expect(page.getByRole("heading", { name: "Detalhes" })).toBeVisible({
-    timeout: 10_000
-  })
+  // The right sidebar should be visible with the agent loaded — proves we're
+  // on a real chat view (blank, brand-new chat, by design — clicking an agent
+  // row always starts a new chat), not stuck behind the knowledge/graph
+  // landing page with the sidebar force-closed. "Histórico de Estados" is the
+  // agent-detail panel's own unconditional heading (right-sidebar.tsx) — the
+  // "Detalhes" button (header.tsx) only shows while the panel is CLOSED, so it
+  // is gone by the time the panel has actually opened.
+  await expect(
+    page.getByRole("heading", { name: "Histórico de Estados" })
+  ).toBeVisible({ timeout: 10_000 })
   await expect(page.locator("textarea").first()).toBeVisible()
 })

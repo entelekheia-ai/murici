@@ -4,7 +4,15 @@ Este documento detalha o planejamento futuro para a migração estrutural do fro
 
 ## 1. Motivação e Objetivos
 
-Com a evolução do `dot-agent-spec` e a capacidade de agentes injetarem efeitos de UI (como `apply css`), tornou-se evidente que depender de classes utilitárias (Tailwind) gera um ambiente frágil para estilização externa. 
+Com a evolução do `dot-agent-spec` e a capacidade de agentes injetarem efeitos de UI (como `apply css`), tornou-se evidente que depender de classes utilitárias (Tailwind) gera um ambiente frágil para estilização externa.
+
+> [!NOTE]
+> O pipeline de ingestão/reconciliação de `apply css` por thread já está implementado — ver
+> [Plan-017](./017-agent-presentation-effects-pipeline.md) e
+> [Runtime Actions](../../docs/architecture/runtime-actions.md). O CSS injetado é escopado por
+> thread (`activeCss[viewedThreadId]`, reconciliado pelo `KernelPresentationHost`), não global —
+> a nota abaixo sobre CSS "global" descreve a intenção de especificidade de seletor, não o escopo
+> de aplicação, que já é por conversa.
 
 - **Portabilidade de Temas:** Agentes (`.agent`) precisam de seletores CSS estáveis para modificar o tema do Murici (ex: `dot-chat-bubble { border-radius: 0; }`) sem quebrarem caso o Murici atualize suas classes do Tailwind.
 - **Isolamento de GenUI:** O futuro de GenUI e MCP (Model Context Protocol) exige isolamento seguro. Em vez de recorrer a Iframes (que prejudicam a UX), o uso de Custom Elements com **Shadow DOM** permite que a IA gere componentes ricos cujo CSS interno não vaza para a aplicação pai.
@@ -36,7 +44,9 @@ Quando o ecossistema estiver pronto para renderizar "Widgets" dinâmicos gerados
 ## 3. Impacto no React / Tailwind
 
 - O Tailwind continuará sendo usado normalmente para o styling interno do Murici, aplicado dentro dessas novas tags (`<dot-bot-message className="bg-zinc-800 rounded-lg p-4" />`).
-- O CSS global (ou CSS injetado por agentes via `apply_css`) usará a especificidade dessas novas tags para "atropelar" o Tailwind quando necessário, garantindo que o tema do agente tenha prioridade sem necessitar do uso de `!important` a todo momento.
+- O CSS injetado por agentes via `apply css` (já escopado por thread — Plan-017) usará a
+  especificidade dessas novas tags para "atropelar" o Tailwind quando necessário, garantindo que o
+  tema do agente tenha prioridade sem necessitar do uso de `!important` a todo momento.
 
 ## 4. Próximos Passos (Quando Iniciar)
 

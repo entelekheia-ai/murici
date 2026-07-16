@@ -7,7 +7,7 @@ This plan details the implementation of a native helper agent (`onboarding-agent
 > [!IMPORTANT]
 > The automatic injection on the **first run** still needs to be defined in the UI. We need to ensure the UI loads this package by default when IndexedDB is empty, without relying on manual drag-and-drop.
 > 
-> **CSS Scope Persistance:** The current `applyKernelCss` injects styles globally. If the user is in the middle of the tutorial and switches to another conversation, the tutorial styles (like the orange background) will "leak" to the other chat. We need to tie the CSS state to the active conversation by implementing `active_css: string[]` in the database state and React context.
+> **CSS Scope Persistance:** ⚠️ **SUPERSEDED by Plan-017.** The current `applyKernelCss` injects styles globally. If the user is in the middle of the tutorial and switches to another conversation, the tutorial styles (like the orange background) will "leak" to the other chat. We need to tie the CSS state to the active conversation. The `active_css`/IndexedDB/`use-chat-handler.tsx` approach described here and in "Feasibility Analysis: `apply css`" below predates ADR-0007 (per-thread channels) — the actual fix lives in Plan-017, which scopes presentation effects per `threadId` in the channel store (in-memory) and reconciles the viewed thread's set into the DOM.
 
 ## Open Questions
 
@@ -39,6 +39,9 @@ What is currently missing is the React Context integration to persist these styl
 ---
 
 ## Feasibility Analysis: `apply css` (Dynamic and Chat-Local Theming)
+
+> [!WARNING]
+> The implementation steps in this section (IndexedDB `active_css`, `use-chat-handler.tsx`, `selectedChat` observer) are **superseded by Plan-017**. They describe the pre-ADR-0007 architecture. Kept here for historical context only.
 
 > [!NOTE]
 > `apply css` receives a file path, not a loose class name. The CSS files (`css/highlight-models.css`, `css/theme-system.css`) already exist in `public/agent-styles/`. 

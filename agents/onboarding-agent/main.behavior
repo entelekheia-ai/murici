@@ -1,6 +1,7 @@
 merge "onboarding.behavior"
 
 state init
+  apply css "theme-system.css"
   if context.onboarding
     transition to welcome
   else
@@ -8,7 +9,6 @@ state init
   end
 
 state responsive
-  apply css "theme-system.css"
   remove css "highlight-models.css"
   remove css "agents.css"
   goal "Introduce the system and present the main menu options."
@@ -23,7 +23,7 @@ state responsive
 state local_models
   apply css "highlight-models.css"
   remove css "agents.css"
-  run script "open_settings_auto_task"
+  run script "settings:ai-helper-open"
   goal "Guide the user on setting up local models."
   guide "Explain how Murici automatically discovers local models (Ollama, LM Studio) and strongly alert the user about the importance of configuring the automated tasks model in the header, as this enables continuous intelligence."
   teach "knowledge/local-models.md"
@@ -37,7 +37,7 @@ state local_models
 state agent_format
   remove css "highlight-models.css"
   apply css "agents.css"
-  run script "open_agents_panel"
+  run script "chat:agents-details-open"
   goal "Explain the .agent format."
   guide "Describe the .agent format as a portable and secure packaging standard for AI Agents. State that it serves to guide the LLM precisely. Suggest using the official CLI to create them."
   teach "knowledge/dot-agent-format.md"
@@ -51,7 +51,7 @@ state agent_format
 state features_graph
   remove css "highlight-models.css"
   remove css "agents.css"
-  run script "open_agents_panel"
+  run script "chat:agents-details-open"
   goal "Explain the internal features."
   guide "Explain Murici's internal features: the Knowledge Graph, the local-first saving via IndexedDB, and the powerful Enrich tool. Keep a welcoming tone."
   teach "knowledge/features.md"
@@ -65,7 +65,7 @@ state features_graph
 state mcp_setup
   remove css "highlight-models.css"
   remove css "agents.css"
-  run script "open_mcp_config"
+  run script "settings:mcp-open"
   goal "Explain MCP configuration."
   guide "Assist the user by explaining what MCP (Model Context Protocol) is and how to configure it in Murici's settings panel."
   teach "knowledge/mcp-setup.md"

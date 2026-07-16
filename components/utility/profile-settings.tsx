@@ -96,13 +96,29 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
   const [activeTab, setActiveTab] = useState("profile")
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      const tab = (e as CustomEvent<{ tab?: string }>).detail?.tab
-      setActiveTab(tab ?? "profile")
+    const openOnTab = (tab: string) => () => {
+      setActiveTab(tab)
       setIsOpen(true)
     }
-    window.addEventListener("murici:profile-open", handler)
-    return () => window.removeEventListener("murici:profile-open", handler)
+    // Plain UI-to-UI signal (sidebar "Configurações" button, Electron menu
+    // "open-settings", the background-model-missing banner) — NOT an agent
+    // runtime action, since nothing here is driven by a `.behavior` effect.
+    // Opens on the default tab.
+    const openGeneric = openOnTab("profile")
+    // The two agent runtime actions (project/plans/017,
+    // docs/architecture/runtime-actions.md) that open this panel, each on its
+    // own tab — they used to share "murici:profile-open" with a detail.tab
+    // payload; the namespaced vocabulary gives each its own event instead.
+    const openMcp = openOnTab("mcp")
+    const openAiHelper = openOnTab("profile") // auto-task model lives in the Profile tab
+    window.addEventListener("murici:profile-open", openGeneric)
+    window.addEventListener("settings:mcp-open", openMcp)
+    window.addEventListener("settings:ai-helper-open", openAiHelper)
+    return () => {
+      window.removeEventListener("murici:profile-open", openGeneric)
+      window.removeEventListener("settings:mcp-open", openMcp)
+      window.removeEventListener("settings:ai-helper-open", openAiHelper)
+    }
   }, [])
 
   const [displayName, setDisplayName] = useState(profile?.display_name || "")
@@ -357,7 +373,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
                 />
               </div>
 
-              <div className="space-y-1" data-dot-id="auto-task-model">
+              <div className="space-y-1" data-dot-agent-ui="auto-task-model">
                 <Label className="text-sm">
                   Modelo local para tarefas automáticas
                 </Label>

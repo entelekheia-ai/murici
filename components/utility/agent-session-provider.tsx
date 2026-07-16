@@ -7,11 +7,11 @@
 import { AgentSessionContext } from "@/context/agent-session-context"
 import { ChatAgentSession, ChatbotUIContext } from "@/context/context"
 import { KernelProxy } from "@/lib/kernel-proxy"
-import { handleKernelEffects } from "@/lib/kernel-effects"
+import { handleRuntimeActions } from "@/lib/kernel-effects"
 import { getAgentBundle, saveAgentBundle } from "@/lib/local-db/agent-bundles"
 import { upsertRecentAgent } from "@/lib/local-db/recent-agents"
 import { buildFlowStateFromEffects } from "@/lib/runtime/advance-flow"
-import { useChannelStore } from "@/lib/store/channel-store"
+import { useChannelStore, channelStore } from "@/lib/store/channel-store"
 import { unpackAgentFile } from "@/lib/agents/unpack-agent-file"
 import type { AgentAboutme, UnpackPayload } from "@/types/electron"
 import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
@@ -150,7 +150,14 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
           return
         }
 
-        if (isActive()) handleKernelEffects(effects, { setShowRightSidebar })
+        // Presentation effects go through the per-thread pipeline (project/plans/017):
+        // CSS is ingested into the store for ANY target thread, even one loading in
+        // the background — the DOM reconciler (KernelPresentationHost) is the only
+        // thing that ever touches document.head, and only for the viewed thread.
+        // Runtime actions (run_script) are fire-once and only make sense for the
+        // thread on screen right now.
+        channelStore.getState().ingestCssEffects(chatKey, effects)
+        if (isActive()) handleRuntimeActions(effects)
 
         const newFlowState = buildFlowStateFromEffects(eng, effects, know)
         const state = newFlowState.currentState
@@ -182,7 +189,7 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
         if (isActive()) setParseError(message)
       }
     },
-    [activeChatKeyRef, updateSession, setShowRightSidebar, setAgentKnowledgeFiles, setFlowState]
+    [activeChatKeyRef, updateSession, setAgentKnowledgeFiles, setFlowState]
   )
 
   // Sync the FSM's advancing state (driven by send_intent/tick_prompt calls
@@ -208,6 +215,19 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowState?.currentState])
+
+  // Implements the "chat:agents-details-open" runtime action (project/plans/017,
+  // docs/architecture/runtime-actions.md) — dispatched by dispatchRuntimeAction
+  // when a `run script` effect targets it. Mirrors the existing listener idiom
+  // in chat-settings.tsx / profile-settings.tsx. Replaces the old direct-setter
+  // path that used to run inside handleKernelEffects.
+  useEffect(() => {
+    const openAgentsDetails = () => setShowRightSidebar(true)
+    window.addEventListener("chat:agents-details-open", openAgentsDetails)
+    return () => {
+      window.removeEventListener("chat:agents-details-open", openAgentsDetails)
+    }
+  }, [setShowRightSidebar])
 
   const loadAgentBundle = useCallback(
     async (
