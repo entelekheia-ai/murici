@@ -21,7 +21,7 @@ import { LOCALE_DISPLAY_NAMES, SUPPORTED_LOCALES } from "@/lib/locale-names"
 import { OpenRouterLLM } from "@/types"
 
 import Image from "next/image"
-import { usePathname, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -101,7 +101,6 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
   } = useContext(ChatbotUIContext)
 
   const router = useRouter()
-  const pathname = usePathname()
   const currentLocale = useCurrentLocale(i18nConfig) ?? i18nConfig.defaultLocale
 
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -337,7 +336,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
 
                 <Select
                   value={currentLocale}
-                  onValueChange={v => setLocalePreference(v, router, pathname)}
+                  onValueChange={v => setLocalePreference(v, router)}
                 >
                   <SelectTrigger>
                     <SelectValue />

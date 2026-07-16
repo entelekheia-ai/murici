@@ -34,7 +34,6 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const chatMap = new Map(chats.map(c => [c.id, c]))
@@ -159,9 +158,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
                         title={chat.name}
                         onClick={e => {
                           e.stopPropagation()
-                          router.push(
-                            `/${locale}/${workspaceid}/chat/${chat.id}`
-                          )
+                          router.push(`/${workspaceid}/chat/${chat.id}`)
                         }}
                       >
                         {chat.name}

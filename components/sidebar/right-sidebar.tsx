@@ -101,7 +101,6 @@ export const RightSidebar: FC = () => {
 
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
   const workspaceid = (params?.workspaceid as string) || "local"
   const {
     flowState,
@@ -462,7 +461,7 @@ export const RightSidebar: FC = () => {
                           className="h-auto justify-end p-0 text-[13px] font-medium text-murici-orange hover:bg-transparent hover:text-[#C05621]/80"
                           onClick={() => {
                             setShowRightSidebar(false)
-                            router.push(`/${locale}/${workspaceid}/graph`)
+                            router.push(`/${workspaceid}/graph`)
                           }}
                         >
                           {t("View all files →")}

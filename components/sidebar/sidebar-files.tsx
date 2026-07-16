@@ -18,7 +18,6 @@ export const SidebarFilesContent: FC = () => {
   const { chats, models, availableLocalModels } = useContext(ChatbotUIContext)
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const [allKnowledge, setAllKnowledge] = useState<KnowledgeRecord[]>([])
@@ -74,7 +73,7 @@ export const SidebarFilesContent: FC = () => {
       <div className="absolute bottom-4 left-1/2 z-10 w-[90%] -translate-x-1/2">
         <Button
           className="w-full rounded-xl bg-murici-orange text-sm font-semibold text-white shadow-lg hover:bg-[#C05621]/90"
-          onClick={() => router.push(`/${locale}/${workspaceid}/graph`)}
+          onClick={() => router.push(`/${workspaceid}/graph`)}
         >
           Ver todos os arquivos
         </Button>

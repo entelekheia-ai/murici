@@ -8,6 +8,7 @@
 
 // Setup page is not needed in the local-only fork.
 // Redirects directly to the local workspace.
+import Loading from "../loading"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
@@ -18,5 +19,7 @@ export default function SetupPage() {
     router.replace("/local/chat")
   }, [router])
 
-  return null
+  // See app/[locale]/page.tsx — a stalled redirect should show a spinner,
+  // not a blank screen.
+  return <Loading />
 }

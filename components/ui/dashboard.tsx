@@ -73,7 +73,6 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const params = useParams()
-  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
   const tabValue = searchParams.get("tab") || "chats"
 
@@ -153,7 +152,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
           )
           break
         case "view-knowledge":
-          router.push(`/${locale}/${workspaceid}/graph`)
+          router.push(`/${workspaceid}/graph`)
           break
         case "toggle-chat-list":
           autoCollapsedLeftRef.current = false
@@ -168,14 +167,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
           break
       }
     })
-  }, [
-    handleNewChat,
-    locale,
-    workspaceid,
-    router,
-    setShowSidebar,
-    setShowRightSidebar
-  ])
+  }, [handleNewChat, workspaceid, router, setShowSidebar, setShowRightSidebar])
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(280)
   const [isResizing, setIsResizing] = useState(false)

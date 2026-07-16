@@ -52,7 +52,6 @@ export const MenuSettings: FC<MenuSettingsProps> = ({
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const openSettings = () => {
@@ -86,7 +85,7 @@ export const MenuSettings: FC<MenuSettingsProps> = ({
             key={type}
             onClick={() => {
               if (type === "files") {
-                router.push(`/${locale}/${workspaceid}/graph`)
+                router.push(`/${workspaceid}/graph`)
               } else {
                 onContentTypeChange(type)
               }

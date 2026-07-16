@@ -32,7 +32,6 @@ export const KnowledgeSidebarSection: FC = () => {
   const router = useRouter()
   const params = useParams()
 
-  const locale = (params?.locale as string) || "local"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const recent = [...knowledge]
@@ -65,7 +64,7 @@ export const KnowledgeSidebarSection: FC = () => {
 
           <button
             className="mt-0.5 text-right text-xs text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => router.push(`/${locale}/${workspaceid}/graph`)}
+            onClick={() => router.push(`/${workspaceid}/graph`)}
           >
             Ver tudo →
           </button>

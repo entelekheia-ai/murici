@@ -6,79 +6,89 @@
 import { test, expect } from "@playwright/test"
 
 /*
- * HTTP-LAYER REPRODUCTION — the deterministic core of the locale-less
- * navigation bug (see locale-navigation-blank-screen.spec.ts for the
- * user-facing symptom and full root-cause writeup).
+ * HTTP-LAYER REGRESSION GUARD — locale-less internal navigation must never
+ * 307-redirect (see locale-navigation-blank-screen.spec.ts for the
+ * user-facing symptom this used to cause, and issue #3 for the full
+ * root-cause writeup).
  *
- * These assertions describe the CURRENT (buggy) middleware behaviour so the
- * defect is captured in an Electron-independent way. `test.fixme` marks the
- * DESIRED post-fix behaviour that does not hold yet.
+ * Before the fix, i18nConfig.js had prefixDefault:false with a URL-prefixed
+ * locale scheme: a locale-less path (e.g. "/local/chat", built by
+ * router.replace/push calls that never included a locale segment) rewrote
+ * cleanly (200) only on the default locale ("en"); on any other locale the
+ * middleware 307-redirected it to the prefixed path. For a client-side (RSC)
+ * soft-navigation, that 307 carried no component payload, so the App
+ * Router's RSC fetch failed and fell back to a hard reload — which is what
+ * surfaced as a blank screen / ERR_TOO_MANY_REDIRECTS in Electron.
  *
- * Verified equivalent with curl against `npm run dev`:
- *   /local/chat  (no cookie, Accept-Language pt-BR) -> 307 -> /pt/local/chat
- *   /local/chat  (cookie NEXT_LOCALE=pt)            -> 307 -> /pt/local/chat
- *   /local/chat  (cookie NEXT_LOCALE=en, default)   -> 200 (internal rewrite)
- *   /pt/local/chat (RSC header)                     -> 200 text/x-component
- *   /local/chat  (RSC header, cookie pt)            -> 307, no RSC payload  <-- breaks soft-nav
+ * The fix sets noPrefix:true: the middleware now always internally rewrites
+ * (never redirects), on every locale, so locale-less paths are universally
+ * correct and a visibly-prefixed path (e.g. "/pt/local/chat") is no longer a
+ * route the app ever constructs (verified 404 below).
  */
 
-const LOCALE_LESS_INTERNAL_PATH = "/local/chat"
+const INTERNAL_PATH = "/local/chat"
 
-test.describe("locale-less internal navigation vs next-i18n-router", () => {
-  test("CURRENT: a locale-less internal path 307-redirects on a non-default locale", async ({
+test.describe("locale-less internal navigation vs next-i18n-router (noPrefix)", () => {
+  test("a locale-less internal path resolves 200 on a non-default locale", async ({
     playwright
   }) => {
     const ctx = await playwright.request.newContext({
       baseURL: "http://localhost:3000",
       extraHTTPHeaders: { Cookie: "NEXT_LOCALE=pt" }
     })
-    const res = await ctx.get(LOCALE_LESS_INTERNAL_PATH, { maxRedirects: 0 })
-    expect(res.status()).toBe(307)
-    expect(res.headers()["location"]).toContain("/pt/local/chat")
+    const res = await ctx.get(INTERNAL_PATH, { maxRedirects: 0 })
+    expect(res.status()).toBe(200)
     await ctx.dispose()
   })
 
-  test("CURRENT: an RSC soft-navigation request to that path 307s with no component payload", async ({
+  test("an RSC soft-navigation request to that path also resolves 200 (no stranded fetch)", async ({
     playwright
   }) => {
     const ctx = await playwright.request.newContext({
       baseURL: "http://localhost:3000",
       extraHTTPHeaders: { Cookie: "NEXT_LOCALE=pt", RSC: "1" }
     })
-    const res = await ctx.get(LOCALE_LESS_INTERNAL_PATH, { maxRedirects: 0 })
-    expect(res.status()).toBe(307)
-    // A 307 (not an RSC 200/text/x-component) is exactly what makes the App
-    // Router's soft-navigation fetch fall back to a hard reload.
-    expect(res.headers()["content-type"] ?? "").not.toContain("x-component")
+    const res = await ctx.get(INTERNAL_PATH, { maxRedirects: 0 })
+    expect(res.status()).toBe(200)
     await ctx.dispose()
   })
 
-  test("CONTROL: on the default locale the same path resolves 200 (why English never broke)", async ({
+  test("the same path resolves 200 on the default locale too", async ({
     playwright
   }) => {
     const ctx = await playwright.request.newContext({
       baseURL: "http://localhost:3000",
       extraHTTPHeaders: { Cookie: "NEXT_LOCALE=en" }
     })
-    const res = await ctx.get(LOCALE_LESS_INTERNAL_PATH, { maxRedirects: 0 })
+    const res = await ctx.get(INTERNAL_PATH, { maxRedirects: 0 })
     expect(res.status()).toBe(200)
     await ctx.dispose()
   })
 
-  test.fixme("DESIRED: app-internal navigation must not 307 while on a non-default locale", async ({
+  test("resolves 200 even with no cookie at all (first-launch, no prior locale pinned)", async ({
     playwright
   }) => {
-    // Post-fix, either (a) navigations always carry the active locale so this
-    // locale-less path is never requested, or (b) locale routing no longer
-    // uses a visible URL prefix (noPrefix), so the path rewrites (200) on
-    // every locale. Whichever approach is chosen, a real soft-navigation the
-    // app performs must never resolve to a 307 that strands the RSC fetch.
+    const ctx = await playwright.request.newContext({
+      baseURL: "http://localhost:3000",
+      extraHTTPHeaders: { "Accept-Language": "pt-BR" }
+    })
+    const res = await ctx.get(INTERNAL_PATH, { maxRedirects: 0 })
+    expect(res.status()).toBe(200)
+    await ctx.dispose()
+  })
+
+  test("a visibly-prefixed path is no longer a route the app should reach (guards against regression)", async ({
+    playwright
+  }) => {
+    // With noPrefix, nothing should ever construct "/pt/..." — if this starts
+    // returning 200 again, a call site regressed back to manual locale
+    // prefixing (the pattern removed from knowledge-graph-canvas.tsx et al.).
     const ctx = await playwright.request.newContext({
       baseURL: "http://localhost:3000",
       extraHTTPHeaders: { Cookie: "NEXT_LOCALE=pt" }
     })
-    const res = await ctx.get(LOCALE_LESS_INTERNAL_PATH, { maxRedirects: 0 })
-    expect(res.status()).toBe(200)
+    const res = await ctx.get("/pt/local/chat", { maxRedirects: 0 })
+    expect(res.status()).toBe(404)
     await ctx.dispose()
   })
 })

@@ -233,7 +233,6 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
   const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -781,9 +780,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
       if (params.nodes.length === 0) return
       const nodeId = params.nodes[0] as string
       if (nodeId.startsWith("conv-")) {
-        router.push(
-          `/${locale}/${workspaceid}/chat/${nodeId.replace("conv-", "")}`
-        )
+        router.push(`/${workspaceid}/chat/${nodeId.replace("conv-", "")}`)
       } else if (nodeId.startsWith("know-")) {
         const record = knowledge.find(k => k.id === nodeId.replace("know-", ""))
         if (record) {
