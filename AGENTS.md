@@ -54,11 +54,13 @@ You are the guardian of the `dot-agent` architecture in Murici. Your role is to 
 
 11. **API streaming:** The `openai` and `custom` routes use a manual `for await` loop on the OpenAI SDK async iterator — never `OpenAIStream` from the `ai` package. This ensures `delta.reasoning_content` is captured and emitted as `<think>` tags for downstream parsing.
 
-12. **License headers are mandatory on every source file.** Before committing any `.ts`, `.tsx`, `.js`, or `.jsx` file you must ensure the correct header is present at the very top of the file:
-    - **New file** (not in `upstream/main`): full Apache 2.0 header, sole copyright Danilo Borges 2026.
-    - **Modified legacy file** (exists in `upstream/main`, changed): mixed attribution header — Apache 2.0 + "Portions Copyright McKay Wrigley (MIT)".
-    - **Unmodified legacy file** (exists in `upstream/main`, unchanged): MIT attribution header only.
-    The pre-commit hook (`scripts/ensure-license-headers.sh`, registered in `.husky/pre-commit`) enforces this automatically and re-stages patched files. If you add a file programmatically and bypass the hook, inject the header manually before staging. Never remove or alter existing copyright notices.
+12. **License headers are mandatory on every source file.** Before committing any `.ts`, `.tsx`, `.js`, or `.jsx` file you must ensure the correct header is present at the very top of the file. Headers are SPDX identifiers, not copyright prose — per [ASF's own current practice](https://www.apache.org/legal/src-headers.html), a copyright line per file is not recommended (it goes stale the moment anyone else touches the file); copyright lives collectively in [`NOTICE`](NOTICE) + [`AUTHORS`](AUTHORS), where contributors retain their own copyright. The pre-commit hook classifies each file from **the header it already has** (not from an `upstream` remote — none is configured in this repo):
+    - **No header at all** (brand new file): `// SPDX-License-Identifier: Apache-2.0`
+    - **Old block header mentioning MIT *and* Apache/Murici/Danilo** (modified legacy — was forked from `chatbot-ui` and changed here): migrated to `// SPDX-License-Identifier: Apache-2.0 AND MIT` + a one-line pointer to `NOTICE` (MIT requires the original notice be retained; `NOTICE` carries it).
+    - **Old block header mentioning MIT only, no Apache/Murici/Danilo** (unmodified legacy — never touched by this project): left completely untouched, never relicensed.
+    - **Old block header with no MIT mention** (sole Murici authorship): migrated to plain `Apache-2.0`.
+    Migration is **opportunistic, on touch** — staging a file that still carries the old `Copyright (c) 2026 …` prose block replaces it with the SPDX form in that same commit. Files nobody touches keep their old (still valid) header; there is no repo-wide retrofit.
+    Two layers enforce this: the git-native pre-commit hook (`scripts/ensure-license-headers.sh`, wired via `core.hooksPath=.githooks`, set by the `prepare` npm script — no husky) injects/migrates and re-stages headers locally, and the `License headers` CI workflow runs the same script in `--check` mode (accepts either SPDX or the old block) so `--no-verify` or a missing hook cannot merge unlicensed code. If you add a file programmatically and bypass the hook, inject the header manually before staging. Never remove or alter existing license headers.
 
 ---
 

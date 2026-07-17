@@ -79,3 +79,32 @@ one set per channel — `<channel>.icon` (macOS Icon Composer), `<channel>.icns`
 
 Rules: masters only (electron-builder generates every derived size), always
 **square 1024×1024**, never commit `@2x`/`@3x`/`-N` export variants.
+
+## Committing code
+
+- **Sign your commits (DCO).** Use `git commit -s` to add a `Signed-off-by`
+  line, certifying you wrote the change and may submit it under the project
+  license ([developercertificate.org](https://developercertificate.org)).
+- **License headers are mandatory** on every `.ts`/`.tsx`/`.js`/`.jsx` — a single
+  `// SPDX-License-Identifier: Apache-2.0` line (or `Apache-2.0 AND MIT` on
+  modified legacy files). No per-file copyright line: copyright is tracked
+  collectively in [`NOTICE`](NOTICE) + [`AUTHORS`](AUTHORS). Add your name to
+  `AUTHORS` in your first PR — authorship, not copyright assignment; you keep
+  your copyright. Files still carrying the old `Copyright (c) 2026 …` block
+  header get migrated to SPDX automatically **the moment you stage them** —
+  nothing to do by hand, and files nobody touches just keep the old (still
+  valid) header. The one exception: a file whose header is pure upstream MIT
+  with no Apache/Murici mention (never modified by this project) is left
+  alone — it's not ours to relicense.
+- **Git hooks are native, not husky.** `npm install` runs the `prepare` script,
+  which points git at `.githooks/` (`core.hooksPath`). The `pre-commit` hook
+  formats staged TS and injects license headers via
+  `scripts/ensure-license-headers.sh`. If hooks don't fire, run
+  `npm install` (or `git config core.hooksPath .githooks`) once.
+- **CI enforces headers independently** (`.github/workflows/license-headers.yml`
+  runs the script in `--check` mode), so `--no-verify` can't merge unlicensed
+  code. Run `bash scripts/ensure-license-headers.sh --check` locally to preview.
+- Feature work: branch `feat/…` off the target channel branch, PR into it.
+- Do not commit build artifacts (`public/worker-*.js`, `.next/`, `dist-electron/`).
+
+Agent-facing architecture rules: [`AGENTS.md`](AGENTS.md).

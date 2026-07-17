@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# Shared pre-commit hook (git-native, no husky).
+# Activated for every collaborator via `core.hooksPath=.githooks`, set by the
+# `prepare` npm script on install. Enforced independently in CI, so a missing
+# hook or `--no-verify` cannot land unformatted / unlicensed code.
+set -e
+
+# Lint/format only the files staged for this commit — never the whole repo,
+# and never `git add .` (that used to silently sweep unrelated pending edits
+# and untracked files into whatever commit happened to run next).
+staged_ts=$(git diff --cached --name-only --diff-filter=ACM -- "*.ts" "*.tsx")
+
+if [ -n "$staged_ts" ]; then
+  echo "$staged_ts" | xargs npx eslint --fix
+  echo "$staged_ts" | xargs npx prettier --write
+  echo "$staged_ts" | xargs git add
+fi
+
+bash scripts/ensure-license-headers.sh
