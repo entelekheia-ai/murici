@@ -1,6 +1,6 @@
 {
   "name": "murici",
-  "version": "0.11.0-beta.1",
+  "version": "0.11.0-beta.2",
   "description": "Murici is a lightweight, responsive desktop and web Chat UI designed for running deterministic state-machine agent behaviors.",
   "private": true,
   "author": "Danilo Borges <contato@daniloborg.es>",
