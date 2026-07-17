@@ -90,7 +90,7 @@ asarUnpack:
   - "**/dot-agent-kernel/**"
 
 mac:
-  icon: icon.icon
+  icon: icon/latest.icon
   target:
     - target: dmg
       arch: [x64, arm64]
@@ -100,14 +100,16 @@ mac:
   darkModeSupport: true
 
 dmg:
-  icon: icon.icns
+  icon: icon/latest.icns
 
 win:
+  icon: icon/latest.ico
   target:
     - target: nsis
       arch: [x64]
 
 linux:
+  icon: icon/latest.png
   target:
     - target: AppImage
       arch: [x64]

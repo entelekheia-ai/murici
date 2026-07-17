@@ -70,7 +70,20 @@ You are the guardian of the `dot-agent` architecture in Murici. Your role is to 
 | **Server process** | Production Electron spawns `node server/server.js` (Next.js standalone) as a child process. LLM API calls go through this server — not via IPC. Do not rewrite routes as IPC handlers. |
 | **IndexedDB** | Renderer process uses IndexedDB directly (Chromium engine). No migration needed for Electron vs web. |
 | **Renderer security** | `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. The renderer has no Node.js access; all server logic stays in the embedded Next.js process. |
-| **Auto-update** | `electron-updater` in `electron/updater.ts`. Only active in packaged builds (`app.isPackaged`). |
+| **Auto-update** | `electron-updater` in `electron/updater.ts`. Only active in packaged builds (`app.isPackaged`). Channel-aware: the update channel (`alpha`/`beta`/`latest`) is derived from the build's own version — see below. |
+
+## Release channels
+
+Murici ships on three side-by-side channels driven by the git tag: `main`/stable
+(`vX.Y.Z`), `beta` (`vX.Y.Z-beta.N`), `alpha` (`vX.Y.Z-alpha.N`). Each gets a
+distinct `appId` + `productName` (so they install alongside each other) and its
+own icon set, all selected in `.github/workflows/electron-release.yml` from the
+tag. `electron/updater.ts` reads `app.getVersion()` to opt a prerelease build
+into its channel; stable builds stay on `latest` with `allowPrerelease=false`.
+
+Full procedure (cut / promote / install): [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Design record: [`project/plans/019-prerelease-track.md`](project/plans/019-prerelease-track.md).
+**Never tag a prerelease off `main`** — prereleases come from `alpha`/`beta`.
 
 ---
 

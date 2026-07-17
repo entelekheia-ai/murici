@@ -29,6 +29,34 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: npm config set script-shell "C:\\Program Files\\Git\\bin\\bash.exe"
 
+      - name: Determine release type and channel from tag
+        id: release
+        shell: bash
+        run: |
+          # SemVer prerelease (v0.11.0-alpha.1 / -beta.1) -> GitHub prerelease.
+          # Clean tag (v0.11.0) -> full release. The update channel itself is
+          # auto-derived from the version by electron-builder (detectUpdateChannel).
+          # A distinct appId + productName per channel lets the three builds
+          # install side by side (separate app bundle, dock icon, and userData /
+          # IndexedDB) instead of overwriting each other. Stable keeps the
+          # original identity so existing installs are untouched.
+          if [[ "${GITHUB_REF_NAME}" == *-alpha* ]]; then
+            echo "type=prerelease" >> "$GITHUB_OUTPUT"
+            echo "channel=alpha" >> "$GITHUB_OUTPUT"
+            echo "app_id=com.entelekheia.murici.alpha" >> "$GITHUB_OUTPUT"
+            echo "product_name=Murici Alpha" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF_NAME}" == *-beta* ]]; then
+            echo "type=prerelease" >> "$GITHUB_OUTPUT"
+            echo "channel=beta" >> "$GITHUB_OUTPUT"
+            echo "app_id=com.entelekheia.murici.beta" >> "$GITHUB_OUTPUT"
+            echo "product_name=Murici Beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=release" >> "$GITHUB_OUTPUT"
+            echo "channel=latest" >> "$GITHUB_OUTPUT"
+            echo "app_id=com.entelekheia.murici" >> "$GITHUB_OUTPUT"
+            echo "product_name=Murici" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install dependencies
         run: npm ci
 
@@ -42,7 +70,15 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npm run electron:publish
+        run: >
+          npm run electron:publish --
+          -c.publish.releaseType=${{ steps.release.outputs.type }}
+          -c.appId=${{ steps.release.outputs.app_id }}
+          -c.productName="${{ steps.release.outputs.product_name }}"
+          -c.mac.icon=icon/${{ steps.release.outputs.channel }}.icon
+          -c.dmg.icon=icon/${{ steps.release.outputs.channel }}.icns
+          -c.win.icon=icon/${{ steps.release.outputs.channel }}.ico
+          -c.linux.icon=icon/${{ steps.release.outputs.channel }}.png
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
