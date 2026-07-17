@@ -4,7 +4,9 @@
  */
 
 import { FlowEvent } from "@/types"
+import { Effect } from "@/types/kernel-effect"
 import { patchFlowEventById } from "@/lib/utils/flow-events"
+import { foldCssEffects } from "@/lib/utils/css-effects"
 import { create } from "zustand"
 
 // Runtime state of the app's chat CHANNELS — see project/adr/0007.
@@ -50,6 +52,21 @@ interface ChannelStore {
   // chat you left still shows what happened in it this session.
   flowEvents: Record<string, FlowEvent[]>
 
+  // A thread's DESIRED presentation CSS, per project/plans/017. This is the
+  // single source of truth an agent's `apply css`/`remove css` effects write
+  // into — from EITHER the initial load or a `send_intent` advance, whether or
+  // not the thread is on screen. The DOM only ever mirrors
+  // activeCss[viewedThreadId] (see KernelPresentationHost) — nothing reads or
+  // writes document.head directly from here.
+  //
+  // NOT tied to `channels`, same reasoning as `flowEvents`: a background
+  // thread's ChatChannel unmounts (and dropChannel()s) as soon as its reply
+  // finishes and it isn't the viewed thread — exactly the off-screen scenario
+  // this pipeline exists for. Clearing activeCss there would wipe an agent's
+  // theme the moment it finished applying it in the background, before the
+  // user ever switched back to see it.
+  activeCss: Record<string, string[]>
+
   setViewedThreadId: (threadId: string | null) => void
   patchChannel: (threadId: string, patch: Partial<ChannelRuntimeState>) => void
   dropChannel: (threadId: string) => void
@@ -59,6 +76,7 @@ interface ChannelStore {
     eventId: string,
     patch: Record<string, any>
   ) => void
+  ingestCssEffects: (threadId: string, effects: Effect[] | undefined | null) => void
 }
 
 const IDLE: ChannelRuntimeState = {
@@ -74,6 +92,7 @@ export const useChannelStore = create<ChannelStore>(set => ({
   viewedThreadId: null,
   channels: {},
   flowEvents: {},
+  activeCss: {},
 
   setViewedThreadId: threadId => set({ viewedThreadId: threadId }),
 
@@ -89,9 +108,18 @@ export const useChannelStore = create<ChannelStore>(set => ({
 
   dropChannel: threadId =>
     set(state => {
+      // activeCss deliberately NOT cleared here — see the field's doc comment.
       if (!(threadId in state.channels)) return state
-      const { [threadId]: _dropped, ...rest } = state.channels
-      return { channels: rest }
+      const { [threadId]: _dropped, ...restChannels } = state.channels
+      return { channels: restChannels }
+    }),
+
+  ingestCssEffects: (threadId, effects) =>
+    set(state => {
+      const prev = state.activeCss[threadId] ?? []
+      const next = foldCssEffects(prev, effects)
+      if (next === prev) return state
+      return { activeCss: { ...state.activeCss, [threadId]: next } }
     }),
 
   pushFlowEvent: (threadId, event) =>
@@ -155,4 +183,15 @@ const NO_EVENTS: FlowEvent[] = []
 export function selectViewedFlowEvents(state: ChannelStore): FlowEvent[] {
   if (!state.viewedThreadId) return NO_EVENTS
   return state.flowEvents[state.viewedThreadId] ?? NO_EVENTS
+}
+
+// Same stable-empty-array trick as selectViewedFlowEvents. KernelPresentationHost
+// (project/plans/017) subscribes to this directly — no useShallow needed, since
+// activeCss[threadId] only ever changes reference via ingestCssEffects, which
+// itself preserves reference on a no-op fold.
+const NO_CSS: string[] = []
+
+export function selectViewedActiveCss(state: ChannelStore): string[] {
+  if (!state.viewedThreadId) return NO_CSS
+  return state.activeCss[state.viewedThreadId] ?? NO_CSS
 }

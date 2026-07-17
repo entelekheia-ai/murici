@@ -15,6 +15,7 @@
  */
 
 import { Effect } from "@/types/kernel-effect"
+import { dispatchRuntimeAction } from "@/lib/runtime/runtime-actions"
 
 // CSS files referenced by `apply css "<value>"` in a .behavior are not bundled
 // inside the .agent package (the compiler doesn't extract css/ yet — that's a
@@ -22,8 +23,10 @@ import { Effect } from "@/types/kernel-effect"
 // the effect's `value` is used verbatim as the filename.
 const AGENT_STYLES_BASE = "/agent-styles/"
 
+const CSS_LINK_ID_PREFIX = "dot-agent-css:"
+
 function cssLinkId(value: string): string {
-  return `dot-agent-css:${value}`
+  return `${CSS_LINK_ID_PREFIX}${value}`
 }
 
 export function applyKernelCss(value: string) {
@@ -42,47 +45,42 @@ export function removeKernelCss(value: string) {
   document.getElementById(cssLinkId(value))?.remove()
 }
 
-export interface KernelEffectHandlers {
-  setShowRightSidebar: (show: boolean) => void
+// Makes document.head's dot-agent stylesheet links match `desired` exactly:
+// adds whatever is missing, removes whatever shouldn't be there. This is the
+// ONLY place that should ever be called with a thread's desired CSS set — see
+// project/plans/017 and KernelPresentationHost, the reconciler that calls this
+// with `desired = activeCss[viewedThreadId]` any time it changes.
+//
+// Guarantees set membership only, not `<head>` ordering (see the plan's Open
+// Questions) — sufficient unless two agent stylesheets conflict on the same
+// selector, in which case cascade order would need revisiting.
+export function reconcileCssLinks(desired: string[]) {
+  if (typeof document === "undefined") return
+
+  const desiredSet = new Set(desired)
+  document
+    .querySelectorAll<HTMLLinkElement>(`link[id^="${CSS_LINK_ID_PREFIX}"]`)
+    .forEach(link => {
+      const value = link.id.slice(CSS_LINK_ID_PREFIX.length)
+      if (!desiredSet.has(value)) link.remove()
+    })
+
+  for (const value of desired) {
+    applyKernelCss(value)
+  }
 }
 
-export function handleKernelEffects(
-  effects: Effect[] | undefined | null,
-  handlers: KernelEffectHandlers
-) {
+// Runtime actions (project/plans/017, docs/architecture/runtime-actions.md)
+// currently ride on the `run_script` effect — a stopgap until the dot-agent
+// spec separates "run an external script" from "invoke a host UI action".
+// Forwards each target straight into the dispatcher: the action's name IS the
+// vocabulary entry, so there is no mapping table to keep in sync here.
+export function handleRuntimeActions(effects: Effect[] | undefined | null) {
   if (!Array.isArray(effects)) return
 
   for (const effect of effects) {
-    switch (effect.type) {
-      case "apply_css":
-        applyKernelCss(effect.value)
-        break
-      case "remove_css":
-        removeKernelCss(effect.value)
-        break
-      case "run_script":
-        switch (effect.target) {
-          case "open_agents_panel":
-            handlers.setShowRightSidebar(true)
-            break
-          case "open_model_selector":
-            window.dispatchEvent(new CustomEvent("murici:model-selector-open"))
-            break
-          case "open_settings_auto_task":
-            window.dispatchEvent(new CustomEvent("murici:profile-open"))
-            break
-          case "open_mcp_config":
-            window.dispatchEvent(
-              new CustomEvent("murici:profile-open", { detail: { tab: "mcp" } })
-            )
-            break
-          default:
-            // Unknown script target: no-op, same as today's silent drop.
-            break
-        }
-        break
-      default:
-        break
+    if (effect.type === "run_script") {
+      dispatchRuntimeAction(effect.target)
     }
   }
 }

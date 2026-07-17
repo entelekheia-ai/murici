@@ -57,10 +57,14 @@ export async function settleOnboarding(page: Page) {
   // The graph-home landing view keeps the left sidebar closed; clicking the input
   // leaves that view and opens the sidebar.
   await home.click()
-  // The onboarding agent is loaded once its FSM panel is up...
-  await expect(page.getByRole("heading", { name: "Detalhes" })).toBeVisible({
-    timeout: 30_000
-  })
+  // The onboarding agent is loaded once its FSM panel is up. "Detalhes" is only
+  // the button that OPENS the right sidebar when it's closed (header.tsx) — it
+  // disappears once the panel auto-opens, so it can never be waited on here.
+  // "Histórico de Estados" is the agent-detail panel's own, unconditional
+  // heading (right-sidebar.tsx) — present as soon as agentMeta has loaded.
+  await expect(
+    page.getByRole("heading", { name: "Histórico de Estados" })
+  ).toBeVisible({ timeout: 30_000 })
   // ...and its chat row exists.
   await expect(
     page.locator("div.truncate", { hasText: "Bem-vindo ao Murici" }).first()

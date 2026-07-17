@@ -56,6 +56,11 @@ de modelo local) — todos verdes.
   do store (**zero prop-threading**: `sidebar.tsx`, `sidebar-content.tsx` e
   `sidebar-data-list.tsx` não mudaram).
 
+> **Addendum (Plan-017, 2026-07-15):** `channel-store.ts` deixou de ser só
+> `viewedThreadId`/`channels`/`flowEvents` — ganhou `activeCss: Record<threadId, string[]>` +
+> `ingestCssEffects`, o estado desejado de CSS por thread do pipeline de efeitos de apresentação.
+> Ver [Plan-017](../plans/017-agent-presentation-effects-pipeline.md).
+
 ## §3. Bug REAL pré-existente, achado e corrigido de brinde
 
 O `isGenerating` era limpo por um efeito **edge-triggered** (só na transição

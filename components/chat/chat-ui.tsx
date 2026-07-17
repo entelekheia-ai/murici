@@ -129,7 +129,7 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
   }
 
   return (
-    <div className="relative flex h-full flex-col items-center bg-background-app">
+    <div className="relative flex h-full flex-col items-center">
       <Header {...headerProps} />
 
       <div

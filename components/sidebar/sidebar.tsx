@@ -190,7 +190,7 @@ export const Sidebar: FC<SidebarProps> = ({
 
   return (
     <TabsContent
-      className="relative m-0 w-full flex-1 overflow-hidden bg-background-app"
+      className="relative m-0 w-full flex-1 overflow-hidden"
       value={contentType}
     >
       <div

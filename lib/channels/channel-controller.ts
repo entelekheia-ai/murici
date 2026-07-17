@@ -17,6 +17,7 @@ import { normalizeToolCall } from "@/lib/tools/normalize-tool-call"
 import { runTriggerIntent } from "@/lib/tools/executors/trigger-intent"
 import { buildFlowStateFromEffects } from "@/lib/runtime/advance-flow"
 import { buildBehaviorStatePayload } from "@/lib/runtime/dot-agent-injector"
+import { handleRuntimeActions } from "@/lib/kernel-effects"
 import {
   getMessageText,
   getToolInvocations,
@@ -408,6 +409,15 @@ export class ChannelController {
       try {
         const from = engineFsm.get_current_state()
         const effects = await engineFsm.send_intent(intentName)
+
+        // Presentation effects (project/plans/017) — CSS is ingested into this
+        // thread's desired set REGARDLESS of whether it's on screen (a background
+        // agent's `apply css`/`remove css` must still be reflected when the user
+        // switches back to it). Runtime actions are fire-once and only make sense
+        // for the thread currently in view.
+        channelStore.getState().ingestCssEffects(this.threadId, effects)
+        if (this.deps.isViewed()) handleRuntimeActions(effects)
+
         const advanced = buildFlowStateFromEffects(
           engineFsm,
           effects,

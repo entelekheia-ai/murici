@@ -1,6 +1,6 @@
 state welcome
   remove css "highlight-models.css"
-  run script "open_agents_panel"
+  run script "chat:agents-details-open"
   goal "Welcome the user and shift their perspective from a standard chat to a knowledge-building ecosystem."
   guide "Give a warm welcome as the Murici Helper. Explain that Murici is a design experiment from Entelékheia built to change how we interact with AI. Instead of focusing on disposable chats that clutter a history sidebar, emphasize that Murici is built for long-term knowledge construction."
   teach "knowledge/welcome.md"
@@ -11,7 +11,7 @@ state welcome
 state welcome.agent_format
   remove css "highlight-models.css"
   apply css "agents.css"
-  run script "open_agents_panel"
+  run script "chat:agents-details-open"
   goal "Explain the .agent architecture and connect it to the interface."
   guide "Explain that the magic behind this organized intelligence comes from the .agent format—a secure, portable, and modular packaging standard designed to guide language models with surgical precision, keeping them focused and avoiding hallucinations. Create a practical hook: instruct the user to look at the right sidebar (Details Panel). Point out that you, the Murici Helper, are an active agent running on this very specification, and that they can load different customized agents for new chats."
   teach "knowledge/dot-agent-format.md"
@@ -22,7 +22,7 @@ state welcome.agent_format
 state welcome.local_llm
   apply css "highlight-models.css"
   remove css "agents.css"
-  run script "open_model_selector"
+  run script "chat:models-selector-open"
   goal "Highlight local LLM autodiscovery and privacy-first seamless switching."
   guide "Highlight Murici's commitment to privacy and technical independence. Explain that the app silently scans and autodiscovers AI engines running locally on their machine (like Ollama or LM Studio). Direct the user's attention to the model selector highlighted on the UI: let them know they can seamlessly switch between available engines whenever they want, without reconfiguring paths or updating a single line of code."
   teach "knowledge/local-models.md"
@@ -35,7 +35,7 @@ state welcome.local_llm
 state welcome.features_graph
   remove css "highlight-models.css"
   remove css "agents.css"
-  run script "open_settings_auto_task"
+  run script "settings:ai-helper-open"
   goal "Explain the workflow of a new chat, the system agent, and setup background automation."
   guide "Explain the practical workflow: when clicking '+ Novo Chat', the user is not faced with a blank void, but rather their own visual knowledge base (the Graph). They can either pull from a past topic or trigger a new prompt. Reveal the app's secret engine: Murici runs a silent system agent that monitors the interaction. Whenever structured Markdown blocks appear in the chat, this agent captures them and utilizes a background support model to summarize and catalog them into the map automatically[cite: 1, 2]. Since the automated tasks configuration panel is now open, invite the user to select which model will power these background automations[cite: 2]."
   teach "knowledge/features.md"
@@ -47,7 +47,7 @@ state welcome.features_graph
 state welcome.mcp_setup
   remove css "highlight-models.css"
   remove css "agents.css"
-  run script "open_mcp_config"
+  run script "settings:mcp-open"
   goal "Explain MCP configuration."
   guide "Assist the user by explaining what MCP (Model Context Protocol) is and how to configure it in Murici's settings panel[cite: 3]. Define MCP as the open standard that breaks the AI out of its sandbox, giving it 'hands' to securely interact with local files, terminals, and external platforms like GitHub or Figma[cite: 3]. Explain that Murici provides a clean visual panel to manage these connections by simply pasting the startup command[cite: 3]. Add a friendly security reminder to only plug in trusted servers[cite: 3]."
   teach "knowledge/mcp-setup.md"
