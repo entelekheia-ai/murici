@@ -60,6 +60,7 @@ import { KnowledgeChip } from "../knowledge/knowledge-chip"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { StateGraph, parseScxml } from "../agents/state-graph"
 import { cn } from "@/lib/utils"
+import { localeHref } from "@/lib/locale-href"
 import { useRouter, useParams } from "next/navigation"
 import { getMcpAndBuiltInTools } from "@/lib/tools/list-available-tools"
 import { createChatRowOnce, prependChatOnce } from "@/lib/channels/chat-rows"
@@ -101,7 +102,7 @@ export const RightSidebar: FC = () => {
 
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
   const {
     flowState,
@@ -462,7 +463,9 @@ export const RightSidebar: FC = () => {
                           className="h-auto justify-end p-0 text-[13px] font-medium text-murici-orange hover:bg-transparent hover:text-[#C05621]/80"
                           onClick={() => {
                             setShowRightSidebar(false)
-                            router.push(`/${locale}/${workspaceid}/graph`)
+                            router.push(
+                              localeHref(locale, `/${workspaceid}/graph`)
+                            )
                           }}
                         >
                           {t("View all files →")}

@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 import { FC, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useTranslation } from "react-i18next"
+import { localeHref } from "@/lib/locale-href"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
 
@@ -34,7 +35,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const chatMap = new Map(chats.map(c => [c.id, c]))
@@ -160,7 +161,10 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
                         onClick={e => {
                           e.stopPropagation()
                           router.push(
-                            `/${locale}/${workspaceid}/chat/${chat.id}`
+                            localeHref(
+                              locale,
+                              `/${workspaceid}/chat/${chat.id}`
+                            )
                           )
                         }}
                       >

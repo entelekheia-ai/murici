@@ -4,6 +4,7 @@
  */
 
 import i18nConfig from "@/i18nConfig"
+import { localeHref } from "@/lib/locale-href"
 
 const LOCALE_COOKIE = "NEXT_LOCALE"
 
@@ -33,18 +34,17 @@ export function setLocalePreference(
 
   if (locale === "system") {
     document.cookie = `${LOCALE_COOKIE}=; path=/; max-age=0; samesite=lax`
-    router.push(bare === "/" ? "/" : bare)
+    router.push(bare)
     router.refresh()
     return
   }
 
   document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`
-  const prefixed =
-    locale === i18nConfig.defaultLocale
-      ? bare
-      : `/${locale}${bare === "/" ? "" : bare}`
-  router.push(prefixed)
+  router.push(localeHref(locale, bare))
   router.refresh()
   // translations-provider.tsx's own effect notifies Electron once the new
   // `locale` route param flows back down — no need to duplicate that call.
+  // electron/main.ts also persists the choice to ~/.config/murici/config.json
+  // via that same IPC call, so the next launch's initial locale doesn't have
+  // to guess from the OS.
 }

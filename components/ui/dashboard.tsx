@@ -26,6 +26,7 @@ import dynamic from "next/dynamic"
 import { FC, useEffect, useState, useContext, useCallback, useRef } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
 import { useAgentSession } from "@/lib/hooks/use-agent-session"
+import { localeHref } from "@/lib/locale-href"
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { CommandK } from "../utility/command-k"
 import { getSetting } from "@/lib/local-db/settings"
@@ -153,7 +154,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
           )
           break
         case "view-knowledge":
-          router.push(`/${locale}/${workspaceid}/graph`)
+          router.push(localeHref(locale, `/${workspaceid}/graph`))
           break
         case "toggle-chat-list":
           autoCollapsedLeftRef.current = false

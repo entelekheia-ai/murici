@@ -22,6 +22,7 @@ import Image from "next/image"
 import { FC, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useTranslation } from "react-i18next"
+import { localeHref } from "@/lib/locale-href"
 import { Button } from "../ui/button"
 import {
   DropdownMenu,
@@ -52,7 +53,7 @@ export const MenuSettings: FC<MenuSettingsProps> = ({
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const openSettings = () => {
@@ -86,7 +87,7 @@ export const MenuSettings: FC<MenuSettingsProps> = ({
             key={type}
             onClick={() => {
               if (type === "files") {
-                router.push(`/${locale}/${workspaceid}/graph`)
+                router.push(localeHref(locale, `/${workspaceid}/graph`))
               } else {
                 onContentTypeChange(type)
               }

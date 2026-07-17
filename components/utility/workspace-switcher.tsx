@@ -13,10 +13,11 @@ import {
 import { ChatbotUIContext } from "@/context/context"
 import { createWorkspace } from "@/db/workspaces"
 import useHotkey from "@/lib/hooks/use-hotkey"
+import { localeHref } from "@/lib/locale-href"
 
 import { Building, Home, Plus, ChevronsUpDown } from "lucide-react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { FC, useContext, useEffect, useState } from "react"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
@@ -37,6 +38,8 @@ export const WorkspaceSwitcher: FC<WorkspaceSwitcherProps> = ({}) => {
   const { handleNewChat } = useChatHandler()
 
   const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) || "en"
 
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState("")
@@ -71,7 +74,7 @@ export const WorkspaceSwitcher: FC<WorkspaceSwitcherProps> = ({}) => {
     setSelectedWorkspace(createdWorkspace)
     setOpen(false)
 
-    return router.push(`/${createdWorkspace.id}/chat`)
+    return router.push(localeHref(locale, `/${createdWorkspace.id}/chat`))
   }
 
   const getWorkspaceName = (workspaceId: string) => {
@@ -90,7 +93,7 @@ export const WorkspaceSwitcher: FC<WorkspaceSwitcherProps> = ({}) => {
     setSelectedWorkspace(workspace)
     setOpen(false)
 
-    return router.push(`/${workspace.id}/chat`)
+    return router.push(localeHref(locale, `/${workspace.id}/chat`))
   }
 
   const workspaceImage = workspaceImages.find(

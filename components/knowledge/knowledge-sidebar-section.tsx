@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight } from "lucide-react"
 
 import { FC, useContext, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { localeHref } from "@/lib/locale-href"
 import { ChatbotUIContext } from "@/context/context"
 import { KnowledgeRecord } from "@/types/knowledge"
 
@@ -32,7 +33,7 @@ export const KnowledgeSidebarSection: FC = () => {
   const router = useRouter()
   const params = useParams()
 
-  const locale = (params?.locale as string) || "local"
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const recent = [...knowledge]
@@ -65,7 +66,9 @@ export const KnowledgeSidebarSection: FC = () => {
 
           <button
             className="mt-0.5 text-right text-xs text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => router.push(`/${locale}/${workspaceid}/graph`)}
+            onClick={() =>
+              router.push(localeHref(locale, `/${workspaceid}/graph`))
+            }
           >
             Ver tudo →
           </button>
