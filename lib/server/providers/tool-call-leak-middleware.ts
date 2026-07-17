@@ -28,16 +28,20 @@ import { jsonrepair } from "jsonrepair"
  * Vercel AI SDK tool call event.
  */
 export const extractToolCallMiddleware: LanguageModelMiddleware = {
-  wrapGenerate: async ({ doGenerate }: Parameters<NonNullable<LanguageModelMiddleware['wrapGenerate']>>[0]) => {
+  wrapGenerate: async ({
+    doGenerate
+  }: Parameters<NonNullable<LanguageModelMiddleware["wrapGenerate"]>>[0]) => {
     const result = await doGenerate()
-    // This is a naive implementation for non-streaming. 
+    // This is a naive implementation for non-streaming.
     // Usually local models stream, so wrapStream is more important.
     return result
   },
 
-  wrapStream: async ({ doStream }: Parameters<NonNullable<LanguageModelMiddleware['wrapStream']>>[0]) => {
+  wrapStream: async ({
+    doStream
+  }: Parameters<NonNullable<LanguageModelMiddleware["wrapStream"]>>[0]) => {
     const { stream, ...rest } = await doStream()
-    
+
     let buffer = ""
     let insideToolCall = false
     let currentStartTag = ""
@@ -46,70 +50,105 @@ export const extractToolCallMiddleware: LanguageModelMiddleware = {
     const START_TAGS = ["<tool_call>", "<|python_tag|>"]
     const MAX_START_TAG_LEN = Math.max(...START_TAGS.map(t => t.length))
 
-    const flushBuffer = (controller: TransformStreamDefaultController<LanguageModelV4StreamPart>) => {
+    const flushBuffer = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>
+    ) => {
       if (buffer) {
-        controller.enqueue({ type: "text-delta", id: lastTextId || "", delta: buffer })
+        controller.enqueue({
+          type: "text-delta",
+          id: lastTextId || "",
+          delta: buffer
+        })
         buffer = ""
       }
     }
 
-    const emitParsedToolCall = (controller: TransformStreamDefaultController<LanguageModelV4StreamPart>, id: string | undefined, jsonStr: string, startTag: string, endTag: string) => {
+    const emitParsedToolCall = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+      id: string | undefined,
+      jsonStr: string,
+      startTag: string,
+      endTag: string
+    ) => {
       try {
-        const startIdx = jsonStr.indexOf("{");
-        const endIdx = jsonStr.lastIndexOf("}");
+        const startIdx = jsonStr.indexOf("{")
+        const endIdx = jsonStr.lastIndexOf("}")
         if (startIdx === -1 || endIdx === -1 || startIdx > endIdx) {
-          throw new Error("No JSON object found");
+          throw new Error("No JSON object found")
         }
-        
-        let cleanedJsonStr = jsonStr.slice(startIdx, endIdx + 1);
-        let parsed: any;
+
+        let cleanedJsonStr = jsonStr.slice(startIdx, endIdx + 1)
+        let parsed: any
 
         try {
-          parsed = JSON.parse(cleanedJsonStr);
+          parsed = JSON.parse(cleanedJsonStr)
         } catch (e) {
           // If JSON parse fails, attempt to repair it using jsonrepair
-          const repaired = jsonrepair(cleanedJsonStr);
-          parsed = JSON.parse(repaired);
+          const repaired = jsonrepair(cleanedJsonStr)
+          parsed = JSON.parse(repaired)
         }
-        
+
         const toolCallId = crypto.randomUUID()
-        
+
         let toolName = "unknown"
         let inputObj = {}
-        
+
         // Handle Qwen format: {"type": "function", "function": {"name": "...", "parameters": {...}}}
         if (parsed.type === "function" && parsed.function) {
           toolName = parsed.function.name || "unknown"
-          inputObj = parsed.function.parameters || parsed.function.arguments || {}
+          inputObj =
+            parsed.function.parameters || parsed.function.arguments || {}
         } else {
           // Standard / OpenAI fallback
           toolName = parsed.name || parsed.intent_name || "unknown"
           // Sometimes arguments is a JSON string, sometimes an object
-          if (typeof parsed.arguments === 'string') {
-            try { inputObj = JSON.parse(parsed.arguments) } catch (e) { inputObj = {} }
+          if (typeof parsed.arguments === "string") {
+            try {
+              inputObj = JSON.parse(parsed.arguments)
+            } catch (e) {
+              inputObj = {}
+            }
           } else {
             inputObj = parsed.arguments || parsed
           }
         }
-        
+
         const input = JSON.stringify(inputObj)
 
         console.log("Emit parsed tool call", { toolCallId, toolName, inputObj })
-        controller.enqueue({ type: "tool-input-start", id: toolCallId, toolName })
-        controller.enqueue({ type: "tool-input-delta", id: toolCallId, delta: input })
+        controller.enqueue({
+          type: "tool-input-start",
+          id: toolCallId,
+          toolName
+        })
+        controller.enqueue({
+          type: "tool-input-delta",
+          id: toolCallId,
+          delta: input
+        })
         controller.enqueue({ type: "tool-input-end", id: toolCallId })
         controller.enqueue({ type: "tool-call", toolCallId, toolName, input })
       } catch (e) {
-        console.error("Failed to parse leaked tool_call JSON from local model", { jsonStr, e })
+        console.error(
+          "Failed to parse leaked tool_call JSON from local model",
+          { jsonStr, e }
+        )
         // Fallback, emit as text
-        controller.enqueue({ type: "text-delta", id: id || "", delta: startTag + jsonStr + endTag })
+        controller.enqueue({
+          type: "text-delta",
+          id: id || "",
+          delta: startTag + jsonStr + endTag
+        })
       }
     }
 
     // Text-delta chunks in the current LanguageModel spec carry `delta` (not
     // `textDelta`) plus an `id` that ties them to their `text-start` part; we
     // reuse that id for any re-emitted text-delta chunks below.
-    const transformStream = new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>({
+    const transformStream = new TransformStream<
+      LanguageModelV4StreamPart,
+      LanguageModelV4StreamPart
+    >({
       transform(chunk, controller) {
         // console.log("[MIDDLEWARE] chunk in:", chunk.type, chunk)
         if (chunk.type === "text-delta") {
@@ -123,7 +162,11 @@ export const extractToolCallMiddleware: LanguageModelMiddleware = {
               const split = buffer.split(matchedTag)
               const textBefore = split[0]
               if (textBefore) {
-                controller.enqueue({ type: "text-delta", id: chunk.id || "", delta: textBefore })
+                controller.enqueue({
+                  type: "text-delta",
+                  id: chunk.id || "",
+                  delta: textBefore
+                })
               }
               insideToolCall = true
               currentStartTag = matchedTag
@@ -133,21 +176,34 @@ export const extractToolCallMiddleware: LanguageModelMiddleware = {
 
           // If we are inside a tool call, we buffer until we find the end tag
           if (insideToolCall) {
-            const endTag = currentStartTag === "<tool_call>" ? "</tool_call>" : "</|python_tag|>"
+            const endTag =
+              currentStartTag === "<tool_call>"
+                ? "</tool_call>"
+                : "</|python_tag|>"
             if (buffer.includes(endTag)) {
               const split = buffer.split(endTag)
               const jsonStr = split[0]
               buffer = split.slice(1).join(endTag)
               insideToolCall = false
 
-              emitParsedToolCall(controller, chunk.id, jsonStr, currentStartTag, endTag)
+              emitParsedToolCall(
+                controller,
+                chunk.id,
+                jsonStr,
+                currentStartTag,
+                endTag
+              )
             }
           } else {
             // Not inside a tool call and no start tag, we can emit safely
             // but we need to keep a small buffer in case the tag is split across chunks
             const safeLen = Math.max(0, buffer.length - MAX_START_TAG_LEN)
             if (safeLen > 0) {
-              controller.enqueue({ type: "text-delta", id: chunk.id || "", delta: buffer.slice(0, safeLen) })
+              controller.enqueue({
+                type: "text-delta",
+                id: chunk.id || "",
+                delta: buffer.slice(0, safeLen)
+              })
               buffer = buffer.slice(safeLen)
             }
           }
@@ -155,7 +211,13 @@ export const extractToolCallMiddleware: LanguageModelMiddleware = {
           if (insideToolCall) {
             // Reached text end without an end tag (common for <|python_tag|>)
             const jsonStr = buffer.trim()
-            emitParsedToolCall(controller, lastTextId, jsonStr, currentStartTag, "")
+            emitParsedToolCall(
+              controller,
+              lastTextId,
+              jsonStr,
+              currentStartTag,
+              ""
+            )
             buffer = ""
             insideToolCall = false
           }

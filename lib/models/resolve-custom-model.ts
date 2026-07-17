@@ -31,13 +31,19 @@ export type CustomModelPayload = {
  */
 export function resolveCustomModel(
   models: Array<{ model_id: string; [key: string]: any }>,
-  availableLocalModels: Array<{ modelId: string; baseUrl?: string; apiKey?: string }>,
+  availableLocalModels: Array<{
+    modelId: string
+    baseUrl?: string
+    apiKey?: string
+  }>,
   selectedModelId: string | undefined
 ): CustomModelPayload | undefined {
   const dbCustomModel = models.find(m => m.model_id === selectedModelId)
   if (dbCustomModel) return dbCustomModel as CustomModelPayload
 
-  const localModel = availableLocalModels.find(m => m.modelId === selectedModelId)
+  const localModel = availableLocalModels.find(
+    m => m.modelId === selectedModelId
+  )
   if (!localModel) return undefined
 
   return {

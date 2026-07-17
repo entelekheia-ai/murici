@@ -57,14 +57,22 @@ export function parseScxml(scxml: string): ParsedGraph | null {
   return { states, transitions, activeState }
 }
 
-function computeLayout(states: string[], transitions: Array<{ from: string; to: string }>) {
+function computeLayout(
+  states: string[],
+  transitions: Array<{ from: string; to: string }>
+) {
   const adj = new Map<string, string[]>()
   for (const s of states) adj.set(s, [])
   for (const t of transitions) adj.get(t.from)?.push(t.to)
 
   const levels = new Map<string, number>()
   const root = states[0]
-  if (!root) return { positions: new Map<string, { x: number; y: number }>(), svgW: 0, svgH: 0 }
+  if (!root)
+    return {
+      positions: new Map<string, { x: number; y: number }>(),
+      svgW: 0,
+      svgH: 0
+    }
 
   const queue: string[] = [root]
   levels.set(root, 0)
@@ -85,7 +93,10 @@ function computeLayout(states: string[], transitions: Array<{ from: string; to: 
   }
 
   const byLevel = new Map<number, string[]>()
-  for (const s of [...queue, ...states.filter(s => !levels.has(s) || levels.get(s)! > maxReachable)]) {
+  for (const s of [
+    ...queue,
+    ...states.filter(s => !levels.has(s) || levels.get(s)! > maxReachable)
+  ]) {
     const l = levels.get(s)!
     if (!byLevel.has(l)) byLevel.set(l, [])
     if (!byLevel.get(l)!.includes(s)) byLevel.get(l)!.push(s)
@@ -100,7 +111,10 @@ function computeLayout(states: string[], transitions: Array<{ from: string; to: 
     const rowW = lvlStates.length * NODE_W + (lvlStates.length - 1) * H_GAP
     const startX = (svgW - rowW) / 2
     lvlStates.forEach((s, i) => {
-      positions.set(s, { x: startX + i * (NODE_W + H_GAP), y: level * (NODE_H + V_GAP) })
+      positions.set(s, {
+        x: startX + i * (NODE_W + H_GAP),
+        y: level * (NODE_H + V_GAP)
+      })
     })
   }
 
@@ -124,7 +138,14 @@ export const StateGraph: FC<StateGraphProps> = ({ scxml, visitedStates }) => {
       style={{ overflow: "visible" }}
     >
       <defs>
-        <marker id="sg-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+        <marker
+          id="sg-arrow"
+          markerWidth="8"
+          markerHeight="8"
+          refX="7"
+          refY="3"
+          orient="auto"
+        >
           <path d="M0,0 L0,6 L8,3 z" fill="#6b7280" />
         </marker>
       </defs>

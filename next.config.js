@@ -45,7 +45,7 @@ module.exports = withBundleAnalyzer(
         "@dot-agent/kernel-dsl"
       ]
     },
-    webpack: (config, { isServer }) => {
+    webpack: (config, { isServer, dev }) => {
       config.experiments = {
         ...config.experiments,
         asyncWebAssembly: true,
@@ -56,6 +56,9 @@ module.exports = withBundleAnalyzer(
           ...config.resolve.fallback,
           fs: false, path: false, crypto: false, module: false
         }
+      }
+      if (dev) {
+        config.devtool = 'eval-source-map'
       }
       return config
     }

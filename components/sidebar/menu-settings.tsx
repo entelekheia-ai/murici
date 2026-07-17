@@ -22,6 +22,7 @@ import Image from "next/image"
 import { FC, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useTranslation } from "react-i18next"
+import { localeHref } from "@/lib/locale-href"
 import { Button } from "../ui/button"
 import {
   DropdownMenu,
@@ -37,7 +38,7 @@ const MENU_ITEMS: {
   label: string
 }[] = [
   { type: "chats", icon: MessageSquare, label: "Chats" },
-  { type: "files", icon: Network, label: "Conhecimento" },
+  { type: "files", icon: Network, label: "Knowledge" },
   { type: "agents", icon: null, label: "Agents" }
 ]
 
@@ -45,12 +46,14 @@ interface MenuSettingsProps {
   onContentTypeChange: (contentType: ContentType) => void
 }
 
-export const MenuSettings: FC<MenuSettingsProps> = ({ onContentTypeChange }) => {
+export const MenuSettings: FC<MenuSettingsProps> = ({
+  onContentTypeChange
+}) => {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const openSettings = () => {
@@ -66,19 +69,25 @@ export const MenuSettings: FC<MenuSettingsProps> = ({ onContentTypeChange }) => 
         >
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-instrument text-[14px] font-medium">{t("Configurações")}</span>
+              <span className="font-instrument text-[14px] font-medium">
+                {t("Settings")}
+              </span>
             </div>
             <ChevronUp size={16} className="text-[#1c1611]" />
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+      <DropdownMenuContent
+        side="top"
+        align="start"
+        className="w-[var(--radix-dropdown-menu-trigger-width)]"
+      >
         {MENU_ITEMS.map(({ type, icon: Icon, label }) => (
           <DropdownMenuItem
             key={type}
             onClick={() => {
               if (type === "files") {
-                router.push(`/${locale}/${workspaceid}/graph`)
+                router.push(localeHref(locale, `/${workspaceid}/graph`))
               } else {
                 onContentTypeChange(type)
               }
@@ -103,7 +112,7 @@ export const MenuSettings: FC<MenuSettingsProps> = ({ onContentTypeChange }) => 
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={openSettings} className="cursor-pointer">
           <Settings size={18} className="mr-2" />
-          <span>{t("Configurações")}</span>
+          <span>{t("Settings")}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -16,6 +16,7 @@ import { Paperclip, Send } from "lucide-react"
  */
 
 import { FC, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
 import { AgentBundleRecord } from "@/lib/local-db/schema"
@@ -25,7 +26,6 @@ import { Button } from "@/components/ui/button"
 import { Header } from "@/components/chat/header"
 import { ScreenLoader } from "@/components/ui/screen-loader"
 import { useHeaderControls } from "@/lib/hooks/use-header-controls"
-
 
 interface KnowledgeHomeViewProps {
   knowledge: KnowledgeRecord[]
@@ -37,13 +37,20 @@ interface KnowledgeHomeViewProps {
 
 type View = "graph" | "list"
 
-export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({ knowledge, chats, agentBundles, loading = false, onStartChat }) => {
+export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({
+  knowledge,
+  chats,
+  agentBundles,
+  loading = false,
+  onStartChat
+}) => {
+  const { t } = useTranslation()
   const [view, setView] = useState<View>("graph")
   const headerProps = useHeaderControls()
 
   return (
     <div className="flex size-full flex-col overflow-hidden">
-      <Header title="Conhecimento" {...headerProps} />
+      <Header title={t("Knowledge")} {...headerProps} />
 
       {/* Main Content Area */}
       <div className="relative flex-1 overflow-hidden">
@@ -51,9 +58,11 @@ export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({ knowledge, chats
           <ScreenLoader />
         ) : knowledge.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-            <p className="text-lg font-medium">Nenhum artefato ainda</p>
+            <p className="text-lg font-medium">{t("No artifacts yet")}</p>
             <p className="text-sm">
-              Inicie uma conversa — blocos de código e documentos serão salvos aqui.
+              {t(
+                "Start a conversation — code blocks and documents will be saved here."
+              )}
             </p>
           </div>
         ) : (
@@ -65,19 +74,23 @@ export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({ knowledge, chats
                 variant={view === "graph" ? "default" : "ghost"}
                 onClick={() => setView("graph")}
               >
-                Grafo
+                {t("Graph")}
               </Button>
               <Button
                 size="sm"
                 variant={view === "list" ? "default" : "ghost"}
                 onClick={() => setView("list")}
               >
-                Lista
+                {t("List")}
               </Button>
             </div>
 
             {view === "graph" ? (
-              <KnowledgeGraphCanvas knowledge={knowledge} chats={chats} agentBundles={agentBundles} />
+              <KnowledgeGraphCanvas
+                knowledge={knowledge}
+                chats={chats}
+                agentBundles={agentBundles}
+              />
             ) : (
               <div className="size-full pt-24">
                 <KnowledgeListView knowledge={knowledge} chats={chats} />

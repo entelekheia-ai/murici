@@ -21,7 +21,14 @@ export const runtime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools, agentPersona } = json as {
+  const {
+    chatSettings,
+    messages,
+    tools: rawTools,
+    behaviorState,
+    mcpTools,
+    agentPersona
+  } = json as {
     chatSettings: ChatSettings
     messages: any[]
     tools?: any[]
@@ -65,8 +72,8 @@ export async function POST(request: Request) {
     }
 
     const azure = createAzure({
-      resourceName: ENDPOINT.replace(/https?:\/\//, '').split('.')[0], // Very rough heuristic, assumes endpoint starts with resource name
-      apiKey: KEY,
+      resourceName: ENDPOINT.replace(/https?:\/\//, "").split(".")[0], // Very rough heuristic, assumes endpoint starts with resource name
+      apiKey: KEY
     })
 
     const tools = {
@@ -86,9 +93,14 @@ export async function POST(request: Request) {
       tools
     })
   } catch (error: any) {
-    const errorMessage = error.error?.message || error.message || "An unexpected error occurred"
+    const errorMessage =
+      error.error?.message || error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
-    logger.error("chat route failed", { provider: "azure", model: chatSettings?.model, error: errorMessage })
+    logger.error("chat route failed", {
+      provider: "azure",
+      model: chatSettings?.model,
+      error: errorMessage
+    })
     return new Response(JSON.stringify({ message: errorMessage }), {
       status: errorCode
     })

@@ -3,7 +3,10 @@
  * Licensed under the Apache License, Version 2.0
  */
 
-import { computeSidebarVisibility, SidebarAutoCollapseInput } from "./sidebar-auto-collapse"
+import {
+  computeSidebarVisibility,
+  SidebarAutoCollapseInput
+} from "./sidebar-auto-collapse"
 
 const base: SidebarAutoCollapseInput = {
   totalWidth: 1400,

@@ -7,6 +7,8 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 
 import { FC, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { useTranslation } from "react-i18next"
+import { localeHref } from "@/lib/locale-href"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
 
@@ -26,13 +28,14 @@ interface PreviewState {
 }
 
 export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
+  const { t } = useTranslation()
   const [query, setQuery] = useState("")
   const [sortField, setSortField] = useState<SortField>("createdAt")
   const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const chatMap = new Map(chats.map(c => [c.id, c]))
@@ -69,12 +72,16 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return null
-    return sortDir === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+    return sortDir === "asc" ? (
+      <ChevronUp size={12} />
+    ) : (
+      <ChevronDown size={12} />
+    )
   }
 
   const handleRowClick = (record: KnowledgeRecord) => {
     const chat = chatMap.get(record.originConversationId)
-    setPreview({ record, chatName: chat?.name || "Conversa" })
+    setPreview({ record, chatName: chat?.name || t("Conversation") })
   }
 
   const formatDate = (iso: string) => {
@@ -87,7 +94,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
       <div className="mb-4">
         <input
           className="w-full rounded-lg border bg-muted px-3 py-2 text-sm outline-none focus:ring-2"
-          placeholder="Buscar por título ou resumo…"
+          placeholder={t("Search by title or summary…")}
           value={query}
           onChange={e => setQuery(e.target.value)}
         />
@@ -99,8 +106,11 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
             <tr>
               {(
                 [
-                  { field: "title" as SortField, label: "Título" },
-                  { field: "language" as SortField, label: "Linguagem" }
+                  { field: "title" as SortField, label: t("Title") },
+                  {
+                    field: "language" as SortField,
+                    label: t("Snippet Language")
+                  }
                 ] as const
               ).map(({ field, label }) => (
                 <th
@@ -114,13 +124,15 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
                   </span>
                 </th>
               ))}
-              <th className="px-4 py-2 text-left font-medium">Conversa</th>
+              <th className="px-4 py-2 text-left font-medium">
+                {t("Conversation")}
+              </th>
               <th
                 className="cursor-pointer px-4 py-2 text-left font-medium transition-colors hover:bg-muted"
                 onClick={() => toggleSort("createdAt")}
               >
                 <span className="flex items-center gap-1">
-                  Criado em
+                  {t("Created")}
                   <SortIcon field="createdAt" />
                 </span>
               </th>
@@ -148,7 +160,12 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
                         title={chat.name}
                         onClick={e => {
                           e.stopPropagation()
-                          router.push(`/${locale}/${workspaceid}/chat/${chat.id}`)
+                          router.push(
+                            localeHref(
+                              locale,
+                              `/${workspaceid}/chat/${chat.id}`
+                            )
+                          )
                         }}
                       >
                         {chat.name}
@@ -165,8 +182,11 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
-                  Nenhum resultado para "{query}"
+                <td
+                  colSpan={4}
+                  className="py-8 text-center text-sm text-muted-foreground"
+                >
+                  {t('No results for "{{query}}"', { query })}
                 </td>
               </tr>
             )}

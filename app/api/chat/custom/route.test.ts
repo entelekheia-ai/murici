@@ -32,7 +32,9 @@ const mockStreamTextResult = {
   ),
   toUIMessageStreamResponse: jest.fn(() => new Response("mock-stream"))
 }
-const streamTextMock = jest.fn((..._args: any[]) => Promise.resolve(mockStreamTextResult))
+const streamTextMock = jest.fn((..._args: any[]) =>
+  Promise.resolve(mockStreamTextResult)
+)
 // The route calls custom.chat(model) to force the /v1/chat/completions endpoint
 // (where local reasoning models surface reasoning_content), so the provider the
 // mock returns must expose a .chat() alongside being directly callable.
@@ -90,9 +92,17 @@ describe("POST /api/chat/custom", () => {
       makeRequest({
         chatSettings: { model: "some-model", temperature: 0.5 },
         messages: [
-          { id: "CjmSkw7b2BQ9fng1", role: "user", parts: [{ type: "text", text: "gera um email" }] }
+          {
+            id: "CjmSkw7b2BQ9fng1",
+            role: "user",
+            parts: [{ type: "text", text: "gera um email" }]
+          }
         ],
-        customModel: { base_url: "http://127.0.0.1:8000", api_key: "local", model_id: "some-model" }
+        customModel: {
+          base_url: "http://127.0.0.1:8000",
+          api_key: "local",
+          model_id: "some-model"
+        }
       })
     )
 
@@ -108,18 +118,26 @@ describe("POST /api/chat/custom", () => {
     await POST(
       makeRequest({
         chatSettings: { model: "some-model", temperature: 0.5 },
-        messages: [{ id: "msg_1", role: "user", parts: [{ type: "text", text: "hi" }] }],
+        messages: [
+          { id: "msg_1", role: "user", parts: [{ type: "text", text: "hi" }] }
+        ],
         customModel: {
           base_url: "http://127.0.0.1:8000",
           api_key: "local",
           model_id: "some-model"
         },
         behaviorState: { validIntents: ["end_conversation"] },
-        mcpTools: [{ serverName: "s", tools: [{ name: "t", description: "d" }] }],
+        mcpTools: [
+          { serverName: "s", tools: [{ name: "t", description: "d" }] }
+        ],
         tools: [
           {
             type: "function",
-            function: { name: "raw_tool", description: "r", parameters: { type: "object", properties: {} } }
+            function: {
+              name: "raw_tool",
+              description: "r",
+              parameters: { type: "object", properties: {} }
+            }
           }
         ]
       })
@@ -128,7 +146,13 @@ describe("POST /api/chat/custom", () => {
     expect(streamTextMock).toHaveBeenCalledTimes(1)
     const { tools } = streamTextMock.mock.calls[0][0]
     expect(Object.keys(tools).sort()).toEqual(
-      ["murici__save_doc", "trigger_intent", "murici__state_graph", "mcp__s__t", "raw_tool"].sort()
+      [
+        "murici__save_doc",
+        "trigger_intent",
+        "murici__state_graph",
+        "mcp__s__t",
+        "raw_tool"
+      ].sort()
     )
   })
 
@@ -137,10 +161,16 @@ describe("POST /api/chat/custom", () => {
       makeRequest({
         chatSettings: { model: "some-model", temperature: 0.5 },
         messages: [],
-        customModel: { base_url: "http://127.0.0.1:8000", api_key: "local", model_id: "some-model" }
+        customModel: {
+          base_url: "http://127.0.0.1:8000",
+          api_key: "local",
+          model_id: "some-model"
+        }
       })
     )
-    expect(createOpenAIMock.mock.calls[0][0].baseURL).toBe("http://127.0.0.1:8000/v1")
+    expect(createOpenAIMock.mock.calls[0][0].baseURL).toBe(
+      "http://127.0.0.1:8000/v1"
+    )
   })
 
   it("leaves a base_url that already ends in /v1 untouched (trailing slash trimmed)", async () => {
@@ -148,9 +178,15 @@ describe("POST /api/chat/custom", () => {
       makeRequest({
         chatSettings: { model: "some-model", temperature: 0.5 },
         messages: [],
-        customModel: { base_url: "http://127.0.0.1:8000/v1/", api_key: "local", model_id: "some-model" }
+        customModel: {
+          base_url: "http://127.0.0.1:8000/v1/",
+          api_key: "local",
+          model_id: "some-model"
+        }
       })
     )
-    expect(createOpenAIMock.mock.calls[0][0].baseURL).toBe("http://127.0.0.1:8000/v1")
+    expect(createOpenAIMock.mock.calls[0][0].baseURL).toBe(
+      "http://127.0.0.1:8000/v1"
+    )
   })
 })

@@ -7,15 +7,16 @@ import { Square, Send } from "lucide-react"
 import { ButtonHTMLAttributes, forwardRef } from "react"
 import { cn } from "@/lib/utils"
 
-
-
 export interface SendButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isGenerating?: boolean
   onStop?: () => void
 }
 
 export const SendButton = forwardRef<HTMLButtonElement, SendButtonProps>(
-  ({ className, isGenerating = false, onStop, disabled, onClick, ...props }, ref) => {
+  (
+    { className, isGenerating = false, onStop, disabled, onClick, ...props },
+    ref
+  ) => {
     if (isGenerating) {
       return (
         <button
@@ -40,7 +41,9 @@ export const SendButton = forwardRef<HTMLButtonElement, SendButtonProps>(
         disabled={disabled}
         className={cn(
           "flex size-9 shrink-0 select-none items-center justify-center rounded-[8px] bg-[#3f6212] text-[#e2d7c6] transition-all",
-          disabled ? "cursor-not-allowed opacity-50" : "hover:opacity-90 active:scale-95",
+          disabled
+            ? "cursor-not-allowed opacity-50"
+            : "hover:opacity-90 active:scale-95",
           className
         )}
         onClick={onClick}

@@ -1,0 +1,483 @@
+<title>oMLX → murici — Relatório de integração</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #eceef1;
+    --border: #dbdfe4;
+    --text: #1b1e23;
+    --text-dim: #565c66;
+    --text-faint: #868c96;
+    --accent: #d85f22;
+    --accent-soft: rgba(216, 95, 34, 0.10);
+    --accent-line: rgba(216, 95, 34, 0.35);
+    --ok: #2f8f5b;
+    --ok-soft: rgba(47, 143, 91, 0.12);
+    --warn: #a3760f;
+    --warn-soft: rgba(163, 118, 15, 0.12);
+    --block: #7451c0;
+    --block-soft: rgba(116, 81, 192, 0.12);
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1114;
+    --surface: #171a1f;
+    --surface-2: #1c2027;
+    --border: #2a2f37;
+    --text: #e7e5e0;
+    --text-dim: #9ba0a8;
+    --text-faint: #6b7078;
+    --accent: #ff8752;
+    --accent-soft: rgba(255, 135, 82, 0.12);
+    --accent-line: rgba(255, 135, 82, 0.35);
+    --ok: #6dc294;
+    --ok-soft: rgba(109, 194, 148, 0.12);
+    --warn: #e0b954;
+    --warn-soft: rgba(224, 185, 84, 0.12);
+    --block: #a98cec;
+    --block-soft: rgba(169, 140, 236, 0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1114;
+      --surface: #171a1f;
+      --surface-2: #1c2027;
+      --border: #2a2f37;
+      --text: #e7e5e0;
+      --text-dim: #9ba0a8;
+      --text-faint: #6b7078;
+      --accent: #ff8752;
+      --accent-soft: rgba(255, 135, 82, 0.12);
+      --accent-line: rgba(255, 135, 82, 0.35);
+      --ok: #6dc294;
+      --ok-soft: rgba(109, 194, 148, 0.12);
+      --warn: #e0b954;
+      --warn-soft: rgba(224, 185, 84, 0.12);
+      --block: #a98cec;
+      --block-soft: rgba(169, 140, 236, 0.14);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    margin: 0;
+    padding: 4rem 1.5rem 6rem;
+  }
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    letter-spacing: -0.01em;
+    margin: 0.5rem 0 0.4rem;
+    text-wrap: balance;
+  }
+  h1 .arrow { color: var(--text-faint); font-weight: 400; margin: 0 0.35em; }
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 1.02rem;
+    max-width: 60ch;
+    text-wrap: balance;
+  }
+  .meta-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 1.1rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--text-faint);
+  }
+  .meta-row code { color: var(--text-dim); }
+
+  header { border-bottom: 1px solid var(--border); padding-bottom: 2.2rem; margin-bottom: 2.6rem; }
+
+  section { margin-bottom: 3.2rem; }
+  section > .eyebrow { display: block; margin-bottom: 0.5rem; }
+  h2 {
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    margin: 0 0 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 1.6rem 0 0.6rem;
+  }
+  p { color: var(--text); margin: 0.7rem 0; }
+  p.dim { color: var(--text-dim); }
+  ul, ol { padding-left: 1.3rem; margin: 0.7rem 0; }
+  li { margin: 0.35rem 0; }
+  a { color: var(--accent); }
+  strong { color: var(--text); }
+
+  code, .code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.1em 0.4em;
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    line-height: 1.55;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* stat tiles */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1.2rem 0 1.6rem;
+  }
+  .stat {
+    background: var(--surface);
+    padding: 1.1rem 1.2rem;
+  }
+  .stat .n {
+    font-family: var(--mono);
+    font-size: 1.7rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    display: block;
+  }
+  .stat .l {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 0.15rem;
+  }
+
+  /* tables */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; background: var(--surface); }
+  thead th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    background: var(--surface-2);
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 0.65rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text-dim);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.path, td code.ep { font-family: var(--mono); color: var(--text); font-size: 0.84em; white-space: nowrap; }
+  td.feature { color: var(--text); font-weight: 600; }
+
+  /* pills */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    padding: 0.2em 0.6em;
+    border-radius: 999px;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.block { background: var(--block-soft); color: var(--block); }
+
+  .legend { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: 0.9rem 0 1.4rem; font-size: 0.82rem; color: var(--text-dim); }
+  .legend span { display: inline-flex; align-items: center; gap: 0.5em; }
+
+  blockquote {
+    margin: 1rem 0;
+    padding: 0.15rem 0 0.15rem 1rem;
+    border-left: 2px solid var(--accent-line);
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    margin: 1rem 0;
+  }
+  .card h4 {
+    font-family: var(--mono);
+    font-size: 0.92rem;
+    margin: 0 0 0.5rem;
+    color: var(--text);
+  }
+  .card .why { color: var(--text-dim); font-size: 0.88rem; margin-top: 0.5rem; }
+  .card .why b { color: var(--text); }
+
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; font-size: 0.86rem; margin-top: 0.6rem; }
+  .kv dt { color: var(--text-faint); font-family: var(--mono); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 0.15rem; }
+  .kv dd { margin: 0; color: var(--text-dim); }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-faint);
+    font-size: 0.78rem;
+    font-family: var(--mono);
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 2.5rem 1rem 4rem; }
+    .kv { grid-template-columns: 1fr; }
+  }
+</style>
+
+<main>
+
+<header>
+  <span class="eyebrow">Relatório técnico · 2026-07-11</span>
+  <h1>oMLX <span class="arrow">→</span> murici</h1>
+  <p class="subtitle">O que o servidor oMLX expõe hoje (API pública e painel admin) que o murici ainda não consome — tokens/s, cache, memória — e onde vale a pena abrir PR upstream em vez de contornar no cliente.</p>
+  <div class="meta-row">
+    <span>fonte: <code>github.com/jundot/omlx</code> · Apache-2.0 · público</span>
+    <span>consumidor: <code>github.com/entelekheia-ai/murici</code></span>
+  </div>
+</header>
+
+<section id="resumo">
+  <span class="eyebrow">Resumo</span>
+  <h2>O essencial</h2>
+  <div class="stats">
+    <div class="stat"><span class="n">9</span><span class="l">campos de timing/tokens já na resposta OpenAI-compat (<code>Usage</code>)</span></div>
+    <div class="stat"><span class="n">0</span><span class="l">desses campos hoje lidos ou exibidos no murici</span></div>
+    <div class="stat"><span class="n">/api/status</span><span class="l">endpoint público ideal para polling leve</span></div>
+    <div class="stat"><span class="n">admin-only</span><span class="l">telemetria rica (cache hot/cold, tok/s ao vivo) fica atrás de cookie de sessão</span></div>
+  </div>
+  <p>O oMLX já calcula e devolve, em toda resposta de <code>/v1/chat/completions</code> e <code>/v1/completions</code>, um bloco <code>Usage</code> estendido com <code>time_to_first_token</code>, <code>prompt_tokens_per_second</code>, <code>generation_tokens_per_second</code> e <code>prompt_tokens_details.cached_tokens</code> — dado pronto, autenticado só com API key, que o murici simplesmente descarta hoje (<code>lib/server/agent-stream.ts</code> nunca lê <code>result.usage</code>). Esse é o menor esforço com maior retorno.</p>
+  <p>A telemetria mais rica que aparece nos screenshots do README do oMLX (dashboard de modelos ativos, cache hot/cold, benchmark) vive em <code>/admin/api/*</code>, que exige cookie de sessão de admin — não dá pra alcançar só com API key. Isso define duas trilhas: <strong>implementar agora</strong> (dados já públicos) e <strong>propor upstream</strong> (dados que existem no servidor mas não têm rota pública).</p>
+</section>
+
+<section id="omlx-api">
+  <span class="eyebrow">01 · Superfície do oMLX</span>
+  <h2>O que já está acessível via API key</h2>
+  <p class="dim">FastAPI, dois domínios de auth: <code>/v1/*</code> e <code>/api/status</code> aceitam Bearer/API-key; <code>/admin/*</code> exige cookie de sessão de browser. Sub-keys criadas via <code>/admin/api/sub-keys</code> continuam presas ao domínio API-key — não abrem <code>/admin/api/*</code>.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Endpoint</th><th>Auth</th><th>Dado relevante para murici</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="path"><code class="ep">GET /api/status</code></td><td><span class="pill ok">API key</span></td><td>Snapshot leve para polling: <code>total_prompt_tokens</code>, <code>total_completion_tokens</code>, <code>total_cached_tokens</code>, <code>cache_efficiency</code>, <code>avg_prefill_tps</code>, <code>avg_generation_tps</code>, <code>model_memory_used/max</code>, <code>loaded_models[]</code></td></tr>
+        <tr><td class="path"><code class="ep">GET /health</code></td><td><span class="pill ok">Sem auth</span></td><td><code>engine_pool</code> (contagem de modelos carregados, memória atual) + status do MCP</td></tr>
+        <tr><td class="path"><code class="ep">POST /v1/chat/completions</code></td><td><span class="pill ok">API key</span></td><td><code>Usage</code> estendido no chunk final de SSE (com <code>stream_options.include_usage:true</code>) ou no corpo não-streaming — ver detalhe abaixo</td></tr>
+        <tr><td class="path"><code class="ep">GET /v1/models/status</code></td><td><span class="pill ok">API key</span></td><td>Por modelo: <code>loaded</code>, <code>is_loading</code>, <code>estimated_size</code>, <code>actual_size</code>, <code>pinned</code>, <code>engine_type</code>, <code>last_access</code>, <code>max_context_window</code></td></tr>
+        <tr><td class="path"><code class="ep">GET /v1/models</code></td><td><span class="pill ok">API key</span></td><td>Lista OpenAI-padrão (já é o que <code>app/api/models/discover/route.ts</code> consome hoje)</td></tr>
+        <tr><td class="path"><code class="ep">POST /v1/models/{id}/load</code> · <code>/unload</code></td><td><span class="pill ok">API key</span></td><td>Carregar/descarregar modelo sob demanda — útil pra um botão "pré-aquecer modelo" no seletor</td></tr>
+        <tr><td class="path"><code class="ep">POST /v1/messages/count_tokens</code></td><td><span class="pill ok">API key</span></td><td><code>{input_tokens}</code> — contagem antes de enviar, pra estimativa de custo/contexto no editor de prompt</td></tr>
+        <tr><td class="path"><code class="ep">GET /v1/mcp/tools</code> · <code>/servers</code></td><td><span class="pill ok">API key</span></td><td>Ferramentas MCP conectadas no lado do servidor oMLX</td></tr>
+        <tr><td class="path"><code class="ep">GET /admin/api/stats</code></td><td><span class="pill block">Cookie admin</span></td><td><code>active_models[]</code> com tok/s ao vivo por request, fila, <code>memory_pressure</code> (MemGuard)</td></tr>
+        <tr><td class="path"><code class="ep">POST /admin/api/cache/probe</code></td><td><span class="pill block">Cookie admin</span></td><td>Previsão de cache hit hot/cold pra um prompt específico antes de enviar</td></tr>
+        <tr><td class="path"><code class="ep">GET/PUT /admin/api/models/{id}/settings</code></td><td><span class="pill block">Cookie admin</span></td><td>Thinking budget, TurboQuant (bits do KV cache), SpecPrefill, DFlash</td></tr>
+        <tr><td class="path"><code class="ep">GET /admin/api/device-info</code></td><td><span class="pill block">Cookie admin</span></td><td><code>chip_name</code>, <code>memory_gb</code>, <code>gpu_cores</code> — útil pra badge "rodando em M3 Max, 64GB"</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>O campo que mais importa: <code>Usage</code> em <code>/v1/chat/completions</code></h3>
+  <p>Extensão própria do oMLX sobre o schema OpenAI (<code>api/openai_models.py:345-360</code>), presente em toda resposta — streaming (chunk final, requer <code>stream_options.include_usage</code>) ou não:</p>
+  <pre><code>{
+  "prompt_tokens": 812, "completion_tokens": 214, "total_tokens": 1026,
+  "prompt_tokens_details": { "cached_tokens": 640, "audio_tokens": 0 },
+  "model_load_duration": 0.0,
+  "time_to_first_token": 0.31,
+  "total_time": 4.82,
+  "prompt_eval_duration": 0.31,
+  "generation_duration": 4.51,
+  "prompt_tokens_per_second": 2619.4,
+  "generation_tokens_per_second": 47.4
+}</code></pre>
+  <p class="dim">Ressalva: essa extensão só existe no caminho OpenAI-compatível. <code>/v1/messages</code> (Anthropic-compat) devolve um <code>AnthropicUsage</code> mais pobre — <code>input_tokens</code>, <code>output_tokens</code>, <code>cache_creation_input_tokens</code>, <code>cache_read_input_tokens</code> — sem TTFT nem tok/s.</p>
+
+  <h3>Cache: o que dá pra ver, o que não dá</h3>
+  <p>O oMLX implementa um KV cache em camadas (RAM "quente" + SSD "fria", com prefix sharing) — é o que aparece em <code>omlx_hot_cold_cache.png</code>. As estatísticas detalhadas (<code>hit_rate</code>, <code>tokens_saved</code>, <code>hot_cache_entries</code>, <code>save_rate</code>) vivem em <code>cache/stats.py</code> mas só chegam a <code>/admin/api/stats</code>. Via API key, o único sinal de cache é <code>total_cached_tokens</code>/<code>cache_efficiency</code> em <code>/api/status</code> e <code>prompt_tokens_details.cached_tokens</code> por resposta — dá pra construir um indicador "X% do prompt veio do cache" por mensagem, mas não o breakdown hot/cold completo do dashboard.</p>
+
+  <h3>Dado computado mas descartado no próprio oMLX</h3>
+  <p>Vale registrar como achado, não só como gap do murici: o decoding especulativo DFlash calcula <code>acceptance_ratio</code> e <code>cycles_completed</code> por request (<code>engine/dflash.py:1004-1042</code>) e só os manda pro log — nunca chegam a <code>Usage</code> nem a nenhum endpoint admin. O próprio <code>docs/experimental/dflash_mlx_integration.md:294-295</code> lista isso como trabalho futuro não feito.</p>
+</section>
+
+<section id="murici-hoje">
+  <span class="eyebrow">02 · Estado atual</span>
+  <h2>O que o murici faz hoje</h2>
+  <ul>
+    <li><strong>Conexão com oMLX já existe</strong>, mas genérica: <code>app/api/models/discover/route.ts</code> sonda <code>~/.omlx/settings.json</code> e <code>GET {base_url}/v1/models</code>, mapeando pra <code>provider: "local"</code> — não existe um provider <code>"omlx"</code> dedicado (decisão deliberada da RFC-0001, porque vLLM disputa a mesma porta 8000).</li>
+    <li><strong>O request de chat</strong> (<code>app/api/chat/custom/route.ts</code>) usa o client OpenAI-compat do Vercel AI SDK apontado pro <code>base_url</code> local, forçando <code>.chat()</code> em vez da Responses API.</li>
+    <li><strong><code>result.usage</code> do <code>streamText()</code> nunca é lido</strong> em <code>lib/server/agent-stream.ts:77-105</code> — o stream vai direto pra <code>toUIMessageStream()</code> sem passar os campos de uso adiante.</li>
+    <li><strong>Zero ocorrências</strong> de <code>usage</code>, <code>promptTokens</code>, <code>tokensPerSecond</code> ou <code>TTFT</code> em <code>components/</code>, <code>lib/</code> ou <code>app/</code> — confirmado por grep. Nenhuma UI de métricas existe hoje, nem embrionária.</li>
+    <li><strong>Existe um precedente estrutural pronto pra reusar</strong>: <code>agent-stream.ts</code> já emite uma UI-message-part customizada, <code>data-debug</code>, carregando metadados fora do fluxo de texto. O mesmo padrão serve pra uma <code>data-omlx-metrics</code>.</li>
+    <li><strong>RFC-0001</strong> (<code>project/rfc/0001-local-model-autodiscovery.md</code>), que documenta a auto-descoberta de modelos locais, já lista <em>"VRAM / hardware metrics"</em> explicitamente como fora de escopo da Fase 1 — ou seja, isso é uma continuação natural planejada, não uma ideia nova.</li>
+  </ul>
+</section>
+
+<section id="recomendacoes">
+  <span class="eyebrow">03 · Recomendações</span>
+  <h2>Funcionalidades pra implementar no murici</h2>
+  <div class="legend">
+    <span class="pill ok">pronto</span> dado já público via API key
+    <span class="pill warn">parcial</span> dá pra aproximar sem admin, com limitação
+    <span class="pill block">precisa upstream</span> dado existe no servidor mas não tem rota pública
+  </div>
+
+  <div class="card">
+    <h4>Badge de tokens/s + TTFT por mensagem</h4>
+    <p class="why">Ler <code>result.usage</code> em <code>agent-stream.ts</code> e emitir como <code>data-omlx-metrics</code> (mesmo padrão de <code>data-debug</code>). Renderizar em <code>components/messages/message.tsx</code>, perto do nome do modelo (linha ~254-270) — não existe hoje nenhuma linha de metadados ali.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>Usage.generation_tokens_per_second</code>, <code>time_to_first_token</code></dd>
+      <dt>Acesso</dt><dd><span class="pill ok">pronto</span></dd>
+      <dt>Esforço</dt><dd>Baixo — só falta ler um campo que já chega e desenhar um componente</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Indicador "% deste prompt veio do cache"</h4>
+    <p class="why">Comparar <code>prompt_tokens_details.cached_tokens</code> com <code>prompt_tokens</code> por resposta. Não é o dashboard hot/cold completo, mas dá o sinal mais acionável pro usuário: "seu prompt reaproveitou 78% do contexto anterior".</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>Usage.prompt_tokens_details.cached_tokens</code></dd>
+      <dt>Acesso</dt><dd><span class="pill ok">pronto</span></dd>
+      <dt>Esforço</dt><dd>Baixo</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Barra de status do servidor (memória, modelos carregados)</h4>
+    <p class="why">Um painel discreto (ex.: no seletor de modelo ou numa sidebar) fazendo polling de <code>/api/status</code> a cada poucos segundos: memória usada/máxima, quais modelos estão carregados, throughput médio da sessão do servidor.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>GET /api/status</code></dd>
+      <dt>Acesso</dt><dd><span class="pill ok">pronto</span></dd>
+      <dt>Esforço</dt><dd>Médio — precisa de um hook de polling novo, não existe nenhum hoje</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Contador de tokens no editor de prompt (antes de enviar)</h4>
+    <p class="why"><code>POST /v1/messages/count_tokens</code> dá uma contagem real (não estimativa client-side) do que está prestes a ser enviado — útil pra avisar antes de estourar a janela de contexto do modelo.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>POST /v1/messages/count_tokens</code></dd>
+      <dt>Acesso</dt><dd><span class="pill ok">pronto</span></dd>
+      <dt>Esforço</dt><dd>Baixo-médio — chamada extra debounced no composer</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Botão "pré-aquecer modelo" no seletor</h4>
+    <p class="why"><code>POST /v1/models/{id}/load</code> deixa disparar o load antes do primeiro prompt, evitando que o TTFT da primeira mensagem inclua o tempo de carga do modelo do disco pra memória.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>POST /v1/models/{id}/load</code>, <code>GET /v1/models/status</code> (<code>is_loading</code>)</dd>
+      <dt>Acesso</dt><dd><span class="pill ok">pronto</span></dd>
+      <dt>Esforço</dt><dd>Médio</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Dashboard "atividade ao vivo" (espelho do admin do oMLX)</h4>
+    <p class="why">O que aparece nos prints <code>omlx_dashboard_activemodels.png</code> / <code>omlx_hot_cold_cache.png</code> — tok/s ao vivo por request, fila, pressão de memória (MemGuard) — só existe em <code>/admin/api/stats</code>, atrás de cookie de sessão de admin. Dá pra pedir usuário/senha de admin oMLX nas configurações do murici e guardar a sessão, mas é gambiarra de auth cross-app. O caminho limpo é a próxima seção.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>GET /admin/api/stats</code></dd>
+      <dt>Acesso</dt><dd><span class="pill block">precisa upstream</span></dd>
+      <dt>Esforço</dt><dd>Alto, e frágil sem mudança no oMLX</dd>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Badge "rodando em [chip], [RAM]GB"</h4>
+    <p class="why">Informação estática por sessão, boa pro usuário entender por que um modelo grande está lento — mas <code>/admin/api/device-info</code> também é admin-only.</p>
+    <div class="kv">
+      <dt>Fonte</dt><dd><code>GET /admin/api/device-info</code></dd>
+      <dt>Acesso</dt><dd><span class="pill block">precisa upstream</span></dd>
+      <dt>Esforço</dt><dd>Trivial de exibir, bloqueado pelo acesso</dd>
+    </div>
+  </div>
+</section>
+
+<section id="fork-pr">
+  <span class="eyebrow">04 · Contribuição upstream</span>
+  <h2>Vale a pena um fork ou PR pro oMLX?</h2>
+  <p>O oMLX já é público (<code>jundot/omlx</code>, Apache-2.0, ativo — commits e PRs numerados recentes, <code>docs/CONTRIBUTING.md</code> com fluxo de fork padrão). Não faz sentido "abrir" o projeto — ele já está aberto. O que faz sentido é <strong>propor PRs pontuais e escopados</strong> que resolvem exatamente a lacuna acima: dado que já existe no servidor, mas não tem rota pública. São mudanças pequenas e de baixo risco porque não tocam no motor de inferência, só na camada de API.</p>
+
+  <div class="card">
+    <h4>1. Escopo de API key pra métricas somente-leitura</h4>
+    <p class="why">Hoje <code>/admin/api/sub-keys</code> já cria chaves com permissão restrita à API pública. Adicionar um escopo novo (ex.: <code>metrics:read</code>) que libera uma versão somente-leitura de <code>/admin/api/stats</code> — sem os endpoints de mutação (settings, cache clear, bench) — resolveria o maior gap sem expor superfície administrativa. <b>Por quê topam:</b> é aditivo, não muda comportamento default, e o próprio produto se beneficia de mais integrações third-party puxando telemetria sem precisar da senha de admin.</p>
+  </div>
+
+  <div class="card">
+    <h4>2. Paridade de <code>Usage</code> entre <code>/v1/messages</code> e <code>/v1/chat/completions</code></h4>
+    <p class="why">A extensão de timing (<code>time_to_first_token</code>, <code>*_tokens_per_second</code>) só existe no schema OpenAI. Estender <code>AnthropicUsage</code> com os mesmos campos é praticamente copiar código já existente pra outro serializer — baixíssimo risco, alta chance de aceite.</p>
+  </div>
+
+  <div class="card">
+    <h4>3. Expor <code>acceptance_ratio</code> do DFlash</h4>
+    <p class="why">O próprio doc do projeto (<code>dflash_mlx_integration.md:294-295</code>) já lista isso como trabalho futuro desejado — não é uma ideia externa, é preencher uma lacuna que os mantenedores já registraram. Adicionar ao <code>Usage</code> quando <code>dflash_enabled</code> está ativo.</p>
+  </div>
+
+  <div class="card">
+    <h4>4. Bits de quantização do modelo carregado em <code>/v1/models/status</code></h4>
+    <p class="why"><code>ModelInfo</code> hoje só tem <code>id, object, created, owned_by, max_model_len</code>. A informação de quantização (oQ) só aparece em endpoints de job de (re)quantização admin — nunca pro modelo já servido. Um campo <code>quant_bits</code>/<code>quant_method</code> em <code>/v1/models/status</code> é pequeno e evita que clientes tenham que adivinhar pelo nome do arquivo.</p>
+  </div>
+
+  <p class="dim">Recomendação: começar pelo item 1 como PR isolado (é o que desbloqueia o dashboard de atividade ao vivo no murici) e usar os itens 2-4 como PRs de acompanhamento — cada um é pequeno o bastante pra revisar e mergear independente. Não é necessário fork de longo prazo; o fluxo de <code>CONTRIBUTING.md</code> (fork → branch → PR) é suficiente, dado que nenhuma dessas mudanças precisa divergir da branch principal.</p>
+</section>
+
+<section id="plano">
+  <span class="eyebrow">05 · Plano de implementação</span>
+  <h2>Por onde começar no murici</h2>
+  <ol>
+    <li><strong>Ler <code>result.usage</code></strong> em <code>lib/server/agent-stream.ts</code> (perto da linha 77-105, ao lado do <code>data-debug</code> existente) e propagar como nova UI-message-part.</li>
+    <li><strong>Consumir a part nova</strong> em <code>onData</code> de <code>components/utility/chat-handler-provider.tsx</code> (linha ~219) e guardar no estado da mensagem.</li>
+    <li><strong>Renderizar</strong> em <code>components/messages/message.tsx</code>, na área de cabeçalho da mensagem (~linha 254-270) — hoje só tem ícone + nome, sem linha de metadados.</li>
+    <li><strong>Hook de polling</strong> novo para <code>GET /api/status</code>, consumido por um indicador leve no seletor de modelo ou sidebar.</li>
+    <li><strong>Documentar como RFC</strong>: já existe o gancho certo — <code>project/rfc/0001-local-model-autodiscovery.md</code> deferiu "VRAM / hardware metrics" pra depois. Uma RFC-000X nova, sucedendo esse item, evita retrabalho de design e mantém o histórico de decisão consistente com o resto do projeto.</li>
+  </ol>
+</section>
+
+<footer>
+  fontes: omlx/omlx/server.py · omlx/omlx/api/*.py · omlx/omlx/admin/routes.py · omlx/omlx/cache/stats.py · omlx/omlx/engine/dflash.py · omlx/docs/*.md · omlx/README.md<br>
+  murici/lib/server/agent-stream.ts · murici/components/utility/chat-handler-provider.tsx · murici/components/messages/message.tsx · murici/app/api/chat/custom/route.ts · murici/app/api/models/discover/route.ts · murici/project/rfc/0001-local-model-autodiscovery.md
+</footer>
+
+</main>

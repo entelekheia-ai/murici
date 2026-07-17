@@ -80,7 +80,13 @@ export function buildKnowledgeRecords(
     payload: { language: block.language, content: block.content },
     derivedFrom: [],
     agentRuns: agentId
-      ? [{ agentId, runAt: new Date().toISOString(), role: "produced" as const }]
+      ? [
+          {
+            agentId,
+            runAt: new Date().toISOString(),
+            role: "produced" as const
+          }
+        ]
       : [],
     createdAt: new Date().toISOString()
   }))

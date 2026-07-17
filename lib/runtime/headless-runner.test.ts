@@ -41,23 +41,25 @@ function makeModel(): LLM {
 }
 
 function mockFetchSequence(chatCompletionBody: any) {
-  return jest
-    .fn()
-    // 1. GET the .agent bundle
-    .mockResolvedValueOnce({
-      ok: true,
-      blob: async () => new Blob(["fake-agent-bytes"])
-    })
-    // 2. POST /api/agent/unpack
-    .mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ behaviorText: "state translate\n  interact" })
-    })
-    // 3. POST the chat completion
-    .mockResolvedValueOnce({
-      ok: true,
-      json: async () => chatCompletionBody
-    })
+  return (
+    jest
+      .fn()
+      // 1. GET the .agent bundle
+      .mockResolvedValueOnce({
+        ok: true,
+        blob: async () => new Blob(["fake-agent-bytes"])
+      })
+      // 2. POST /api/agent/unpack
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ behaviorText: "state translate\n  interact" })
+      })
+      // 3. POST the chat completion
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => chatCompletionBody
+      })
+  )
 }
 
 describe("runHeadlessAgent", () => {

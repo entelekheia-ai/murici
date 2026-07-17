@@ -22,7 +22,14 @@ export const runtime = "edge"
 
 export async function POST(request: NextRequest) {
   const json = await request.json()
-  const { chatSettings, messages, tools: rawTools, behaviorState, mcpTools, agentPersona } = json as {
+  const {
+    chatSettings,
+    messages,
+    tools: rawTools,
+    behaviorState,
+    mcpTools,
+    agentPersona
+  } = json as {
     chatSettings: ChatSettings
     messages: any[]
     tools?: any[]
@@ -62,7 +69,11 @@ export async function POST(request: NextRequest) {
       tools
     })
   } catch (error: any) {
-    logger.error("chat route failed", { provider: "anthropic", model: chatSettings?.model, error: error.message })
+    logger.error("chat route failed", {
+      provider: "anthropic",
+      model: chatSettings?.model,
+      error: error.message
+    })
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
 

@@ -16,6 +16,7 @@
 
 import { FlowTurnDebug } from "@/types/flow-debug"
 import { FC } from "react"
+import { useTranslation } from "react-i18next"
 
 interface FlowSystemDebugBubbleProps {
   debug: FlowTurnDebug
@@ -24,6 +25,7 @@ interface FlowSystemDebugBubbleProps {
 export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
   debug
 }) => {
+  const { t } = useTranslation()
   const content0 = debug.toolExchange?.[0]?.content
   const toolUseBlock = Array.isArray(content0)
     ? content0.find((b: any) => b.type === "tool_use")
@@ -39,7 +41,7 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <span>⚙</span>
-        <span className="font-semibold text-blue-400">Sistema</span>
+        <span className="font-semibold text-blue-400">{t("System")}</span>
         <span className="text-muted-foreground/60">
           state: <strong>{debug.stateAtSend || "—"}</strong>
         </span>
@@ -53,7 +55,7 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
       {/* Enviou */}
       <details className="border-b border-border">
         <summary className="cursor-pointer select-none px-3 py-1.5 hover:bg-muted/40">
-          Enviou ({debug.sentMessages.length} msgs)
+          {t("Sent")} ({debug.sentMessages.length} msgs)
         </summary>
         <pre className="mx-3 mb-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-xs">
           {JSON.stringify(debug.sentMessages, null, 2)}
@@ -93,7 +95,9 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
         <>
           {/* Recebeu */}
           <div className="border-b border-border px-3 py-1.5">
-            <span className="font-semibold text-orange-400">Recebeu:</span>{" "}
+            <span className="font-semibold text-orange-400">
+              {t("Received")}:
+            </span>{" "}
             {toolUseBlock ? (
               <>
                 {toolUseBlock.name}({JSON.stringify(toolUseBlock.input ?? {})})
@@ -115,24 +119,28 @@ export const FlowSystemDebugBubble: FC<FlowSystemDebugBubbleProps> = ({
 
           {/* Fez */}
           <div className="border-b border-border px-3 py-1.5">
-            <span className="font-semibold text-green-400">Fez:</span>{" "}
+            <span className="font-semibold text-green-400">{t("Did")}:</span>{" "}
             {debug.transitionEffects.length > 0 ? (
               <details className="mt-1">
                 <summary className="cursor-pointer select-none hover:opacity-70">
-                  {debug.transitionEffects.length} efeito(s)
+                  {t("{{count}} effect(s)", {
+                    count: debug.transitionEffects.length
+                  })}
                 </summary>
                 <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2">
                   {JSON.stringify(debug.transitionEffects, null, 2)}
                 </pre>
               </details>
             ) : (
-              <span className="opacity-60">nenhuma transição</span>
+              <span className="opacity-60">{t("no transition")}</span>
             )}
           </div>
 
           {/* Mandou */}
           <div className="border-b border-border px-3 py-1.5">
-            <span className="font-semibold text-blue-400">Mandou:</span>{" "}
+            <span className="font-semibold text-blue-400">
+              {t("Forwarded")}:
+            </span>{" "}
             {toolResultBlock ? (
               <details className="mt-1">
                 <summary className="cursor-pointer select-none hover:opacity-70">

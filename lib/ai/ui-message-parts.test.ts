@@ -17,7 +17,11 @@
 /**
  * @jest-environment node
  */
-import { getMessageText, getToolInvocations, dedupeToolCallParts } from "./ui-message-parts"
+import {
+  getMessageText,
+  getToolInvocations,
+  dedupeToolCallParts
+} from "./ui-message-parts"
 
 describe("getMessageText", () => {
   it("joins text parts into a single string", () => {
@@ -36,7 +40,12 @@ describe("getMessageText", () => {
       role: "assistant",
       parts: [
         { type: "text", text: "before " },
-        { type: "tool-murici__save_doc", toolCallId: "1", state: "input-available", input: {} },
+        {
+          type: "tool-murici__save_doc",
+          toolCallId: "1",
+          state: "input-available",
+          input: {}
+        },
         { type: "text", text: "after" }
       ]
     }
@@ -105,7 +114,12 @@ describe("getToolInvocations", () => {
   })
 
   it("returns an empty array when there are no tool parts or parts is undefined", () => {
-    expect(getToolInvocations({ role: "assistant", parts: [{ type: "text", text: "hi" }] } as any)).toEqual([])
+    expect(
+      getToolInvocations({
+        role: "assistant",
+        parts: [{ type: "text", text: "hi" }]
+      } as any)
+    ).toEqual([])
     expect(getToolInvocations({ role: "assistant" } as any)).toEqual([])
     expect(getToolInvocations(undefined)).toEqual([])
   })
@@ -137,7 +151,9 @@ describe("dedupeToolCallParts", () => {
     const out = dedupeToolCallParts(messages as any)
 
     const ids = out.flatMap((m: any) =>
-      (m.parts || []).filter((p: any) => p.toolCallId).map((p: any) => p.toolCallId)
+      (m.parts || [])
+        .filter((p: any) => p.toolCallId)
+        .map((p: any) => p.toolCallId)
     )
     expect(ids).toEqual(["call_14e36e35"])
     expect(out).toHaveLength(3)

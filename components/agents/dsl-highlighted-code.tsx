@@ -4,7 +4,11 @@
  */
 
 import { useEffect, useState } from "react"
-import { highlightDsl, type DslLangId, type DslToken } from "@/lib/dsl-highlight"
+import {
+  highlightDsl,
+  type DslLangId,
+  type DslToken
+} from "@/lib/dsl-highlight"
 
 interface DslHighlightedCodeProps {
   language: DslLangId
@@ -14,7 +18,10 @@ interface DslHighlightedCodeProps {
 // Presentational only — no wrapping <pre>. Callers own their own <pre>/box
 // styling (chat code block chrome vs. the right-sidebar debug panel box),
 // this just renders the tokenized <code> content.
-export function DslHighlightedCode({ language, value }: DslHighlightedCodeProps) {
+export function DslHighlightedCode({
+  language,
+  value
+}: DslHighlightedCodeProps) {
   const [tokens, setTokens] = useState<DslToken[] | null>(null)
 
   useEffect(() => {

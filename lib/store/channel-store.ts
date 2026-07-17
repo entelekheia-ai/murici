@@ -76,7 +76,10 @@ interface ChannelStore {
     eventId: string,
     patch: Record<string, any>
   ) => void
-  ingestCssEffects: (threadId: string, effects: Effect[] | undefined | null) => void
+  ingestCssEffects: (
+    threadId: string,
+    effects: Effect[] | undefined | null
+  ) => void
 }
 
 const IDLE: ChannelRuntimeState = {
@@ -100,7 +103,10 @@ export const useChannelStore = create<ChannelStore>(set => ({
     set(state => {
       const prev = state.channels[threadId] ?? IDLE
       const next = { ...prev, ...patch }
-      if (prev.status === next.status && prev.firstTokenReceived === next.firstTokenReceived) {
+      if (
+        prev.status === next.status &&
+        prev.firstTokenReceived === next.firstTokenReceived
+      ) {
         return state
       }
       return { channels: { ...state.channels, [threadId]: next } }

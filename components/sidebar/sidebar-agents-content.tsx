@@ -38,9 +38,8 @@ type SortMode = "recent" | "alphabetical"
 
 export const SidebarAgentsContent: FC = () => {
   const { t } = useTranslation()
-  const { setPendingNewAgentPayload, setShowRightSidebar } = useContext(
-    ChatbotUIContext
-  )
+  const { setPendingNewAgentPayload, setShowRightSidebar } =
+    useContext(ChatbotUIContext)
 
   const [recentAgents, setRecentAgents] = useState<RecentAgentRecord[]>([])
   const [onboardingPayload, setOnboardingPayload] =
@@ -60,9 +59,7 @@ export const SidebarAgentsContent: FC = () => {
 
   const notFoundToast = () =>
     toast.error(
-      t(
-        "Agent file could not be found. It may have been moved or deleted."
-      )
+      t("Agent file could not be found. It may have been moved or deleted.")
     )
 
   const sortedRecentAgents = [...recentAgents].sort((a, b) =>
@@ -150,7 +147,9 @@ export const SidebarAgentsContent: FC = () => {
                         className="h-7 gap-1 px-2 text-xs text-foreground-secondary"
                       >
                         <ArrowUpDown size={14} />
-                        {sortMode === "recent" ? t("Recent") : t("Alphabetical")}
+                        {sortMode === "recent"
+                          ? t("Recent")
+                          : t("Alphabetical")}
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">

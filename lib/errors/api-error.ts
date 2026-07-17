@@ -50,7 +50,11 @@ export function serializeStreamError(error: unknown): string {
 export function parseStreamError(raw: string): StreamErrorDetails {
   try {
     const parsed = JSON.parse(raw)
-    if (parsed && typeof parsed === "object" && typeof parsed.message === "string") {
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      typeof parsed.message === "string"
+    ) {
       return parsed
     }
   } catch {}

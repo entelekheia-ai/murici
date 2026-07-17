@@ -62,14 +62,20 @@ export function withReasoningContentAsThink(
       const delta = choice?.delta
       if (!delta) return line
 
-      if (typeof delta.reasoning_content === "string" && delta.reasoning_content.length > 0) {
+      if (
+        typeof delta.reasoning_content === "string" &&
+        delta.reasoning_content.length > 0
+      ) {
         // Reasoning tokens: open the <think> block on the first one, fold the
         // rest in, and hide the non-standard field from the provider.
         delta.content = (insideThink ? "" : "<think>") + delta.reasoning_content
         delete delta.reasoning_content
         insideThink = true
         reasoningSeen++
-      } else if (insideThink && (delta.content != null || choice.finish_reason != null)) {
+      } else if (
+        insideThink &&
+        (delta.content != null || choice.finish_reason != null)
+      ) {
         // First normal content (or the finish chunk) after reasoning: close the
         // block before anything else in this delta.
         delta.content = "</think>" + (delta.content ?? "")
@@ -96,7 +102,13 @@ export function withReasoningContentAsThink(
         if (insideThink) {
           controller.enqueue(
             `data: ${JSON.stringify({
-              choices: [{ index: 0, delta: { content: "</think>" }, finish_reason: null }]
+              choices: [
+                {
+                  index: 0,
+                  delta: { content: "</think>" },
+                  finish_reason: null
+                }
+              ]
             })}\n\n`
           )
           insideThink = false

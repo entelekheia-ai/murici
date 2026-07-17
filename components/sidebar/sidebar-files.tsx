@@ -6,6 +6,8 @@
 
 import { FC, useContext, useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { useTranslation } from "react-i18next"
+import { localeHref } from "@/lib/locale-href"
 import { ChatbotUIContext } from "@/context/context"
 import { KnowledgeChip } from "@/components/knowledge/knowledge-chip"
 import { Button } from "@/components/ui/button"
@@ -13,10 +15,11 @@ import { getAllKnowledgeRecords } from "@/lib/local-db/knowledge"
 import { KnowledgeRecord } from "@/types/knowledge"
 
 export const SidebarFilesContent: FC = () => {
+  const { t } = useTranslation()
   const { chats, models, availableLocalModels } = useContext(ChatbotUIContext)
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const [allKnowledge, setAllKnowledge] = useState<KnowledgeRecord[]>([])
@@ -43,9 +46,11 @@ export const SidebarFilesContent: FC = () => {
       <div className="flex-1 overflow-auto p-2 pb-16">
         {sortedKnowledge.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center p-4 text-center">
-            <p className="text-sm font-medium text-muted-foreground">Nenhum artefato ainda</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              {t("No artifacts yet")}
+            </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Inicie uma conversa para gerar arquivos e artefatos.
+              {t("Start a conversation to generate files and artifacts.")}
             </p>
           </div>
         ) : (
@@ -56,7 +61,7 @@ export const SidebarFilesContent: FC = () => {
                 <KnowledgeChip
                   key={record.id}
                   record={record}
-                  chatName={chat?.name || "Conversa"}
+                  chatName={chat?.name || t("Conversation")}
                   onUpdate={handleUpdate}
                   compact={false}
                 />
@@ -69,8 +74,10 @@ export const SidebarFilesContent: FC = () => {
       {/* Floating Button */}
       <div className="absolute bottom-4 left-1/2 z-10 w-[90%] -translate-x-1/2">
         <Button
-          className="w-full rounded-xl bg-[#C05621] text-sm font-semibold text-white shadow-lg hover:bg-[#C05621]/90"
-          onClick={() => router.push(`/${locale}/${workspaceid}/graph`)}
+          className="w-full rounded-xl bg-murici-orange text-sm font-semibold text-white shadow-lg hover:bg-[#C05621]/90"
+          onClick={() =>
+            router.push(localeHref(locale, `/${workspaceid}/graph`))
+          }
         >
           Ver todos os arquivos
         </Button>

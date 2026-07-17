@@ -21,6 +21,8 @@ import { startNextServer, stopNextServer } from "./next-server"
 import { setupAutoUpdater } from "./updater"
 import { readFile } from "fs/promises"
 import { buildAppMenu, MenuAction } from "./menu"
+import { resolveInitialLocale } from "./menu-i18n"
+import { getAppConfigLocale, saveAppConfigLocale } from "./app-config"
 
 const isDev =
   process.env.NODE_ENV === "development" ||
@@ -46,12 +48,16 @@ const logger = winston.createLogger({
   transports: [
     new winston.transports.File({ filename: logFile }),
     // In dev, Next.js output and console.log is very spammy, but we keep it
-    ...(isDev ? [new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
-    })] : [])
+    ...(isDev
+      ? [
+          new winston.transports.Console({
+            format: winston.format.combine(
+              winston.format.colorize(),
+              winston.format.simple()
+            )
+          })
+        ]
+      : [])
   ]
 })
 
@@ -61,16 +67,24 @@ for (const method of ["log", "warn", "error"] as const) {
     // Only output to native console if not in Dev via Winston (to avoid double logging)
     // Actually Winston console transport will handle stdout in dev.
     const line = args
-      .map(a => (a instanceof Error ? (a.stack ?? a.message) : typeof a === "string" ? a : JSON.stringify(a)))
+      .map(a =>
+        a instanceof Error
+          ? (a.stack ?? a.message)
+          : typeof a === "string"
+            ? a
+            : JSON.stringify(a)
+      )
       .join(" ")
-    
+
     if (method === "log") logger.info(line)
     else if (method === "warn") logger.warn(line)
     else if (method === "error") logger.error(line)
   }
 }
 
-console.log(`Murici starting — version ${app.getVersion()}, log file: ${logFile}`)
+console.log(
+  `Murici starting — version ${app.getVersion()}, log file: ${logFile}`
+)
 
 let mainWindow: BrowserWindow | null = null
 let serverPort = 3000
@@ -86,18 +100,27 @@ let fileToOpen: string | null = null
 // lost its knowledge files. Reading a filesystem path is the only part the renderer
 // genuinely can't do; everything else belongs on one side of the wire, not two.
 async function readAgentFile(filePath: string): Promise<Buffer> {
-  if (!filePath.endsWith(".agent")) throw new Error("File must have .agent extension")
+  if (!filePath.endsWith(".agent"))
+    throw new Error("File must have .agent extension")
   return readFile(filePath)
 }
 
-let menuLocale = "en"
+// The persisted choice (if any) wins over guessing from the OS locale — it
+// reflects what the user actually picked last time, including on a system
+// whose OS language doesn't match one of our shipped locales.
+let menuLocale = getAppConfigLocale() ?? resolveInitialLocale(app.getLocale())
 let menuDebugMode = false
 let menuShowChatList = false
 let menuShowDetails = false
 
 function rebuildMenu(): void {
   buildAppMenu(
-    { locale: menuLocale, debugMode: menuDebugMode, showChatList: menuShowChatList, showDetails: menuShowDetails },
+    {
+      locale: menuLocale,
+      debugMode: menuDebugMode,
+      showChatList: menuShowChatList,
+      showDetails: menuShowDetails
+    },
     { onAction: handleMenuAction, onLoadAgent: handleLoadAgent }
   )
 }
@@ -116,7 +139,9 @@ async function handleLoadAgent(): Promise<void> {
 
   // Just the path: the renderer reads the bytes back through read-agent-file and
   // unpacks them itself.
-  mainWindow.webContents.send("open-agent-file", { filePath: result.filePaths[0] })
+  mainWindow.webContents.send("open-agent-file", {
+    filePath: result.filePaths[0]
+  })
 }
 
 ipcMain.on("murici:debug-mode-changed", (_event, value: boolean) => {
@@ -126,6 +151,7 @@ ipcMain.on("murici:debug-mode-changed", (_event, value: boolean) => {
 
 ipcMain.on("murici:locale-changed", (_event, locale: string) => {
   menuLocale = locale
+  saveAppConfigLocale(locale)
   rebuildMenu()
 })
 
@@ -133,7 +159,8 @@ ipcMain.on(
   "murici:sidebar-state-changed",
   (_event, state: { showSidebar?: boolean; showRightSidebar?: boolean }) => {
     if (state.showSidebar !== undefined) menuShowChatList = state.showSidebar
-    if (state.showRightSidebar !== undefined) menuShowDetails = state.showRightSidebar
+    if (state.showRightSidebar !== undefined)
+      menuShowDetails = state.showRightSidebar
     rebuildMenu()
   }
 )
@@ -189,7 +216,26 @@ async function createWindow() {
     }
   })
 
-  mainWindow.loadURL(`http://localhost:${serverPort}`)
+  // A summary error like ERR_TOO_MANY_REDIRECTS doesn't say which URLs were
+  // actually chained, and the app-level "Toggle Dev Tools" menu item can't
+  // help either (it's gated behind debugMode, which the renderer only
+  // reports once it has loaded — no use when it never does). This hook is
+  // cheap in steady state — a correctly-built URL now redirects at most
+  // once, if ever — so it stays on permanently as a diagnostic breadcrumb.
+  mainWindow.webContents.session.webRequest.onBeforeRedirect(
+    { urls: ["http://localhost/*", "http://127.0.0.1/*"] },
+    details => {
+      logger.info(
+        `[net] redirect ${details.statusCode} ${details.url} -> ${details.redirectURL}`
+      )
+    }
+  )
+
+  // Load the fully-resolved locale-prefixed workspace URL directly (rather
+  // than bare "/") — skips both the server's one-time locale-detection
+  // redirect and the client-side root page's own redirect, so first paint
+  // needs zero round-trips through next-i18n-router's middleware at all.
+  mainWindow.loadURL(`http://localhost:${serverPort}/${menuLocale}/local/chat`)
 
   mainWindow.once("ready-to-show", () => {
     mainWindow!.show()
@@ -210,7 +256,9 @@ async function createWindow() {
     return { action: "deny" }
   })
 
-  mainWindow.on("closed", () => { mainWindow = null })
+  mainWindow.on("closed", () => {
+    mainWindow = null
+  })
 }
 
 app.whenReady().then(async () => {
@@ -225,7 +273,7 @@ app.whenReady().then(async () => {
     if (!isDev) serverPort = await startNextServer()
     await createWindow()
     rebuildMenu()
-    if (!isDev) setupAutoUpdater()
+    if (!isDev) setupAutoUpdater(() => menuLocale)
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -247,4 +295,6 @@ app.on("window-all-closed", () => {
   }
 })
 
-app.on("before-quit", () => { stopNextServer() })
+app.on("before-quit", () => {
+  stopNextServer()
+})

@@ -3,8 +3,4 @@
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
-export type ContentType =
-  | "chats"
-  | "files"
-  | "agents"
-  | "models"
+export type ContentType = "chats" | "files" | "agents" | "models"

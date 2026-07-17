@@ -49,9 +49,7 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
   return (
     <div className="space-y-4">
       <div className="space-y-3">
-        <div className="text-title-3 text-foreground-primary">
-          {t("Model")}
-        </div>
+        <div className="text-title-3 text-foreground-primary">{t("Model")}</div>
 
         <ModelSelect
           selectedModelId={chatSettings.model}
@@ -183,9 +181,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
                 {profile?.profile_context || "No profile context."}
               </div>
             }
-            trigger={
-              <Info className="cursor-hover:opacity-50" size={16} />
-            }
+            trigger={<Info className="cursor-hover:opacity-50" size={16} />}
           />
         )}
       </div>
@@ -212,9 +208,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
                   "No workspace instructions."}
               </div>
             }
-            trigger={
-              <Info className="cursor-hover:opacity-50" size={16} />
-            }
+            trigger={<Info className="cursor-hover:opacity-50" size={16} />}
           />
         )}
       </div>

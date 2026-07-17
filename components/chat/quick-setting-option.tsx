@@ -70,9 +70,7 @@ export const QuickSettingOption: FC<QuickSettingOptionProps> = ({
       </div>
 
       <div className="min-w-[40px]">
-        {isSelected ? (
-          <CheckCircle2 className="ml-4" size={20} />
-        ) : null}
+        {isSelected ? <CheckCircle2 className="ml-4" size={20} /> : null}
       </div>
     </DropdownMenuItem>
   )

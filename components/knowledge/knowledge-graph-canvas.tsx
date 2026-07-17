@@ -6,16 +6,27 @@
 
 import { FC, useEffect, useRef, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { useTranslation } from "react-i18next"
 import { Network } from "vis-network"
 import type { Node, Edge, Options } from "vis-network"
 import { DataSet } from "vis-data"
+import { localeHref } from "@/lib/locale-href"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
 import { AgentBundleRecord } from "@/lib/local-db/schema"
 import { Button } from "@/components/ui/button"
 import { KnowledgePreviewModal } from "./knowledge-preview-modal"
-import { PALETTE, AGENT_PALETTE, MEDIUM_ANCHOR_COLOR, LOW_TIER_COLOR, cssVar } from "@/lib/knowledge/graph-theme"
-import { buildAgentLayer, countParentsByArtifact } from "@/lib/knowledge/agent-layer"
+import {
+  PALETTE,
+  AGENT_PALETTE,
+  MEDIUM_ANCHOR_COLOR,
+  LOW_TIER_COLOR,
+  cssVar
+} from "@/lib/knowledge/graph-theme"
+import {
+  buildAgentLayer,
+  countParentsByArtifact
+} from "@/lib/knowledge/agent-layer"
 
 // Gravitational lens: which node type is alta-tier (canopy + individual
 // color), and how much mass each type gets. Not 3 separate physics setups —
@@ -62,7 +73,8 @@ function drawMediumBorder(
     const startAngle = withAngle[0].angle
     const grd = ctx.createConicGradient(startAngle, center.x, center.y)
     withAngle.forEach(p => {
-      const rel = ((p.angle - startAngle + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2)
+      const rel =
+        ((p.angle - startAngle + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2)
       grd.addColorStop(rel, p.color)
     })
     grd.addColorStop(1, withAngle[0].color) // close the loop, no hard seam
@@ -74,42 +86,62 @@ function drawMediumBorder(
   ctx.stroke()
 }
 
-function truncate(s: string | undefined, max: number): string {
-  if (!s) return "Conversa"
+function truncate(s: string | undefined, max: number, fallback = ""): string {
+  if (!s) return fallback
   return s.length > max ? s.slice(0, max) + "…" : s
 }
 
+// Returns a translation key, not display text — callers with access to `t`
+// (the canvas hover-subtitle draw loop) translate it just before rendering.
 function nodeKind(id: string): string {
-  if (id.startsWith("conv-")) return "chat"
-  if (id.startsWith("know-")) return "conhecimento"
-  if (id.startsWith("agent-")) return "agente"
+  if (id.startsWith("conv-")) return "Chat"
+  if (id.startsWith("know-")) return "Knowledge"
+  if (id.startsWith("agent-")) return "Agent"
   return ""
 }
 
 // Andrew's monotone chain — real convex hull, not a hub-outward projection.
 // Guarantees every input point ends up inside (or on) the returned hull,
 // regardless of how the points are angularly distributed around the hub.
-function convexHull(points: { x: number; y: number }[]): { x: number; y: number }[] {
+function convexHull(
+  points: { x: number; y: number }[]
+): { x: number; y: number }[] {
   const pts = [...points].sort((a, b) => a.x - b.x || a.y - b.y)
-  const cross = (o: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) =>
-    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
+  const cross = (
+    o: { x: number; y: number },
+    a: { x: number; y: number },
+    b: { x: number; y: number }
+  ) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
 
   const lower: { x: number; y: number }[] = []
   for (const p of pts) {
-    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop()
+    while (
+      lower.length >= 2 &&
+      cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0
+    )
+      lower.pop()
     lower.push(p)
   }
   const upper: { x: number; y: number }[] = []
   for (let i = pts.length - 1; i >= 0; i--) {
     const p = pts[i]
-    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop()
+    while (
+      upper.length >= 2 &&
+      cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0
+    )
+      upper.pop()
     upper.push(p)
   }
-  upper.pop(); lower.pop()
+  upper.pop()
+  lower.pop()
   return lower.concat(upper)
 }
 
-function organicRing(cx: number, cy: number, r: number): { x: number; y: number }[] {
+function organicRing(
+  cx: number,
+  cy: number,
+  r: number
+): { x: number; y: number }[] {
   return Array.from({ length: 10 }, (_, i) => {
     const a = (i / 10) * Math.PI * 2
     const rr = r * (1 + 0.18 * Math.abs(Math.sin(i * 2.17 + 1)))
@@ -144,7 +176,8 @@ function drawCanopy(
     const cx = hull.reduce((s, p) => s + p.x, 0) / hull.length
     const cy = hull.reduce((s, p) => s + p.y, 0) / hull.length
     pts = hull.map(p => {
-      const dx = p.x - cx, dy = p.y - cy
+      const dx = p.x - cx,
+        dy = p.y - cy
       const d = Math.hypot(dx, dy)
       if (d < 1) return { x: p.x, y: p.y }
       return { x: p.x + (dx / d) * expand, y: p.y + (dy / d) * expand }
@@ -193,10 +226,15 @@ interface AgentPreview {
   artifactIds: string[]
 }
 
-export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles }) => {
+export const KnowledgeGraphCanvas: FC<Props> = ({
+  knowledge,
+  chats,
+  agentBundles
+}) => {
+  const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -219,16 +257,21 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
     // that never produced a single artifact. Without this, agent-conv
     // edges point at conv-* ids with no matching node, network.getPosition()
     // throws for those, and the agent's canopy silently loses that leaf.
-    const involvedChatIds = Array.from(new Set([
-      ...knowledge.map(k => k.originConversationId),
-      ...agentBundles.map(b => b.conversationId)
-    ]))
-    const convColor = new Map(involvedChatIds.map((id, i) => [id, PALETTE[i % PALETTE.length]]))
+    const involvedChatIds = Array.from(
+      new Set([
+        ...knowledge.map(k => k.originConversationId),
+        ...agentBundles.map(b => b.conversationId)
+      ])
+    )
+    const convColor = new Map(
+      involvedChatIds.map((id, i) => [id, PALETTE[i % PALETTE.length]])
+    )
 
     const byConv = new Map<string, KnowledgeRecord[]>()
     knowledge.forEach(k => {
       const arr = byConv.get(k.originConversationId) ?? []
-      arr.push(k); byConv.set(k.originConversationId, arr)
+      arr.push(k)
+      byConv.set(k.originConversationId, arr)
     })
 
     // Point-like sizes across all three tiers — circles read as a garden of
@@ -245,7 +288,13 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
     const hubInitPos = new Map(
       involvedChatIds.map((id, i) => {
         const a = (i / involvedChatIds.length) * 2 * Math.PI - Math.PI / 2
-        return [id, { x: Math.round(initR * Math.cos(a)), y: Math.round(initR * Math.sin(a)) }]
+        return [
+          id,
+          {
+            x: Math.round(initR * Math.cos(a)),
+            y: Math.round(initR * Math.sin(a))
+          }
+        ]
       })
     )
 
@@ -256,11 +305,12 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
       const { x, y } = hubInitPos.get(chatId)!
       return {
         id: `conv-${chatId}`,
-        label: truncate(chat?.name, 20),
+        label: truncate(chat?.name, 20, t("Conversation")),
         shape: "dot" as const,
         size: CONV_SIZE,
-        x, y,
-        mass: 10,   // heavy = stable center within cluster, moved only by global gravity
+        x,
+        y,
+        mass: 10, // heavy = stable center within cluster, moved only by global gravity
         color: {
           background: color,
           border: color,
@@ -278,7 +328,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
       const leaves = byConv.get(k.originConversationId) ?? []
       const idx = leaves.indexOf(k)
       const angle = (idx / Math.max(leaves.length, 1)) * 2 * Math.PI
-      const r = 60 + (idx % 3) * 14  // pre-place tight around hub
+      const r = 60 + (idx % 3) * 14 // pre-place tight around hub
       // The intra-* edge below is scoped to exactly this one conversation —
       // its gradient endpoint should track THAT relationship's color, not
       // the flat anchor tone (which is only about the fill, and about the
@@ -298,7 +348,10 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
         color: {
           background: MEDIUM_ANCHOR_COLOR,
           border: convBorderColor,
-          highlight: { background: MEDIUM_ANCHOR_COLOR, border: convBorderColor },
+          highlight: {
+            background: MEDIUM_ANCHOR_COLOR,
+            border: convBorderColor
+          },
           hover: { background: MEDIUM_ANCHOR_COLOR, border: convBorderColor }
         },
         font: { color: mutedFg, size: 10 },
@@ -318,13 +371,18 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
     // Own identity space, only used when the "agent" lens promotes agents to
     // alta-tier — in default/chat lens agents render flat (LOW_TIER_COLOR).
     const agentColor = new Map(
-      sortedAgents.map((agent, i) => [agent.agentId, AGENT_PALETTE[i % AGENT_PALETTE.length]])
+      sortedAgents.map((agent, i) => [
+        agent.agentId,
+        AGENT_PALETTE[i % AGENT_PALETTE.length]
+      ])
     )
     // agentBundles is keyPath=conversationId — a conversation has at most 1
     // currently-loaded agent, never N. So a conv's baixa-tier color (agent
     // lens) is never actually ambiguous — show that one agent's color
     // instead of a flat generic tone reserved for genuine ambiguity.
-    const convAgentId = new Map(agentBundles.map(b => [b.conversationId, b.aboutme.id]))
+    const convAgentId = new Map(
+      agentBundles.map(b => [b.conversationId, b.aboutme.id])
+    )
     let currentLens: Lens = "default"
     let hoveredNodeId: string | null = null
 
@@ -334,15 +392,21 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
           .map(id => hubInitPos.get(id))
           .filter((p): p is { x: number; y: number } => !!p)
         if (hubPositions.length > 0) {
-          const x = hubPositions.reduce((sum, p) => sum + p.x, 0) / hubPositions.length
-          const y = hubPositions.reduce((sum, p) => sum + p.y, 0) / hubPositions.length
+          const x =
+            hubPositions.reduce((sum, p) => sum + p.x, 0) / hubPositions.length
+          const y =
+            hubPositions.reduce((sum, p) => sum + p.y, 0) / hubPositions.length
           return [agent.agentId, { x: Math.round(x), y: Math.round(y) }]
         }
         // No conversation touched yet (artifact-only agentRuns) — park on an
         // outer ring, deterministic by sorted index.
-        const a = (i / Math.max(sortedAgents.length, 1)) * 2 * Math.PI + Math.PI / 4
+        const a =
+          (i / Math.max(sortedAgents.length, 1)) * 2 * Math.PI + Math.PI / 4
         const r = initR + 140
-        return [agent.agentId, { x: Math.round(r * Math.cos(a)), y: Math.round(r * Math.sin(a)) }]
+        return [
+          agent.agentId,
+          { x: Math.round(r * Math.cos(a)), y: Math.round(r * Math.sin(a)) }
+        ]
       })
     )
 
@@ -352,15 +416,20 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
     // border already uses for its 1-parent case.
     const agentNodes = sortedAgents.map(agent => {
       const { x, y } = agentInitPos.get(agent.agentId)!
-      const size = Math.min(AGENT_MAX_SIZE, AGENT_BASE_SIZE + agent.interactionCount * AGENT_SIZE_STEP)
-      const soloConvId = agent.conversationIds.size === 1 ? [...agent.conversationIds][0] : null
+      const size = Math.min(
+        AGENT_MAX_SIZE,
+        AGENT_BASE_SIZE + agent.interactionCount * AGENT_SIZE_STEP
+      )
+      const soloConvId =
+        agent.conversationIds.size === 1 ? [...agent.conversationIds][0] : null
       const color = (soloConvId && convColor.get(soloConvId)) || LOW_TIER_COLOR
       return {
         id: `agent-${agent.agentId}`,
         label: truncate(agent.name, 20),
         shape: "dot" as const,
         size,
-        x, y,
+        x,
+        y,
         mass: 2, // baixa-tier: light — drifts toward whatever it touches most
         color: {
           background: color,
@@ -424,10 +493,10 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
       physics: {
         solver: "forceAtlas2Based",
         forceAtlas2Based: {
-          gravitationalConstant: -55,  // repulsion keeps clusters from merging
-          centralGravity: 0.06,        // stronger pull keeps all domains near canvas center
-          springLength: 65,            // shorter spring = leaves stay close to hub
-          springConstant: 0.12,        // firmer spring so hub and leaves move together
+          gravitationalConstant: -55, // repulsion keeps clusters from merging
+          centralGravity: 0.06, // stronger pull keeps all domains near canvas center
+          springLength: 65, // shorter spring = leaves stay close to hub
+          springConstant: 0.12, // firmer spring so hub and leaves move together
           damping: 0.6,
           avoidOverlap: 1.0
         },
@@ -447,10 +516,15 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
 
     networkRef.current?.destroy()
 
-    const nodesDataSet = new DataSet<Node>(
-      [...convNodes, ...knowledgeNodes, ...agentNodes] as Node[]
-    )
-    const edgesDataSet = new DataSet<Edge>([...intraEdges, ...agentEdges] as Edge[])
+    const nodesDataSet = new DataSet<Node>([
+      ...convNodes,
+      ...knowledgeNodes,
+      ...agentNodes
+    ] as Node[])
+    const edgesDataSet = new DataSet<Edge>([
+      ...intraEdges,
+      ...agentEdges
+    ] as Edge[])
 
     const network = new Network(
       containerRef.current,
@@ -471,12 +545,20 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
         // knowledge in the other lenses.
         sortedAgents.forEach(agent => {
           let hubP: { x: number; y: number } | null = null
-          try { hubP = network.getPosition(`agent-${agent.agentId}`) } catch { return }
+          try {
+            hubP = network.getPosition(`agent-${agent.agentId}`)
+          } catch {
+            return
+          }
           if (!hubP) return
 
           const leafPts: { x: number; y: number }[] = []
           agent.conversationIds.forEach(id => {
-            try { leafPts.push(network.getPosition(`conv-${id}`)) } catch { /* not yet placed */ }
+            try {
+              leafPts.push(network.getPosition(`conv-${id}`))
+            } catch {
+              /* not yet placed */
+            }
           })
           drawCanopy(ctx, hubP, leafPts, agentColor.get(agent.agentId)!)
         })
@@ -485,12 +567,20 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
 
       involvedChatIds.forEach(convId => {
         let hubP: { x: number; y: number } | null = null
-        try { hubP = network.getPosition(`conv-${convId}`) } catch { return }
+        try {
+          hubP = network.getPosition(`conv-${convId}`)
+        } catch {
+          return
+        }
         if (!hubP) return
 
         const leafPts: { x: number; y: number }[] = []
         ;(byConv.get(convId) ?? []).forEach(k => {
-          try { leafPts.push(network.getPosition(`know-${k.id}`)) } catch { /* not yet placed */ }
+          try {
+            leafPts.push(network.getPosition(`know-${k.id}`))
+          } catch {
+            /* not yet placed */
+          }
         })
         drawCanopy(ctx, hubP, leafPts, convColor.get(convId)!)
       })
@@ -503,21 +593,35 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
     network.on("afterDrawing", (ctx: CanvasRenderingContext2D) => {
       knowledge.forEach(k => {
         let center: { x: number; y: number } | null = null
-        try { center = network.getPosition(`know-${k.id}`) } catch { return }
+        try {
+          center = network.getPosition(`know-${k.id}`)
+        } catch {
+          return
+        }
         if (!center) return
 
         const ids = artifactParentIds.get(k.id) ?? []
         const parents = ids.flatMap(id => {
           let pos: { x: number; y: number } | null = null
-          try { pos = network.getPosition(id) } catch { return [] }
+          try {
+            pos = network.getPosition(id)
+          } catch {
+            return []
+          }
           if (!pos) return []
           // Alta-tier parents carry their individual color; whichever type
           // the active lens demotes to baixa-tier goes flat, no exceptions.
           let color: string
           if (id.startsWith("conv-")) {
-            color = currentLens === "agent" ? LOW_TIER_COLOR : convColor.get(id.replace("conv-", ""))!
+            color =
+              currentLens === "agent"
+                ? LOW_TIER_COLOR
+                : convColor.get(id.replace("conv-", ""))!
           } else {
-            color = currentLens === "agent" ? (agentColor.get(id.replace("agent-", "")) ?? LOW_TIER_COLOR) : LOW_TIER_COLOR
+            color =
+              currentLens === "agent"
+                ? (agentColor.get(id.replace("agent-", "")) ?? LOW_TIER_COLOR)
+                : LOW_TIER_COLOR
           }
           return [{ x: pos.x, y: pos.y, color }]
         })
@@ -528,8 +632,12 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
       // smaller than the node's own label, drawn just below it.
       if (hoveredNodeId) {
         let pos: { x: number; y: number } | null = null
-        try { pos = network.getPosition(hoveredNodeId) } catch { pos = null }
-        const kind = pos ? nodeKind(hoveredNodeId) : ""
+        try {
+          pos = network.getPosition(hoveredNodeId)
+        } catch {
+          pos = null
+        }
+        const kind = pos ? t(nodeKind(hoveredNodeId)) : ""
         if (pos && kind) {
           ctx.save()
           ctx.font = "9px sans-serif"
@@ -542,10 +650,15 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
       }
     })
 
-    network.on("hoverNode", params => { hoveredNodeId = params.node })
-    network.on("blurNode", () => { hoveredNodeId = null })
+    network.on("hoverNode", params => {
+      hoveredNodeId = params.node
+    })
+    network.on("blurNode", () => {
+      hoveredNodeId = null
+    })
 
-    const stopPhysics = () => network.setOptions({ physics: { enabled: false } })
+    const stopPhysics = () =>
+      network.setOptions({ physics: { enabled: false } })
     network.once("stabilizationIterationsDone", stopPhysics)
     network.once("stabilized", stopPhysics)
 
@@ -584,7 +697,10 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
         // unambiguous as a conv with exactly 1 agent — show that
         // conversation's color instead of flat. 2+ conversations is genuine
         // ambiguity (which one would it even show?), stays flat.
-        const soloConvId = agent.conversationIds.size === 1 ? [...agent.conversationIds][0] : null
+        const soloConvId =
+          agent.conversationIds.size === 1
+            ? [...agent.conversationIds][0]
+            : null
         const color = isAlta
           ? agentColor.get(agent.agentId)!
           : (soloConvId && convColor.get(soloConvId)) || LOW_TIER_COLOR
@@ -607,7 +723,10 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
         // node-creation time. DataSet.update() replaces the whole `color`
         // object per node (no deep merge), so background has to be
         // restated here too or it'd be wiped by this update.
-        const borderColor = lens === "agent" ? LOW_TIER_COLOR : convColor.get(k.originConversationId)!
+        const borderColor =
+          lens === "agent"
+            ? LOW_TIER_COLOR
+            : convColor.get(k.originConversationId)!
         nodeUpdates.push({
           id: `know-${k.id}`,
           mass: mass.know,
@@ -629,7 +748,10 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
         edgeUpdates.push({
           id: `intra-${k.id}`,
           hidden: false,
-          color: { inherit: "both", opacity: lens === "agent" ? LIGHT_OPACITY : SOLID_OPACITY }
+          color: {
+            inherit: "both",
+            opacity: lens === "agent" ? LIGHT_OPACITY : SOLID_OPACITY
+          }
         })
       })
       sortedAgents.forEach(agent => {
@@ -660,12 +782,17 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
       if (params.nodes.length === 0) return
       const nodeId = params.nodes[0] as string
       if (nodeId.startsWith("conv-")) {
-        router.push(`/${locale}/${workspaceid}/chat/${nodeId.replace("conv-", "")}`)
+        router.push(
+          localeHref(
+            locale,
+            `/${workspaceid}/chat/${nodeId.replace("conv-", "")}`
+          )
+        )
       } else if (nodeId.startsWith("know-")) {
         const record = knowledge.find(k => k.id === nodeId.replace("know-", ""))
         if (record) {
           const chat = chatMap.get(record.originConversationId)
-          setPreview({ record, chatName: chat?.name || "Conversa" })
+          setPreview({ record, chatName: chat?.name || t("Conversation") })
         }
       } else if (nodeId.startsWith("agent-")) {
         const agentId = nodeId.replace("agent-", "")
@@ -685,10 +812,14 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
       network.destroy()
       networkRef.current = null
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [knowledge, chats, agentBundles])
 
-  const LENS_LABEL: Record<Lens, string> = { default: "Padrão", chat: "Chat", agent: "Agente" }
+  const LENS_LABEL: Record<Lens, string> = {
+    default: t("Default"),
+    chat: t("Chat"),
+    agent: t("Agent")
+  }
 
   return (
     <div className="relative size-full">
@@ -727,7 +858,8 @@ export const KnowledgeGraphCanvas: FC<Props> = ({ knowledge, chats, agentBundles
           >
             <h3 className="font-semibold">{agentPreview.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              {agentPreview.conversationIds.length} conversa(s), {agentPreview.artifactIds.length} artefato(s)
+              {agentPreview.conversationIds.length} conversa(s),{" "}
+              {agentPreview.artifactIds.length} artefato(s)
             </p>
           </div>
         </div>

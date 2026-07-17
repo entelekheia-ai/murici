@@ -21,7 +21,9 @@ export const saveDocSchema = z.object({
   title: z.string().describe("A short, descriptive title for the document."),
   theme: z.string().describe("The general theme or topic."),
   summary: z.string().describe("A one-sentence summary of the content."),
-  content: z.string().describe("The full content of the document, formatted in markdown.")
+  content: z
+    .string()
+    .describe("The full content of the document, formatted in markdown.")
 })
 
 export type SaveDocArgs = z.infer<typeof saveDocSchema>
@@ -51,7 +53,13 @@ export async function runSaveDoc(
       },
       derivedFrom: [],
       agentRuns: bundle?.aboutme.id
-        ? [{ agentId: bundle.aboutme.id, runAt: new Date().toISOString(), role: "produced" as const }]
+        ? [
+            {
+              agentId: bundle.aboutme.id,
+              runAt: new Date().toISOString(),
+              role: "produced" as const
+            }
+          ]
         : [],
       createdAt: new Date().toISOString()
     }

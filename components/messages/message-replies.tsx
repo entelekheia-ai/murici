@@ -4,7 +4,6 @@ import { MessageSquare } from "lucide-react"
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
-
 import { FC, useState } from "react"
 import {
   Sheet,

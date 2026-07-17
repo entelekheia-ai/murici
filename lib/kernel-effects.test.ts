@@ -59,7 +59,12 @@ describe("handleRuntimeActions", () => {
     window.addEventListener("chat:models-selector-open", listener)
 
     const effects: Effect[] = [
-      { type: "run_script", target: "chat:models-selector-open", parameters: null, silent: false }
+      {
+        type: "run_script",
+        target: "chat:models-selector-open",
+        parameters: null,
+        silent: false
+      }
     ]
     handleRuntimeActions(effects)
 

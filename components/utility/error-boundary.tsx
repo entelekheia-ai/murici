@@ -17,6 +17,7 @@
 "use client"
 
 import { logger } from "@/lib/logger"
+import { t } from "@/lib/i18n-instance"
 import { Component, ErrorInfo, ReactNode } from "react"
 
 interface Props {
@@ -48,9 +49,11 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="flex size-full flex-col items-center justify-center gap-2 p-8 text-center">
-          <div className="text-lg font-semibold">Algo deu errado</div>
+          <div className="text-lg font-semibold">
+            {t("Something went wrong")}
+          </div>
           <div className="text-sm text-muted-foreground">
-            O erro foi registrado. Recarregue a página para continuar.
+            {t("The error has been logged. Reload the page to continue.")}
           </div>
         </div>
       )

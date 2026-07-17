@@ -5,7 +5,10 @@
  */
 
 import { useEffect } from "react"
-import { useChannelStore, selectViewedActiveCss } from "@/lib/store/channel-store"
+import {
+  useChannelStore,
+  selectViewedActiveCss
+} from "@/lib/store/channel-store"
 import { reconcileCssLinks } from "@/lib/kernel-effects"
 
 // The DOM sink for project/plans/017's presentation-effects pipeline. This is

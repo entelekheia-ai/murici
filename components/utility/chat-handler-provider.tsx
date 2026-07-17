@@ -12,8 +12,9 @@ import { ChatbotUIContext } from "@/context/context"
 import { getController } from "@/lib/channels/registry"
 import { useChannelStore } from "@/lib/store/channel-store"
 import { logger } from "@/lib/logger"
+import { localeHref } from "@/lib/locale-href"
 import { ChatMessage } from "@/types"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 
 interface ChatHandlerProviderProps {
@@ -36,6 +37,8 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
   children
 }) => {
   const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) || "en"
   const context = useContext(ChatbotUIContext)
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
   const setViewedThreadId = useChannelStore(s => s.setViewedThreadId)
@@ -86,7 +89,7 @@ export const ChatHandlerProvider: FC<ChatHandlerProviderProps> = ({
     context.setIsGenerating(false)
     context.setFirstTokenReceived(false)
     context.setKnowledge([])
-    router.push(`/${context.selectedWorkspace.id}/chat`)
+    router.push(localeHref(locale, `/${context.selectedWorkspace.id}/chat`))
   }
 
   const handleFocusChatInput = () => {

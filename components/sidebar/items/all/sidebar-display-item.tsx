@@ -8,9 +8,10 @@
 import { ChatbotUIContext } from "@/context/context"
 import { createChat } from "@/db/chats"
 import { cn } from "@/lib/utils"
+import { localeHref } from "@/lib/locale-href"
 import { Tables } from "@/types/database"
 import { ContentType, DataItemType } from "@/types"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { FC, useContext, useRef, useState } from "react"
 import { SidebarUpdateItem } from "./sidebar-update-item"
 
@@ -35,6 +36,8 @@ export const SidebarItem: FC<SidebarItemProps> = ({
     useContext(ChatbotUIContext)
 
   const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) || "en"
 
   const itemRef = useRef<HTMLDivElement>(null)
 
@@ -67,7 +70,9 @@ export const SidebarItem: FC<SidebarItemProps> = ({
       setChats(prevState => [createdChat, ...prevState])
       setSelectedAssistant(assistant)
 
-      return router.push(`/${selectedWorkspace.id}/chat/${createdChat.id}`)
+      return router.push(
+        localeHref(locale, `/${selectedWorkspace.id}/chat/${createdChat.id}`)
+      )
     },
     tools: async (item: any) => {},
     models: async (item: any) => {}

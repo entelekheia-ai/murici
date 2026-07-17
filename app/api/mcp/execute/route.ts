@@ -24,10 +24,17 @@ export async function POST(req: Request) {
     const { serverName, toolName, args } = await req.json()
 
     if (!serverName || !toolName) {
-      return NextResponse.json({ error: "serverName and toolName are required" }, { status: 400 })
+      return NextResponse.json(
+        { error: "serverName and toolName are required" },
+        { status: 400 }
+      )
     }
 
-    const result = await mcpClientManager.executeTool(serverName, toolName, args)
+    const result = await mcpClientManager.executeTool(
+      serverName,
+      toolName,
+      args
+    )
     return NextResponse.json(result)
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

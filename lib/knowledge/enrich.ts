@@ -32,7 +32,7 @@ export async function enrichKnowledgeRecord(
   modelData: LLM
 ): Promise<{ title: string; summary: string } | null> {
   if (!isLocalModel(modelData)) return null
-  
+
   try {
     const result = await runHeadlessAgent(
       record.payload.content,

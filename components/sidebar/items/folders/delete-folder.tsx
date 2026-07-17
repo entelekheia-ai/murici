@@ -34,13 +34,8 @@ export const DeleteFolder: FC<DeleteFolderProps> = ({
   folder,
   contentType
 }) => {
-  const {
-    setChats,
-    setFolders,
-    setFiles,
-    setAssistants,
-    setModels
-  } = useContext(ChatbotUIContext)
+  const { setChats, setFolders, setFiles, setAssistants, setModels } =
+    useContext(ChatbotUIContext)
 
   const buttonRef = useRef<HTMLButtonElement>(null)
 

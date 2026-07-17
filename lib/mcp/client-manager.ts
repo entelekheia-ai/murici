@@ -27,7 +27,10 @@ class MCPClientManager {
   /**
    * Connects to a specific server if not already connected.
    */
-  async connectServer(name: string, serverConfig: MCPServerConfig): Promise<Client> {
+  async connectServer(
+    name: string,
+    serverConfig: MCPServerConfig
+  ): Promise<Client> {
     if (this.clients.has(name)) {
       return this.clients.get(name)!
     }
@@ -76,8 +79,9 @@ class MCPClientManager {
    */
   async initializeAll(): Promise<void> {
     const config = getMCPConfig()
-    const promises = Object.entries(config.mcpServers || {}).map(([name, serverConfig]) => 
-      this.connectServer(name, serverConfig).catch(() => null)
+    const promises = Object.entries(config.mcpServers || {}).map(
+      ([name, serverConfig]) =>
+        this.connectServer(name, serverConfig).catch(() => null)
     )
     await Promise.all(promises)
   }
@@ -87,10 +91,12 @@ class MCPClientManager {
    */
   async getAllTools(): Promise<{ serverName: string; tools: any[] }[]> {
     const results = []
-    
+
     // Ensure all configured servers are connected
     const config = getMCPConfig()
-    for (const [name, serverConfig] of Object.entries(config.mcpServers || {})) {
+    for (const [name, serverConfig] of Object.entries(
+      config.mcpServers || {}
+    )) {
       if (!this.clients.has(name)) {
         try {
           await this.connectServer(name, serverConfig)
@@ -117,7 +123,11 @@ class MCPClientManager {
   /**
    * Executes a tool on a specific server.
    */
-  async executeTool(serverName: string, toolName: string, args: any): Promise<any> {
+  async executeTool(
+    serverName: string,
+    toolName: string,
+    args: any
+  ): Promise<any> {
     const client = this.clients.get(serverName)
     if (!client) {
       throw new Error(`Server not connected: ${serverName}`)
@@ -137,9 +147,9 @@ class MCPClientManager {
   async disconnect(serverName: string): Promise<void> {
     const client = this.clients.get(serverName)
     const transport = this.transports.get(serverName)
-    
+
     if (client && transport) {
-      // client.close() doesn't exist on all transport implementations perfectly yet, 
+      // client.close() doesn't exist on all transport implementations perfectly yet,
       // but transport.close() usually does.
       try {
         await transport.close()
@@ -158,7 +168,8 @@ const globalForMCP = globalThis as unknown as {
   mcpClientManager: MCPClientManager | undefined
 }
 
-export const mcpClientManager = globalForMCP.mcpClientManager ?? new MCPClientManager()
+export const mcpClientManager =
+  globalForMCP.mcpClientManager ?? new MCPClientManager()
 
 if (process.env.NODE_ENV !== "production") {
   globalForMCP.mcpClientManager = mcpClientManager

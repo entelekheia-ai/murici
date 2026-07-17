@@ -48,7 +48,9 @@ describe("KernelPresentationHost", () => {
     act(() => {
       useChannelStore
         .getState()
-        .ingestCssEffects("thread-a", [{ type: "apply_css", value: "theme.css" }])
+        .ingestCssEffects("thread-a", [
+          { type: "apply_css", value: "theme.css" }
+        ])
       useChannelStore.setState({ viewedThreadId: "thread-a" })
     })
 

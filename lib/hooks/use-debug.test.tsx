@@ -35,7 +35,11 @@ describe("useDebugSync", () => {
     const setFlowDebugLog = jest.fn(fn => {
       log = fn(log)
     })
-    const flowState = { currentState: "greeting", goal: "say hi", validIntents: ["end"] }
+    const flowState = {
+      currentState: "greeting",
+      goal: "say hi",
+      validIntents: ["end"]
+    }
 
     const { rerender } = renderHook(
       ({ isLoading }) => useDebugSync([], isLoading),
@@ -57,7 +61,9 @@ describe("useDebugSync", () => {
   })
 
   it("records a trigger_intent tool call and the raw response text into the latest turn", () => {
-    let log: any = { 1: { sequenceNumber: 1, intentFound: null, rawResponse: "" } }
+    let log: any = {
+      1: { sequenceNumber: 1, intentFound: null, rawResponse: "" }
+    }
     const setFlowDebugLog = jest.fn(fn => {
       log = fn(log)
     })
@@ -82,7 +88,14 @@ describe("useDebugSync", () => {
     expect(log["1"].intentFound).toBe("end_conversation")
     expect(log["1"].rawResponse).toBe("done")
     expect(log["1"].toolExchange).toEqual([
-      { role: "tool", content: { toolName: "trigger_intent", args: { intent_name: "end_conversation" }, result: "pending..." } }
+      {
+        role: "tool",
+        content: {
+          toolName: "trigger_intent",
+          args: { intent_name: "end_conversation" },
+          result: "pending..."
+        }
+      }
     ])
   })
 

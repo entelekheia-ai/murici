@@ -46,7 +46,9 @@ function isHiddenAgent(name: string): boolean {
 
 function hiddenAgentIds(bundles: AgentBundleRecord[]): Set<string> {
   return new Set(
-    bundles.filter(b => isHiddenAgent(b.aboutme.name)).map(b => bareAgentId(b.aboutme.id))
+    bundles
+      .filter(b => isHiddenAgent(b.aboutme.name))
+      .map(b => bareAgentId(b.aboutme.id))
   )
 }
 

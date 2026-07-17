@@ -199,7 +199,8 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
     if (!flowState?.currentState || !engineRef.current) return
     const newState = flowState.currentState
     if (newState === currentState) return
-    if (!visitedRef.current.includes(newState)) visitedRef.current.push(newState)
+    if (!visitedRef.current.includes(newState))
+      visitedRef.current.push(newState)
     setCurrentState(newState)
     setVisitedOrder([...visitedRef.current])
     const freshGraph = engineRef.current.get_graph()
@@ -210,7 +211,9 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
       currentState: newState,
       visitedOrder: [...visitedRef.current],
       graphData:
-        freshGraph || chatAgentSessionsRef.current.get(chatKey)?.graphData || null,
+        freshGraph ||
+        chatAgentSessionsRef.current.get(chatKey)?.graphData ||
+        null,
       flowState
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -301,7 +304,12 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
       const fresh = getOrCreateSession(chatKey)
       if (chatKey === activeChatKeyRef.current) applySessionToView(fresh)
     },
-    [destroyChatAgentSession, getOrCreateSession, applySessionToView, activeChatKeyRef]
+    [
+      destroyChatAgentSession,
+      getOrCreateSession,
+      applySessionToView,
+      activeChatKeyRef
+    ]
   )
 
   // No "new chat" signal is needed any more. Starting a new chat mints a NEW
@@ -371,9 +379,7 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
         upsertRecentAgent({
           filePath: electronPath ?? null,
           aboutme: payload.aboutme
-        }).catch(err =>
-          console.error("[recent-agents] upsert failed", err)
-        )
+        }).catch(err => console.error("[recent-agents] upsert failed", err))
       } catch (err: any) {
         setParseError(err.message || "Failed to load agent")
       } finally {

@@ -208,10 +208,7 @@ export const SidebarDataList: FC<SidebarDataListProps> = ({
                     const sortedData = getSortedData(
                       dataWithoutFolders,
                       dateCategory as
-                        | "Today"
-                        | "Yesterday"
-                        | "Previous Week"
-                        | "Older"
+                        "Today" | "Yesterday" | "Previous Week" | "Older"
                     )
 
                     return (
@@ -235,7 +232,7 @@ export const SidebarDataList: FC<SidebarDataListProps> = ({
                               <div
                                 key={item.id}
                                 draggable
-                                	onDragStart={e => handleDragStart(e, item.id)}
+                                onDragStart={e => handleDragStart(e, item.id)}
                               >
                                 {getDataListComponent(contentType, item)}
                               </div>

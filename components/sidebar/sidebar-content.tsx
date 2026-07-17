@@ -45,10 +45,7 @@ export const SidebarContent: FC<SidebarContentProps> = ({
     // Subtract 50px for the height of the workspace settings
     <div className="flex max-h-[calc(100%-50px)] grow flex-col">
       <div className="mb-6 flex items-center">
-        <NewChat
-          label={newChatLabel}
-          onClick={onNewChatClick}
-        />
+        <NewChat label={newChatLabel} onClick={onNewChatClick} />
       </div>
 
       <div className="mb-6">

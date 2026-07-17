@@ -21,8 +21,15 @@ import { ReactNode } from "react"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
-const instrumentSans = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument-sans" })
-const ysabeauSc = Ysabeau_SC({ subsets: ["latin"], weight: ["600"], variable: "--font-ysabeau-sc" })
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-instrument-sans"
+})
+const ysabeauSc = Ysabeau_SC({
+  subsets: ["latin"],
+  weight: ["600"],
+  variable: "--font-ysabeau-sc"
+})
 const signika = Signika({ subsets: ["latin"], variable: "--font-signika" })
 const APP_NAME = "Murici"
 const APP_DEFAULT_TITLE = "Murici"
@@ -85,7 +92,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${inter.variable} ${instrumentSans.variable} ${ysabeauSc.variable} ${signika.variable} bg-background-app`}>
+      <body
+        className={`${inter.className} ${inter.variable} ${instrumentSans.variable} ${ysabeauSc.variable} ${signika.variable} bg-background-app`}
+      >
         <Providers attribute="class" defaultTheme="light" enableSystem>
           <TranslationsProvider
             namespaces={i18nNamespaces}

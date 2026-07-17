@@ -1,4 +1,10 @@
-import { AlertCircle, Pencil, Circle, ChevronRight, ChevronDown } from "lucide-react"
+import {
+  AlertCircle,
+  Pencil,
+  Circle,
+  ChevronRight,
+  ChevronDown
+} from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -15,6 +21,7 @@ import { LLM, LLMID, MessageImage, ModelProvider } from "@/types"
 
 import Image from "next/image"
 import { FC, useContext, useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { ModelIcon } from "../models/model-icon"
 import { Button } from "../ui/button"
 import { FileIcon } from "../ui/file-icon"
@@ -55,6 +62,7 @@ export const Message: FC<MessageProps> = ({
   onCancelEdit,
   onSubmitEdit
 }) => {
+  const { t } = useTranslation()
   const {
     assistants,
     profile,
@@ -195,7 +203,13 @@ export const Message: FC<MessageProps> = ({
     return acc
   }, fileAccumulator)
 
-  if (message.role === "tool" || (message.role === "assistant" && !message.content && message.tool_calls && message.tool_calls.length > 0)) {
+  if (
+    message.role === "tool" ||
+    (message.role === "assistant" &&
+      !message.content &&
+      message.tool_calls &&
+      message.tool_calls.length > 0)
+  ) {
     return null
   }
 
@@ -203,9 +217,7 @@ export const Message: FC<MessageProps> = ({
     <div
       data-message-role={message.role}
       data-message-id={message.id}
-      className={cn(
-        "flex w-full justify-center px-[40px]",
-      )}
+      className={cn("flex w-full justify-center px-[40px]")}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onKeyDown={handleKeyDown}
@@ -277,21 +289,18 @@ export const Message: FC<MessageProps> = ({
                       : selectedAssistant
                         ? selectedAssistant?.name
                         : MODEL_DATA?.modelName
-                    : "Você"}
+                    : t("You")}
                 </div>
                 <div className="text-[13px] font-normal text-[#a59686] dark:text-[#a3a3a3]">
                   {formatMessageTime(message.created_at)}
                 </div>
               </div>
             )}
-            
-            {message.role === "assistant" &&
-              thinkingLog?.[message.id] && (
-                <MessageThinkingBlock
-                  thinking={thinkingLog[message.id]}
-                />
-              )}
-              
+
+            {message.role === "assistant" && thinkingLog?.[message.id] && (
+              <MessageThinkingBlock thinking={thinkingLog[message.id]} />
+            )}
+
             {!firstTokenReceived &&
             isGenerating &&
             isLast &&

@@ -1,5 +1,34 @@
+/*
+ * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 "use client"
-import { CheckCircle, Check, MoreHorizontal, X, FolderOpen, Globe, FileText, Layout, XCircle, Clock, Database, Activity } from "lucide-react"
+import {
+  CheckCircle,
+  Check,
+  MoreHorizontal,
+  X,
+  FolderOpen,
+  Globe,
+  FileText,
+  Layout,
+  XCircle,
+  Clock,
+  Database,
+  Activity
+} from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  * Licensed under the Apache License, Version 2.0
@@ -31,12 +60,10 @@ import { KnowledgeChip } from "../knowledge/knowledge-chip"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { StateGraph, parseScxml } from "../agents/state-graph"
 import { cn } from "@/lib/utils"
+import { localeHref } from "@/lib/locale-href"
 import { useRouter, useParams } from "next/navigation"
 import { getMcpAndBuiltInTools } from "@/lib/tools/list-available-tools"
-import {
-  createChatRowOnce,
-  prependChatOnce
-} from "@/lib/channels/chat-rows"
+import { createChatRowOnce, prependChatOnce } from "@/lib/channels/chat-rows"
 import { useChannelStore } from "@/lib/store/channel-store"
 import { useChatHandler } from "@/lib/hooks/use-chat-handler"
 import { useAgentSession } from "@/lib/hooks/use-agent-session"
@@ -51,7 +78,11 @@ import { useTranslation } from "react-i18next"
 
 const APP_VERSION = "0.0.5"
 
-function computePending(scxml: string | null, currentState: string, exclude: Set<string>): string[] {
+function computePending(
+  scxml: string | null,
+  currentState: string,
+  exclude: Set<string>
+): string[] {
   if (!scxml || !currentState) return []
   const parsed = parseScxml(scxml)
   if (!parsed) return []
@@ -71,15 +102,29 @@ export const RightSidebar: FC = () => {
 
   const router = useRouter()
   const params = useParams()
-  const locale = (params?.locale as string) || "local"
+  const locale = (params?.locale as string) || "en"
   const workspaceid = (params?.workspaceid as string) || "local"
   const {
     flowState,
-    knowledge, setKnowledge, chatSettings, availableLocalModels, backgroundModel, selectedChat,
-    setShowRightSidebar, chatAgentSessionsRef, activeChatKeyRef,
-    profile, selectedWorkspace, selectedAssistant, setSelectedChat, setChats, setChatFiles,
-    osPendingAgentPayload, setOsPendingAgentPayload,
-    pendingNewAgentPayload, setPendingNewAgentPayload
+    knowledge,
+    setKnowledge,
+    chatSettings,
+    availableLocalModels,
+    backgroundModel,
+    selectedChat,
+    setShowRightSidebar,
+    chatAgentSessionsRef,
+    activeChatKeyRef,
+    profile,
+    selectedWorkspace,
+    selectedAssistant,
+    setSelectedChat,
+    setChats,
+    setChatFiles,
+    osPendingAgentPayload,
+    setOsPendingAgentPayload,
+    pendingNewAgentPayload,
+    setPendingNewAgentPayload
   } = useContext(ChatbotUIContext)
   // The thread on screen (ADR-0007). A brand-new, unsent chat is a thread with a
   // real id like any other — there is no "__new__" bucket any more.
@@ -87,9 +132,21 @@ export const RightSidebar: FC = () => {
   const { handleNewChat } = useChatHandler()
   const agentSession = useAgentSession()
   const {
-    engine, currentState, graphData, visitedOrder, parseError, behaviorText,
-    descriptionText, agentMeta, agentLoading, behaviors,
-    setParseError, loadAgentBundle, handleAgentFile, resetSession, hasActiveAgent,
+    engine,
+    currentState,
+    graphData,
+    visitedOrder,
+    parseError,
+    behaviorText,
+    descriptionText,
+    agentMeta,
+    agentLoading,
+    behaviors,
+    setParseError,
+    loadAgentBundle,
+    handleAgentFile,
+    resetSession,
+    hasActiveAgent,
     queueNewChatPayload
   } = agentSession
 
@@ -97,10 +154,10 @@ export const RightSidebar: FC = () => {
   const [toolsLoading, setToolsLoading] = useState(true)
 
   useEffect(() => {
-    let isMounted = true;
+    let isMounted = true
     getMcpAndBuiltInTools(flowState || undefined)
       .then(tools => {
-        if (!isMounted) return;
+        if (!isMounted) return
         const groups: Record<string, any[]> = {}
         for (const tool of tools) {
           const funcName = tool.function?.name || "unknown"
@@ -122,7 +179,10 @@ export const RightSidebar: FC = () => {
           }
 
           if (!groups[namespace]) groups[namespace] = []
-          groups[namespace].push({ name: displayName, description: tool.function?.description || "" })
+          groups[namespace].push({
+            name: displayName,
+            description: tool.function?.description || ""
+          })
         }
         setGroupedTools(groups)
         setToolsLoading(false)
@@ -132,11 +192,14 @@ export const RightSidebar: FC = () => {
         if (isMounted) setToolsLoading(false)
       })
 
-    return () => { isMounted = false }
+    return () => {
+      isMounted = false
+    }
   }, [flowState])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [pendingAgentPayload, setPendingAgentPayload] = useState<UnpackPayload | null>(null)
+  const [pendingAgentPayload, setPendingAgentPayload] =
+    useState<UnpackPayload | null>(null)
 
   // "Novo chat" always needs a chat with no agent to land the payload on. If we're
   // already sitting on an unsent thread, handleNewChat() would be a no-op for
@@ -180,7 +243,9 @@ export const RightSidebar: FC = () => {
         // The unpack lives here now, so the failure surfaces here too.
         console.error("[agent] failed to open .agent from the OS", err)
         toast.error(
-          `Falha ao abrir arquivo .agent: ${err?.message ?? String(err)}`
+          t("Failed to open .agent file: {{message}}", {
+            message: err?.message ?? String(err)
+          })
         )
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,51 +274,52 @@ export const RightSidebar: FC = () => {
   const onboardingCheckRef = useRef(false)
   useEffect(() => {
     if (onboardingCheckRef.current) return
-    if (!profile || !selectedWorkspace || !chatSettings || !viewedThreadId) return
+    if (!profile || !selectedWorkspace || !chatSettings || !viewedThreadId)
+      return
     onboardingCheckRef.current = true
 
     const threadId = viewedThreadId
 
-      ; (async () => {
-        const seenVersion = await getSetting("onboarding_seen_version")
-        if (seenVersion === APP_VERSION) return
+    ;(async () => {
+      const seenVersion = await getSetting("onboarding_seen_version")
+      if (seenVersion === APP_VERSION) return
 
-        try {
-          await setSetting("onboarding_seen_version", APP_VERSION)
+      try {
+        await setSetting("onboarding_seen_version", APP_VERSION)
 
-          const payload = await getOnboardingAgentPayload()
+        const payload = await getOnboardingAgentPayload()
 
-          await loadAgentBundle(payload, threadId, [
-            { domain: "context", key: "onboarding", value: "true" }
-          ])
-          setShowRightSidebar(true)
+        await loadAgentBundle(payload, threadId, [
+          { domain: "context", key: "onboarding", value: "true" }
+        ])
+        setShowRightSidebar(true)
 
-          // Shared with ChannelController.send(): both want a row for THIS thread, and a
-          // user who types before the .agent above finishes loading gets there first.
-          // createChatRowOnce makes whoever is second reuse the first one's row instead
-          // of creating a duplicate under the same id.
-          const createdChat = await createChatRowOnce(threadId, () => ({
-            user_id: profile.user_id,
-            workspace_id: selectedWorkspace.id,
-            assistant_id: selectedAssistant?.id || null,
-            context_length: chatSettings.contextLength,
-            include_profile_context: chatSettings.includeProfileContext,
-            include_workspace_instructions: chatSettings.includeWorkspaceInstructions,
-            model: chatSettings.model,
-            name: "Bem-vindo ao Murici",
-            prompt: chatSettings.prompt,
-            temperature: chatSettings.temperature,
-            embeddings_provider: chatSettings.embeddingsProvider
-          }))
-          setSelectedChat(createdChat)
-          setChats(chats => prependChatOnce(chats, createdChat))
-        } catch (err) {
-          console.error("[onboarding] auto-load failed", err)
-        }
-      })()
+        // Shared with ChannelController.send(): both want a row for THIS thread, and a
+        // user who types before the .agent above finishes loading gets there first.
+        // createChatRowOnce makes whoever is second reuse the first one's row instead
+        // of creating a duplicate under the same id.
+        const createdChat = await createChatRowOnce(threadId, () => ({
+          user_id: profile.user_id,
+          workspace_id: selectedWorkspace.id,
+          assistant_id: selectedAssistant?.id || null,
+          context_length: chatSettings.contextLength,
+          include_profile_context: chatSettings.includeProfileContext,
+          include_workspace_instructions:
+            chatSettings.includeWorkspaceInstructions,
+          model: chatSettings.model,
+          name: "Bem-vindo ao Murici",
+          prompt: chatSettings.prompt,
+          temperature: chatSettings.temperature,
+          embeddings_provider: chatSettings.embeddingsProvider
+        }))
+        setSelectedChat(createdChat)
+        setChats(chats => prependChatOnce(chats, createdChat))
+      } catch (err) {
+        console.error("[onboarding] auto-load failed", err)
+      }
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, selectedWorkspace, chatSettings, viewedThreadId])
-
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -266,13 +332,14 @@ export const RightSidebar: FC = () => {
     fileInputRef.current?.click()
   }
 
-
   const modelData = chatSettings?.model
     ? availableLocalModels.find(m => m.modelId === chatSettings.model)
     : undefined
 
   const handleUpdate = (id: string, updates: Partial<KnowledgeRecord>) => {
-    setKnowledge(prev => prev.map(k => (k.id === id ? { ...k, ...updates } : k)))
+    setKnowledge(prev =>
+      prev.map(k => (k.id === id ? { ...k, ...updates } : k))
+    )
   }
 
   const sortedKnowledge = [...knowledge].sort(
@@ -280,11 +347,22 @@ export const RightSidebar: FC = () => {
   )
 
   const doneStates = visitedOrder.filter(s => s !== currentState)
-  const excludeForPending = new Set<string>([...doneStates, currentState].filter(Boolean))
-  const pendingStates = computePending(graphData, currentState, excludeForPending)
-  const historyRows: Array<{ state: string; status: "done" | "current" | "pending" }> = [
+  const excludeForPending = new Set<string>(
+    [...doneStates, currentState].filter(Boolean)
+  )
+  const pendingStates = computePending(
+    graphData,
+    currentState,
+    excludeForPending
+  )
+  const historyRows: Array<{
+    state: string
+    status: "done" | "current" | "pending"
+  }> = [
     ...doneStates.map(state => ({ state, status: "done" as const })),
-    ...(currentState ? [{ state: currentState, status: "current" as const }] : []),
+    ...(currentState
+      ? [{ state: currentState, status: "current" as const }]
+      : []),
     ...pendingStates.map(state => ({ state, status: "pending" as const }))
   ]
 
@@ -292,13 +370,18 @@ export const RightSidebar: FC = () => {
     <>
       <AlertDialog
         open={!!pendingAgentPayload}
-        onOpenChange={open => { if (!open) setPendingAgentPayload(null) }}
+        onOpenChange={open => {
+          if (!open) setPendingAgentPayload(null)
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Carregar {pendingAgentPayload?.aboutme.name || "agente"}</AlertDialogTitle>
+            <AlertDialogTitle>
+              Carregar {pendingAgentPayload?.aboutme.name || "agente"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Carregar este agente na conversa atual ou criar uma nova conversa para ele?
+              Carregar este agente na conversa atual ou criar uma nova conversa
+              para ele?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -334,15 +417,9 @@ export const RightSidebar: FC = () => {
           <ButtonGhost
             size="16px"
             className="no-drag font-instrument text-foreground-secondary hover:text-foreground-primary"
-            text={t("Ocultar")}
+            text={t("Hide")}
             showLeftIcon={false}
-            rightIcon={
-              <IconSidebarToggle
-                side="right"
-                type="hide"
-                size={16}
-              />
-            }
+            rightIcon={<IconSidebarToggle side="right" type="hide" size={16} />}
             onClick={() => setShowRightSidebar(false)}
           />
         </div>
@@ -352,17 +429,22 @@ export const RightSidebar: FC = () => {
             {sortedKnowledge.length === 0 ? (
               <div className="flex-col">
                 <h2 className="select-none text-[15px] font-semibold text-foreground-primary">
-                  Sem itens salvos
+                  {t("No saved items")}
                 </h2>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Informações que você pedir para salvar aparecerão aqui.
+                  {t("Anything you ask to save will appear here.")}
                 </p>
               </div>
             ) : (
-              <Accordion type="single" collapsible defaultValue="arquivos" className="w-full border-none">
+              <Accordion
+                type="single"
+                collapsible
+                defaultValue="arquivos"
+                className="w-full border-none"
+              >
                 <AccordionItem value="arquivos" className="border-none">
                   <AccordionTrigger className="py-2 text-xs font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
-                    Arquivos do Chat
+                    {t("Chat Files")}
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="mt-2 flex flex-col gap-3">
@@ -371,7 +453,7 @@ export const RightSidebar: FC = () => {
                           key={record.id}
                           record={record}
                           modelData={backgroundModel ?? modelData}
-                          chatName={selectedChat?.name ?? "Conversa"}
+                          chatName={selectedChat?.name ?? t("Conversation")}
                           onUpdate={handleUpdate}
                         />
                       ))}
@@ -381,14 +463,15 @@ export const RightSidebar: FC = () => {
                           className="h-auto justify-end p-0 text-[13px] font-medium text-murici-orange hover:bg-transparent hover:text-[#C05621]/80"
                           onClick={() => {
                             setShowRightSidebar(false)
-                            router.push(`/${locale}/${workspaceid}/graph`)
+                            router.push(
+                              localeHref(locale, `/${workspaceid}/graph`)
+                            )
                           }}
                         >
-                          Ver todos os arquivos &rarr;
+                          {t("View all files →")}
                         </Button>
                       </div>
                     </div>
-
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -410,7 +493,7 @@ export const RightSidebar: FC = () => {
                   height={48}
                 />
                 <h2 className="font-instrument-sans text-center text-[20px] font-bold leading-tight text-foreground-primary">
-                  Inicie um .agent
+                  {t("Start a .agent")}
                 </h2>
                 <Button
                   className="font-instrument-sans mt-1 flex h-11 items-center gap-2.5 rounded-[12px] border-none bg-murici-orange px-4 text-[13px] font-bold text-white shadow-none hover:bg-murici-orange/90"
@@ -418,16 +501,23 @@ export const RightSidebar: FC = () => {
                   disabled={agentLoading}
                 >
                   <FolderOpen size={16} strokeWidth={2.5} />
-                  {agentLoading ? "Carregando..." : "Iniciar"}
+                  {agentLoading ? t("Loading...") : t("Start")}
                 </Button>
               </div>
             ) : (
-              <div data-dot-agent-ui="agent-detail" className="flex flex-col space-y-6">
+              <div
+                data-dot-agent-ui="agent-detail"
+                className="flex flex-col space-y-6"
+              >
                 <div className="space-y-4">
-                  <h3 className="text-[15px] font-semibold text-foreground-primary">{agentMeta?.name || "Agente"}</h3>
+                  <h3 className="text-[15px] font-semibold text-foreground-primary">
+                    {agentMeta?.name || t("Agent")}
+                  </h3>
                   {agentMeta?.description && (
                     <div className="space-y-2">
-                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-foreground-secondary">Descrição do Agente</h3>
+                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-foreground-secondary">
+                        {t("Agent Description")}
+                      </h3>
                       <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground-primary">
                         {agentMeta.description}
                       </p>
@@ -436,22 +526,33 @@ export const RightSidebar: FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-foreground-secondary">Histórico de Estados</h3>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-foreground-secondary">
+                    {t("State History")}
+                  </h3>
                   {historyRows.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Aguardando início do fluxo...</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("Waiting for flow to start...")}
+                    </p>
                   ) : (
                     <div>
                       {historyRows.map((row, i) => {
                         const isLast = i === historyRows.length - 1
                         return (
-                          <div key={`${row.status}-${row.state}`} className="relative flex gap-3 pb-4 last:pb-0">
+                          <div
+                            key={`${row.status}-${row.state}`}
+                            className="relative flex gap-3 pb-4 last:pb-0"
+                          >
                             {!isLast && (
                               <div className="bg-sidebar-border absolute bottom-0 left-[8px] top-5 w-px" />
                             )}
                             <div className="relative z-10 mt-0.5 shrink-0">
                               {row.status === "done" && (
                                 <div className="flex h-[18px] w-[18px] items-center justify-center rounded-md border-[1.5px] border-murici-orange">
-                                  <Check size={11} strokeWidth={3} className="text-murici-orange" />
+                                  <Check
+                                    size={11}
+                                    strokeWidth={3}
+                                    className="text-murici-orange"
+                                  />
                                 </div>
                               )}
                               {row.status === "current" && (
@@ -473,17 +574,27 @@ export const RightSidebar: FC = () => {
                                 {row.state}
                               </p>
                               {row.status === "done" && (
-                                <p className="mt-0.5 text-[11px] text-murici-orange">Concluído</p>
+                                <p className="mt-0.5 text-[11px] text-murici-orange">
+                                  {t("Done")}
+                                </p>
                               )}
                               {row.status === "current" && (
-                                <p className="mt-0.5 text-[11px] text-foreground-secondary">Em andamento</p>
+                                <p className="mt-0.5 text-[11px] text-foreground-secondary">
+                                  {t("In progress")}
+                                </p>
                               )}
                             </div>
                             {row.status === "done" && (
-                              <CheckCircle size={16} className="mt-0.5 shrink-0 text-murici-orange" />
+                              <CheckCircle
+                                size={16}
+                                className="mt-0.5 shrink-0 text-murici-orange"
+                              />
                             )}
                             {row.status === "current" && (
-                              <MoreHorizontal size={16} className="mt-0.5 shrink-0 text-foreground-secondary" />
+                              <MoreHorizontal
+                                size={16}
+                                className="mt-0.5 shrink-0 text-foreground-secondary"
+                              />
                             )}
                           </div>
                         )
@@ -494,47 +605,73 @@ export const RightSidebar: FC = () => {
 
                 {(descriptionText || behaviorText || behaviors.length > 0) && (
                   <div className="space-y-3">
-                    <Accordion type="single" collapsible className="w-full border-none">
+                    <Accordion
+                      type="single"
+                      collapsible
+                      className="w-full border-none"
+                    >
                       <AccordionItem value="debug" className="border-none">
                         <AccordionTrigger className="py-2 text-[15px] font-semibold text-foreground-primary hover:no-underline">
                           DEBUG
                         </AccordionTrigger>
                         <AccordionContent>
-                          <Accordion type="multiple" className="w-full border-none">
+                          <Accordion
+                            type="multiple"
+                            className="w-full border-none"
+                          >
                             {descriptionText && (
-                              <AccordionItem value="debug-description" className="border-none">
+                              <AccordionItem
+                                value="debug-description"
+                                className="border-none"
+                              >
                                 <AccordionTrigger className="py-2 text-[12px] font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
-                                  {`${agentMeta?.name || "Agente"}.DESCRIPTION`}
+                                  {`${agentMeta?.name || t("Agent")}.DESCRIPTION`}
                                 </AccordionTrigger>
                                 <AccordionContent>
                                   <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-foreground-primary">
-                                    <DslHighlightedCode language="description" value={descriptionText} />
+                                    <DslHighlightedCode
+                                      language="description"
+                                      value={descriptionText}
+                                    />
                                   </pre>
                                 </AccordionContent>
                               </AccordionItem>
                             )}
 
                             {behaviorText && (
-                              <AccordionItem value="debug-behavior-main" className="border-none">
+                              <AccordionItem
+                                value="debug-behavior-main"
+                                className="border-none"
+                              >
                                 <AccordionTrigger className="py-2 text-[12px] font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
-                                  {`${agentMeta?.name || "Agente"}.BEHAVIOR`}
+                                  {`${agentMeta?.name || t("Agent")}.BEHAVIOR`}
                                 </AccordionTrigger>
                                 <AccordionContent>
                                   <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-foreground-primary">
-                                    <DslHighlightedCode language="behavior" value={behaviorText} />
+                                    <DslHighlightedCode
+                                      language="behavior"
+                                      value={behaviorText}
+                                    />
                                   </pre>
                                 </AccordionContent>
                               </AccordionItem>
                             )}
 
                             {behaviors.map((b, i) => (
-                              <AccordionItem key={b.path || i} value={`debug-behavior-${i}`} className="border-none">
+                              <AccordionItem
+                                key={b.path || i}
+                                value={`debug-behavior-${i}`}
+                                className="border-none"
+                              >
                                 <AccordionTrigger className="py-2 text-[12px] font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
-                                  {`${agentMeta?.name || "Agente"}.BEHAVIOR (${b.path || `#${i + 1}`})`}
+                                  {`${agentMeta?.name || t("Agent")}.BEHAVIOR (${b.path || `#${i + 1}`})`}
                                 </AccordionTrigger>
                                 <AccordionContent>
                                   <pre className="whitespace-pre-wrap rounded-lg border border-[#b58757] bg-[#fff8f2] p-[10px] font-instrument text-[12px] leading-relaxed text-foreground-primary">
-                                    <DslHighlightedCode language="behavior" value={b.content} />
+                                    <DslHighlightedCode
+                                      language="behavior"
+                                      value={b.content}
+                                    />
                                   </pre>
                                 </AccordionContent>
                               </AccordionItem>
@@ -548,10 +685,14 @@ export const RightSidebar: FC = () => {
 
                 {graphData && (
                   <div className="space-y-3">
-                    <Accordion type="single" collapsible className="w-full border-none">
+                    <Accordion
+                      type="single"
+                      collapsible
+                      className="w-full border-none"
+                    >
                       <AccordionItem value="graph" className="border-none">
                         <AccordionTrigger className="py-2 text-[10px] font-semibold uppercase tracking-wider text-foreground-secondary hover:no-underline">
-                          Grafo de Execução
+                          {t("Execution Graph")}
                         </AccordionTrigger>
                         <AccordionContent>
                           <div className="min-h-[200px] overflow-auto rounded-lg border border-stroke bg-transparent p-2">
@@ -565,29 +706,39 @@ export const RightSidebar: FC = () => {
                     </Accordion>
                   </div>
                 )}
-
               </div>
             )}
 
             <div className="bg-sidebar-border h-px w-full" />
 
             <div className="space-y-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">Ferramentas</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">
+                Ferramentas
+              </h3>
               {toolsLoading ? (
                 <p className="text-xs text-muted-foreground">Carregando...</p>
               ) : (
                 <div className="space-y-1">
                   <Accordion type="multiple" className="w-full border-none">
                     {Object.entries(groupedTools).map(([namespace, tools]) => (
-                      <AccordionItem key={namespace} value={namespace} className="border-none">
+                      <AccordionItem
+                        key={namespace}
+                        value={namespace}
+                        className="border-none"
+                      >
                         <AccordionTrigger className="py-2 text-[13px] font-semibold tracking-wider text-foreground-primary hover:no-underline">
                           {namespace}
                         </AccordionTrigger>
                         <AccordionContent>
                           <div className="ml-2 flex flex-col gap-3">
                             {tools.map((t: any) => (
-                              <div key={t.name} className="text-[13px] leading-snug text-foreground-secondary">
-                                <span className="font-semibold text-foreground-primary">{t.name}</span>
+                              <div
+                                key={t.name}
+                                className="text-[13px] leading-snug text-foreground-secondary"
+                              >
+                                <span className="font-semibold text-foreground-primary">
+                                  {t.name}
+                                </span>
                                 {t.description ? `: ${t.description}` : ""}
                               </div>
                             ))}

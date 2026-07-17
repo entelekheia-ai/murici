@@ -29,7 +29,10 @@ export function localeToLanguageName(locale: string): string {
   return LOCALE_LANGUAGE_NAMES[locale] || locale
 }
 
-export function buildTranslateContent(message: string, languageName: string): string {
+export function buildTranslateContent(
+  message: string,
+  languageName: string
+): string {
   return `${message}\n\nTarget language: ${languageName}`
 }
 
