@@ -6,8 +6,7 @@ description: How to verify a murici UI/chat change end-to-end via Playwright (br
 # Verifying murici changes
 
 murici is a Next.js app (also packaged as Electron, but Electron isn't
-drivable headlessly in this sandbox — no GUI, see feedback_bash_sandboxed_no_gui
-in memory). For UI/chat behavior, drive the **browser** build with Playwright
+drivable headlessly in this sandbox — no GUI). For UI/chat behavior, drive the **browser** build with Playwright
 instead: `npx playwright test <file> --project=chromium --reporter=list`.
 `playwright.config.ts`'s `webServer` auto-starts `npm run dev` on
 `localhost:3000` if nothing is already listening there (checked before
