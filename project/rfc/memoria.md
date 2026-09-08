@@ -1,4 +1,14 @@
+---
+vibe-ops-template: rfc@2
+---
+
 # RFC Summary: Murici Knowledge Graph Evolution
+
+| Field | Value |
+|---|---|
+| Status | Draft |
+| Created | 2026-07-06 |
+| Author | Danilo Borges |
 
 ## 1. Data Architecture & Lineage
 - **Storage:** `Complete` effects store a `Record<string, unknown>` as the Source of Truth.

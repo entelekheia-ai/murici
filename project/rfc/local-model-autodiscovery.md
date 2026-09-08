@@ -1,4 +1,14 @@
+---
+vibe-ops-template: rfc@2
+---
+
 # RFC: Local Model Autodiscovery in Murici
+
+| Field | Value |
+|---|---|
+| Status | Implemented |
+| Created | 2026-07-06 |
+| Author | Danilo Borges |
 
 > **Implementation status** — see [RFC-0001](./0001-local-model-autodiscovery.md) for the formal spec and decisions.
 >

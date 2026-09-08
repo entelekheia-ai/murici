@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # 019 — Prerelease track (alpha → beta → stable)
+
+| Field | Value |
+|---|---|
+| Status | In Progress |
+| Created | 2026-07-17 |
+| Author | Danilo Borges |
 
 Status: active · Since: 2026-07-17
 

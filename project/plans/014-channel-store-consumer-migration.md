@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 014: Channel Store — Consumer Migration (off the legacy-context mirror)
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-14 |
+| Author | Danilo Borges |
 
 > **Status:** READY TO START. The channels refactor has **landed**
 > (see [ADR-0007](../adr/0007-per-thread-chat-channels.md) and its

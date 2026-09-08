@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Murici Onboarding & Support Agent
+
+| Field | Value |
+|---|---|
+| Status | In Progress |
+| Created | 2026-07-03 |
+| Author | Danilo Borges |
 
 This plan details the implementation of a native helper agent (`onboarding-agent`) for Murici. It will act as the first point of contact for new users, presenting the main features with accessible language for the general public, but containing enough technical information to guide developers.
 

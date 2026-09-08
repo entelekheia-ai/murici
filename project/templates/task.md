@@ -1,3 +1,7 @@
+---
+vibe-ops-template: task@3
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 

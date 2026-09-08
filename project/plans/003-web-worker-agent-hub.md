@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 003: Web Worker Agent Hub (User & Runtime Agents)
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-06 |
+| Author | Danilo Borges |
 
 ## Objective
 Transition the dot-agent kernel execution entirely to the browser via Web Workers, deprecating server-side execution, and supporting multiple agent profiles (User and Runtime).

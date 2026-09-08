@@ -1,6 +1,6 @@
 # dot-agent DSL Support
 
-> Murici is the public proof-of-concept for the `.agent` language. This document states which slice of the DSL Murici exposes today and why. The canonical, full roadmap lives in the spec repo: [`dot-agent/ROADMAP.md`](../../../dot-agent-spec/ROADMAP.md).
+> Murici is the public proof-of-concept for the `.agent` language. This document states which slice of the DSL Murici exposes today and why. The canonical, full roadmap lives in the spec repo, in `dot-agent/ROADMAP.md`.
 
 ---
 

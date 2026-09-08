@@ -207,4 +207,4 @@ Both views share the same modal component: `80vw` wide, markdown content rendere
 - `remember()` LLM tool for graph traversal
 - Semantic clustering and `memory_summarizer` pipeline
 
-See [RFC-0004](../../_rfc/0004-knowledge-graph-enrichment-and-traversal.md) for the v1+ roadmap.
+See [RFC-0004](../../project/rfc/0004-knowledge-graph-enrichment-and-traversal.md) for the v1+ roadmap.

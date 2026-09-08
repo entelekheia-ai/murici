@@ -1,3 +1,7 @@
+---
+vibe-ops-template: adr@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 

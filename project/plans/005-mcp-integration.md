@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 005: MCP (Model Context Protocol) Integration
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-06 |
+| Author | Danilo Borges |
 
 ## Objective
 Add MCP Client support to Murici, allowing LLMs operating inside Murici to interact with external tools provided by any standard MCP server. 

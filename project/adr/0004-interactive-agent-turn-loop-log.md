@@ -1,9 +1,19 @@
+---
+vibe-ops-template: adr@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
  Licensed under the Apache License, Version 2.0
 -->
 
 # Log — ADR-0004: Loop de turno do agente interativo + espelho de debug
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-07-10 |
+| Deciders | Danilo Borges |
 
 Registro long-form da investigação (2026-07-09). Cada sintoma destravava o próximo. Write-once;
 não retro-editar — anexar seções novas se o assunto evoluir.

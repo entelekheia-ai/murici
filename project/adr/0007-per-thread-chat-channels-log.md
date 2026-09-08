@@ -1,3 +1,7 @@
+---
+vibe-ops-template: adr@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 
@@ -9,6 +13,12 @@
 -->
 
 # Log — ADR-0007 (canais de chat por thread)
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-07-14 |
+| Deciders | Danilo Borges |
 
 Registro long-form da implementação. O ADR é a decisão; este arquivo é o traço:
 o que foi feito, o que foi descoberto no caminho, e o que ficou pendente.

@@ -23,7 +23,7 @@ delete one — the chain of ADRs is the project's decision history.
 ## Creating an ADR
 
 1. Copy [`../templates/adr.md`](../templates/adr.md) to `DA<minor>-<seq>-<kebab-title>.md`. Numbering
-   follows the **DA scheme** — see [DA00-01](DA00-01-traceability-scheme.md).
+   follows the **DA scheme** — see DA00-01 (traceability scheme — document not present in this repository).
    - `DA00-xx` if the decision governs **all** milestones; `DA0N-xx` if anchored to milestone v0.N.
      Boundary test: *one milestone or all?*
    - Numeric only; **never renumber**; supersession may cross milestones (`DA02-x` supersedes `DA01-y`).
@@ -47,4 +47,4 @@ adr/
 | Requires ratification | Is the record of the decision | No ratification needed |
 | Frozen after implementation | Immutable once Accepted | Removed after implementation |
 
-See [`../GOVERNANCE.md`](../GOVERNANCE.md) for the full process.
+See `GOVERNANCE.md` for the full process (document not present in this repository).

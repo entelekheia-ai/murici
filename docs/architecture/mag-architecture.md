@@ -187,8 +187,8 @@ Same data. Different windows.
 
 | Component | RFC | Status |
 |---|---|---|
-| `KnowledgeRecord` schema + IndexedDB | [RFC-0002](../../_rfc/0002-knowledge-graph-data-model.md) | ✅ Implemented |
-| Chat right panel + `/graph` UI | [RFC-0003](../../_rfc/0003-knowledge-graph-navigation-ui.md) | ✅ Implemented |
-| `remember()` tool + semantic clustering | [RFC-0004](../../_rfc/0004-knowledge-graph-enrichment-and-traversal.md) | Roadmap v1+ |
+| `KnowledgeRecord` schema + IndexedDB | [RFC-0002](../../project/rfc/0002-knowledge-graph-data-model.md) | ✅ Implemented |
+| Chat right panel + `/graph` UI | [RFC-0003](../../project/rfc/0003-knowledge-graph-navigation-ui.md) | ✅ Implemented |
+| `remember()` tool + semantic clustering | [RFC-0004](../../project/rfc/0004-knowledge-graph-enrichment-and-traversal.md) | Roadmap v1+ |
 | Typed artifacts via kernel `complete` | dot-agent-spec RFC-0014 | Draft (spec level) |
-| Session synthesis pipeline | [RFC-0004](../../_rfc/0004-knowledge-graph-enrichment-and-traversal.md) | Roadmap v1+ |
+| Session synthesis pipeline | [RFC-0004](../../project/rfc/0004-knowledge-graph-enrichment-and-traversal.md) | Roadmap v1+ |

@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Refatoração da Arquitetura do Motor de Chat e Tools 🚀
+
+| Field | Value |
+|---|---|
+| Status | Shipped |
+| Created | 2026-07-07 |
+| Author | Danilo Borges |
 
 Finalizamos com sucesso a migração e refatoração arquitetural proposta para o sistema de invocação de ferramentas (Tool Calling) e logs. Todo o design "Deus" de 1200+ linhas foi quebrado em pequenas bibliotecas puras e conectadas através das primitivas mais recentes e idiomáticas da Vercel AI SDK.
 

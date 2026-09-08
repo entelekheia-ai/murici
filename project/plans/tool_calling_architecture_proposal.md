@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Proposta de Arquitetura Revisada: Respostas e Refinamentos
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-07 |
+| Author | Danilo Borges |
 
 Excelente, suas dúvidas tocam exatamente nos pontos de maior confusão quando misturamos Next.js, Electron e Vercel AI SDK. Vamos resolver cada uma delas para amarrar essa arquitetura, e adicionar a camada de Debug e as particularidades do oMLX que você citou.
 

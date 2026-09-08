@@ -1,3 +1,7 @@
+---
+vibe-ops-template: rfc@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 
@@ -17,8 +21,8 @@
 | Author | Danilo Borges |
 | Depends on | [RFC-0002](./0002-knowledge-graph-data-model.md) — Data Model |
 | Depends on | [RFC-0003](./0003-knowledge-graph-navigation-ui.md) — Navigation UI |
-| Related | [dot-agent-spec RFC-0014](../../dot-agent-spec/rfcs/0014-data-contract.md) — Data Contract |
-| Related | [dot-agent-spec RFC-0012](../../dot-agent-spec/) — Cognitive Memory Landscapes |
+| Related | dot-agent-spec RFC-0014 — Data Contract |
+| Related | dot-agent-spec RFC-0012 — Cognitive Memory Landscapes |
 
 ---
 

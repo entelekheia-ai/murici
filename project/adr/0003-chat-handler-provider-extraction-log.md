@@ -1,3 +1,7 @@
+---
+vibe-ops-template: adr@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 
@@ -9,6 +13,12 @@
 -->
 
 # Log: Chat Handler Provider Extraction (long-form)
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-07-08 |
+| Deciders | Danilo Borges |
 
 > Long-form incubation log — appendix to [ADR-0003](0003-chat-handler-provider-extraction.md).
 > Historical record of the investigation, not current-behavior spec. Do not cite as source of truth;

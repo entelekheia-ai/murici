@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 011: Complete math rendering with KaTeX
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-07 |
+| Author | Danilo Borges |
 
 ## Objective
 

@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 010: Unused Radix/shadcn components audit
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-07 |
+| Author | Danilo Borges |
 
 ## Objective
 

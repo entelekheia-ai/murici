@@ -1,3 +1,7 @@
+---
+vibe-ops-template: rfc@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 
@@ -15,6 +19,12 @@
 -->
 
 # i18n Strategy — Murici
+
+| Field | Value |
+|---|---|
+| Status | In Progress |
+| Created | 2026-07-06 |
+| Author | Danilo Borges |
 
 ## Current state
 

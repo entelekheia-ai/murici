@@ -1,3 +1,7 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan-017: Per-Thread Agent Presentation-Effects Pipeline
 
 | Field | Value |
