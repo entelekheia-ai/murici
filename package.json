@@ -124,7 +124,7 @@
     "clsx": "^2.1.1",
     "concurrently": "^9.2.3",
     "electron": "43.1.0",
-    "electron-builder": "^26.15.6",
+    "electron-builder": "^26.16.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
     "eslint-config-prettier": "^9.1.2",
