@@ -32,28 +32,30 @@ Where a change lands depends on what it does:
 
 - **A fix** — `fix/…` off `main`, PR into `main`. It ships in the next stable
   patch.
-- **A change of behaviour or contract** — `feat/…` off `main`, PR into `beta`.
-  It reaches `main` only through a promotion.
-- **A rough experiment** — the same `feat/…` branch, PR into `alpha` first. When
-  it is ready, open the same branch's PR into `beta`.
+- **Anything else** — a feature, a change of behaviour or contract: `feat/…`
+  off `main`, PR into `alpha`. It reaches `main` only by promotion,
+  `alpha` → `beta` → `main`, together with whatever else is on `alpha` then.
 
-Every branch starts from `main`, never from a channel: a channel branch carries
-its own `.changeset/pre.json`, so a branch cut from `beta` cannot merge into
-`alpha` cleanly, and one cut from either would carry pre mode into `main`. For
-the same reason `alpha` is never merged into `beta`: its `pre.json` would switch
-beta's channel without a conflict.
+Every work branch starts from `main`, never from a channel: a channel branch
+carries its own `.changeset/pre.json`, and a branch cut from one would carry
+pre mode wherever it is merged.
+
+Channels move in one direction only. `alpha` is merged into `beta` to promote
+it ([below](#promoting-alpha-to-beta)); **`beta` is never merged into `alpha`**.
+After a promotion beta's `pre.json` descends from alpha's, so that merge applies
+it without a conflict and alpha silently starts versioning `-beta.N`.
 
 **Forward-port.** Every push to `main` opens or updates a PR from
 `forward-port/<channel>` into `beta` and into `alpha`
 ([`.github/workflows/forward-port.yml`](.github/workflows/forward-port.yml)),
 so a fix on stable reaches every channel before that channel is promoted. A
 conflict turns the PR red; resolve it on that PR, keeping the channel's side of
-`.changeset/pre.json` and `package.json`. Forward-ports go from `main` to each
-channel, never from one channel to another.
+`.changeset/pre.json` and `package.json`. Forward-ports always start from
+`main`; moving work between channels is a promotion, not a forward-port.
 
-**The gate is the soak.** The maintainer runs `Murici Beta` day to day; a beta
-build is promoted after it has been used in anger plus the e2e suite
-(`npm run test:e2e`). Publishing a beta proves nothing by itself.
+**The gate is the soak.** The maintainer runs `Murici Alpha` and `Murici Beta`
+day to day; a channel is promoted after it has been used in anger plus the e2e
+suite (`npm run test:e2e`). Publishing a prerelease proves nothing by itself.
 
 Auto-update cascade (electron-updater): an **alpha** install receives alpha +
 beta + stable; a **beta** install receives beta + stable; a **stable** install
@@ -109,6 +111,26 @@ with `beta.yml` + installers named `Murici Beta` that only beta installs pick
 up. On `alpha`, `-alpha.N`. On `main`, a stable patch carrying the fixes merged
 there. Pre mode counts from `.0`: `-alpha.0 < -alpha.1 < -beta.0 < X.Y.Z`.
 **Never tag a prerelease off `main`.**
+
+## Promoting alpha to beta
+
+Promotes everything on `alpha` as one block, once the alpha soak passed.
+
+```bash
+git checkout beta && git pull
+git checkout -b promote/alpha-to-beta
+git merge origin/alpha                     # conflicts on .changeset/pre.json
+git checkout --ours .changeset/pre.json    # keep beta's: tag "beta"
+git add .changeset/pre.json && git commit --no-edit
+git push -u origin promote/alpha-to-beta   # PR into beta, merge it
+```
+
+The conflict is certain — each channel added its own `pre.json` — and keeping
+beta's side is the whole resolution; the pre-mode check refuses the PR if
+alpha's side was kept. `package.json` arrives at alpha's version and needs no
+edit: the next [release](#cutting-a-release) on `beta` continues the counter,
+so `-alpha.0` is followed by `-beta.1`, and beta's changelog repeats alpha's
+entries under its own version.
 
 ## Promoting beta to stable
 

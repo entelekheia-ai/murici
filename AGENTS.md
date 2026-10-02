@@ -31,7 +31,7 @@ opened and closed with the `vibe-ops` plugin.
 | Electron | |
 |---|---|
 | Server | Packaged builds run the Next.js standalone server via `utilityProcess.fork` on a free `127.0.0.1` port ([`electron/next-server.ts`](electron/next-server.ts)). LLM calls go through it, not IPC. |
-| Release channels | Driven by the git tag; `electron/updater.ts` derives the channel from the build's version. Fixes go to `main`, features to `beta`; `main` is forward-ported into each channel automatically. Every PR carries a `.changeset/*.md` (`--empty` when nothing ships), and `CHANGELOG.md` is generated. **Never tag a prerelease off `main`.** Procedure: [`CONTRIBUTING.md`](CONTRIBUTING.md). |
+| Release channels | Driven by the git tag; `electron/updater.ts` derives the channel from the build's version. Fixes go to `main`, features to `alpha`, promoted `alpha` → `beta` → `main`; `main` is forward-ported into each channel automatically. Every PR carries a `.changeset/*.md` (`--empty` when nothing ships), and `CHANGELOG.md` is generated. **Never tag a prerelease off `main`.** Procedure: [`CONTRIBUTING.md`](CONTRIBUTING.md). |
 
 ## Agent config
 
