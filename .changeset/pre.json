@@ -4,5 +4,8 @@
   "initialVersions": {
     "murici": "0.11.0"
   },
-  "changesets": []
+  "changesets": [
+    "dot-agent-0-12",
+    "few-garlics-go"
+  ]
 }
