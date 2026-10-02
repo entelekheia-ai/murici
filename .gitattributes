@@ -1,0 +1,2 @@
+# Each forward-port from main into a channel branch would otherwise conflict on the changelog.
+CHANGELOG.md merge=union

@@ -157,3 +157,17 @@ Cortar um `v0.11.0-beta.1` de mentira e confirmar:
 - `electron/assets/icon/` — masters por canal (`<canal>.icon|icns|ico|png|svg`),
   sem variantes de export.
 - `CONTRIBUTING.md`, `CLAUDE.md`, `AGENTS.md` — documentação do processo.
+
+## Decision Log
+
+- Decision: o fluxo de promoção deste plano (`feature → alpha → beta → main`, `main` só recebe merge de
+  `beta`, ressincronização manual) é substituído pela política de canais do workspace. Correção vai direto
+  para `main`; mudança de comportamento ou contrato entra por `beta` (ou `alpha`, para o que ainda é cru);
+  cada push em `main` abre um PR de forward-port de `forward-port/<canal>` para cada canal; a versão vem
+  de `changeset version`, com `beta` e `alpha` em pre mode. A mecânica do Electron deste plano (canal
+  derivado da tag, `appId`/ícone por canal, cascata do updater) fica como está. As seções *Branches* e
+  *Fluxo de release* acima descrevem o fluxo antigo; o procedimento vigente está em `CONTRIBUTING.md`.
+  Rationale: com `main` só recebendo `beta`, uma correção urgente esperava a próxima promoção, e a
+  ressincronização manual dependia de memória. O forward-port mecânico garante que a correção chega aos
+  canais antes da próxima promoção.
+  Date / Author: 2026-10-02 / Danilo Borges
