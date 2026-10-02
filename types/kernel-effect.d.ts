@@ -14,10 +14,12 @@ export type Effect =
   | {
       type: "guide"
       text: string
+      content: string | null
     }
   | {
       type: "teach"
       text: string
+      content: string | null
     }
   | {
       type: "request_interact"
