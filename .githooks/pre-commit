@@ -18,48 +18,22 @@ fi
 
 bash scripts/ensure-license-headers.sh
 
-# --- Plan-020 Track 3: the governance gate, appended after the checks above ---
-# Runs the same commit-time governance checks every repository in this workspace runs. Appended rather
-# than replacing this hook, which already does real work (eslint/prettier autofix, license headers) that
-# must run first — the gate then checks the tree as staged, including whatever the autofix re-staged.
-# `set -e` is active from the top of this file, so the gate's own possibly-nonzero return is guarded by
-# an `if`, not captured via a bare `$?` after the call, which `set -e` would treat as fatal before the
-# capture ever ran.
+# --- The governance gate, after the checks above ---
+# Appended rather than replacing this hook: eslint/prettier autofix and license headers must run first,
+# so the gate checks the tree as staged, including whatever the autofix re-staged. `vibe-ops check`
+# composes every check itself (built-ins, the ops this repository's config declares) and prints only
+# what failed or warned. `set -e` is active, so the gate's nonzero return is captured through `||`.
+if ! command -v vibe-ops >/dev/null 2>&1; then
+  echo "pre-commit: no \`vibe-ops\` on PATH — this repository's gate cannot run." >&2
+  echo "Install it with: npm i -g @entelekheia/vibe-ops-cli" >&2
+  exit 2
+fi
+
 ROOT=$(git rev-parse --show-toplevel)
-CHECK_DIR="$ROOT/scripts/checks"
 GIT_DIR=$(git rev-parse --git-dir)
 export GATE_ARTIFACT_DIR="$GIT_DIR/gate-artifacts"
 mkdir -p "$GATE_ARTIFACT_DIR"
 
-if git diff --cached --name-only --diff-filter=ACMR | grep -q '^scripts/checks/'; then
-  if [ -x "$CHECK_DIR/self-test.sh" ]; then
-    if ! "$CHECK_DIR/self-test.sh"; then
-      echo "pre-commit: the governance fragments' self-test failed — commit refused." >&2
-      exit 1
-    fi
-  fi
-fi
-
-if [ ! -f "$CHECK_DIR/_run.sh" ]; then
-  echo "pre-commit: $CHECK_DIR/_run.sh not found — scripts/checks/ is missing or moved." >&2
-  exit 1
-fi
-# shellcheck source=scripts/checks/_run.sh
-. "$CHECK_DIR/_run.sh"
-if run_composed_checks "$ROOT"; then
-  GATE_RC=0
-else
-  GATE_RC=$?
-fi
-
-if [ "${GATE_VERBOSE:-}" = "1" ]; then
-  printf '%s\n' "$RUN_OUTPUT"
-  exit "$GATE_RC"
-fi
-
-if [ "$GATE_RC" -ne 0 ]; then
-  run_actionable_lines
-  exit "$GATE_RC"
-fi
-
-printf '%s\n' "$RUN_OUTPUT" | grep -E '^WARN ' || true
+GATE_RC=0
+vibe-ops check "$ROOT" || GATE_RC=$?
+exit "$GATE_RC"
