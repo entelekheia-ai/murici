@@ -5,7 +5,11 @@
     "murici": "0.11.0"
   },
   "changesets": [
+    "deep-eagles-think",
     "dot-agent-0-12",
-    "few-garlics-go"
+    "electron-builder-keychain-fix",
+    "few-garlics-go",
+    "funky-pots-march",
+    "promote-alpha-to-beta"
   ]
 }
