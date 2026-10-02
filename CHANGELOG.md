@@ -1,5 +1,11 @@
 # murici
 
+## 0.12.0-alpha.0
+
+### Minor Changes
+
+- 7dca924: Run on `@dot-agent/*` 0.12.0 (compiler, kernel-dsl, sdk, tree-sitter), up from 0.10.x.
+
 ## 0.11.0
 
 Releases up to and including 0.11.0 (2026-07-17) were recorded by hand; that changelog is kept at
