@@ -1,8 +1,7 @@
 ---
-description: Lifecycles for project/ governance artifacts (ADR / RFC / plan / task / log / research) — when each is immutable, frozen, permanent, or ephemeral, and how they link.
+description: Lifecycles for this repository's governance records (adr / rfc / plan / task / log) — when each is immutable, permanent, or ephemeral, and where it lives.
 paths: ["project/**"]
 ---
-
 ## project/ governance — lifecycles
 
 The **what and why** of each artifact type lives in [`../../GOVERNANCE.md`](../../GOVERNANCE.md) (the
@@ -44,20 +43,24 @@ record does carry rather than as the name of the section that left.
 ### ADR (`project/adr/`)
 
 ```
-Proposed → Accepted → (Deprecated | Superseded by ADR-MMMM)
+Proposed → Accepted
+└ from Accepted: Deprecated · Superseded
 ```
 
-**Immutable once Accepted.** Never edit the substance of an accepted ADR and never delete one — to change a
-decision, write a *new* ADR that supersedes it and set the old one's `Superseded by`. Numbering is
-zero-padded `NNNN`, monotonic, **never renumbered**.
+Worked at **Proposed**; **Accepted** is terminal. Immutable from **Accepted** on — a change after that is a new record that supersedes this one, never an edit. Numbered, 4 digits, monotonic and never renumbered.
+
+Never edit the substance of an accepted ADR and never delete one — to change a decision, write a *new*
+ADR that supersedes it and set the old one's `Superseded by`.
 
 ### RFC (`project/rfc/`)
 
 ```
 Draft → Review → Accepted → Implemented
-              ↘ Rejected
-              ↘ Superseded
+└ from Review: Rejected → rejected/
+└ from Accepted: Superseded
 ```
+
+Worked at **Draft**; **Implemented** is terminal. Immutable from **Implemented** on — a change after that is a new record that supersedes this one, never an edit. A terminal record moves into `implemented/`. Numbered, 4 digits, monotonic and never renumbered.
 
 | Stage | Meaning | Gate to advance |
 |---|---|---|
@@ -66,23 +69,25 @@ Draft → Review → Accepted → Implemented
 | Accepted | Ratified, may spawn tasks | Maintainer sign-off, recorded in the header |
 | Implemented | Shipped | Code merged; canonical docs now live in the code/`docs/` |
 
-After `Implemented`: **frozen**, move to `implemented/`, do not edit further. After `Rejected`: move to
-`rejected/` as a record of what was considered and why.
+A rejected RFC moves to `rejected/` rather than being deleted — it is the record of what was considered
+and why it was not done, which is the question a later reader arrives with.
+
+Illustrative code in an RFC communicates intent; it is not the implementation.
 
 ### Plan (`project/plans/`)
 
 ```
-Backlog → In Progress → Shipped   (the file is never deleted)
+Backlog → In Progress → Shipped
 ```
 
-**Permanent.** A plan answers "how do we build X?" and stays as the design record after the work ships —
-the opposite of a task dossier. Numbering is `NNN`, monotonic, never renumbered.
+Worked at **In Progress**; **Shipped** is terminal. A terminal record moves into `shipped/`. Living sections — maintained while the work happens, never reconstructed at the end: **Decision Log**, **Outcomes & Retrospective**. Numbered, 3 digits, monotonic and never renumbered.
 
-Two sections are **living** and are maintained while the work happens, not written at the end:
-`Decision Log` (`Decision:` / `Rationale:` / `Date / Author:`) and `Outcomes & Retrospective`.
-Reconstructed from memory afterwards they are worthless — the value is in writing the entry when it
-happens. Per-step progress and the discoveries a run produces are recorded in the task dossier a track
-spawns, which is deleted at closure; a permanent file cannot discharge what is written into it.
+**Permanent.** A plan answers "how do we build X?" and stays as the design record after the work ships —
+the opposite of a task dossier.
+
+The living sections are worthless reconstructed from memory; the value is in writing the entry when it
+happens. Per-step progress and the discoveries a run produces belong to the task dossier a track spawns,
+which is deleted at closure — a permanent file cannot discharge what is written into it.
 
 If a plan carries a GitHub issue, the **issue owns status and the executive summary; this file owns the
 design and the working record**. The issue closes when the last track lands; the plan file does not close,
@@ -90,17 +95,20 @@ because it is what someone reads a year later to find out why the thing is shape
 
 At closure, use `/vibe-ops:close-plan` — retrospective written against the plan's own goals, the demotion
 check run, living docs propagated, the issue closed and **the file kept**. What the work taught was routed
-by the dossiers as they closed, not here. A plan that never spawned a task dossier has no other exit: skip this and it ships
-having taught nobody anything.
+by the dossiers as they closed, not here. A plan that never spawned a task dossier has no other exit:
+skip this and it ships having taught nobody anything.
 
 ### Task (`project/tasks/`)
 
-Lives in **two artifacts that own different content**: the GitHub issue owns status, assignment, and the
-executive summary; the dossier (`project/tasks/NNN-slug.md`) owns the detailed working log. Ephemeral:
+```
+Planned → In Progress → Done
+```
 
-```
-Planned → In Progress → Done → (dossier deleted; git history is the archive)
-```
+Worked at **In Progress**; **Done** is terminal. Numbered, 3 digits, monotonic and never renumbered.
+
+Lives in **two artifacts that own different content**: the GitHub issue owns status, assignment and the
+executive summary; the dossier (`project/tasks/NNN-slug.md`) owns the detailed working log. The dossier is
+ephemeral — at `Done` it is deleted, and git history is its archive.
 
 At closure, use `/vibe-ops:close-task` — it writes back to the source doc, propagates docs, spawns an ADR if
 a hard-to-reverse decision emerged, **routes each `Surprises & Discoveries` entry** to a durable surface
@@ -121,8 +129,3 @@ Optional, write-once narrative context, for **either** of two reasons:
 
 **Gaps are expected**: most work needs no log. Never retro-edit a log to match a later decision — a
 superseding decision gets its own ADR (and optionally its own log).
-
-### Research (`project/research/`)
-
-Investigations that feed a decision — spikes, comparisons, gap analyses. Input to an RFC/ADR, not a
-commitment to build and not a record of what was decided (that's `log/` or the ADR itself).

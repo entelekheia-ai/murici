@@ -17,7 +17,9 @@ vibe-ops-template: adr@2
  An ADR captures ONE decision that is hard to reverse: "we chose X because Y, and accept Z".
  Smaller grain than an RFC. An RFC proposes; an ADR records what was settled.
  Copy to adr/NNNN-kebab-title.md. ADRs are immutable once Accepted — to change a decision,
- write a new ADR that supersedes this one. Delete these comments before committing.
+ write a new ADR that supersedes this one. Delete these comments before committing. The
+ `vibe-ops-template` line in the frontmatter at the top of this file STAYS: /vibe-ops:migrate reads it to
+ find artifacts written against an older template, and removing it makes this file invisible to migration.
 -->
 
 # ADR-NNNN: Title (the decision, stated as a short noun phrase)
