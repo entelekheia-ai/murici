@@ -177,4 +177,4 @@ recorrência. É mitigação no nosso boundary, não conserto na origem do SDK.
   `lib/runtime/dot-agent-injector.ts`, `app/api/chat/custom/route.ts`,
   `components/messages/flow-event-card.tsx`, `components/chat/chat-messages.tsx`,
   `types/flow-event.ts`.
-- Log detalhado: [0004-interactive-agent-turn-loop-log.md](0004-interactive-agent-turn-loop-log.md).
+- Log detalhado: [0004-interactive-agent-turn-loop-log.md](https://github.com/entelekheia-ai/murici/blob/c9fba63e3ddd830cb5b0c85b98bd0caae005279d/project/adr/0004-interactive-agent-turn-loop-log.md).

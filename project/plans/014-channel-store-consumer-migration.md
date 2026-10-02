@@ -12,7 +12,7 @@ vibe-ops-template: plan@0.1
 
 > **Status:** READY TO START. The channels refactor has **landed**
 > (see [ADR-0007](../adr/0007-per-thread-chat-channels.md) and its
-> [log](../adr/0007-per-thread-chat-channels-log.md)), and the legacy-context mirror
+> [log](https://github.com/entelekheia-ai/murici/blob/c9fba63e3ddd830cb5b0c85b98bd0caae005279d/project/adr/0007-per-thread-chat-channels-log.md)), and the legacy-context mirror
 > described below is now in place and working — the viewed channel writes it, background
 > channels don't. So every consumer in the table still reads the mirror, and this doc is
 > now the actual next step rather than a hypothetical.

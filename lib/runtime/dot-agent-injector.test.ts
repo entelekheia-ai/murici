@@ -1,7 +1,4 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- * Licensed under the Apache License, Version 2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import type { ModelMessage } from "ai"
 import {
@@ -57,7 +54,7 @@ describe("injectBehaviorContextModelMessages", () => {
     // NOT re-assert state here: measured against the real model, it answers with
     // text and never re-fires at this point, so re-injecting would only cost
     // prompt cache. The duplication was the client double-resubmit race (fixed by
-    // the one-shot guard), not prompt salience. See project/adr/0004 log §8–9.
+    // the one-shot guard), not prompt salience. See the ADR-0004 investigation log (project/adr/0004-interactive-agent-turn-loop-log.md, removed — in git history) §8–9.
     const msgs: ModelMessage[] = [
       { role: "user", content: "oi, quero ver a lista" },
       {

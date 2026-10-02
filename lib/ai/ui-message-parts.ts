@@ -1,7 +1,4 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- * Licensed under the Apache License, Version 2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {
   UIMessage,
@@ -61,7 +58,7 @@ export function getToolInvocations(
 // call_… yet the projection reports it in two messages (dupToolCallIds: true,
 // dupMessageIds: false). It reproduces for any client tool (e.g. save_doc) in a
 // plain chat, so it's the resubmit path, not the FSM/model. See project/adr/0004
-// log §13. Collapse it by keeping the FIRST occurrence of each toolCallId (it
+// log §13 (in git history). Collapse it by keeping the FIRST occurrence of each toolCallId (it
 // holds the executed output) and dropping later duplicates, so the model never
 // re-sees the call and the UI doesn't render it twice. A message left with no
 // parts after stripping (it existed only to carry the phantom) is dropped.
