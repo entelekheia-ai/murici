@@ -23,7 +23,7 @@ Every time the assistant sends a message containing a fenced code block (` ```la
 3. Updates React Context so the UI reflects the new node
 4. Fires a background LLM call to generate `summary` (and override placeholder title if needed)
 
-This pipeline is defined in RFC-0002. The architecture is in [docs/architecture/mag-architecture.md](../architecture/mag-architecture.md).
+This pipeline is defined in RFC-0002. The architecture is in [docs/explanation/mag-architecture.md](./mag-architecture.md).
 
 ---
 

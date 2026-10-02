@@ -79,4 +79,4 @@ When that lands, Murici swaps the transport — the vocabulary and the dispatche
 
 - Plan-017 — Per-Thread Agent Presentation-Effects Pipeline (implements the dispatcher and wires it into both kernel-call paths).
 - Plan-007 — GenUI & Web Components (the richer presentation effects — `apply html`, Shadow-DOM widgets — that will share this runtime seam).
-- [dot-agent DSL Support](./dot-agent-dsl-support.md) — which slice of the `.agent` DSL Murici exposes today.
+- [dot-agent DSL Support](../explanation/dot-agent-dsl-support.md) — which slice of the `.agent` DSL Murici exposes today.

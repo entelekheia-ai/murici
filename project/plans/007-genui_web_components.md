@@ -19,7 +19,7 @@ Com a evolução do `dot-agent-spec` e a capacidade de agentes injetarem efeitos
 > [!NOTE]
 > O pipeline de ingestão/reconciliação de `apply css` por thread já está implementado — ver
 > [Plan-017](./017-agent-presentation-effects-pipeline.md) e
-> [Runtime Actions](../../docs/architecture/runtime-actions.md). O CSS injetado é escopado por
+> [Runtime Actions](../../docs/reference/runtime-actions.md). O CSS injetado é escopado por
 > thread (`activeCss[viewedThreadId]`, reconciliado pelo `KernelPresentationHost`), não global —
 > a nota abaixo sobre CSS "global" descreve a intenção de especificidade de seletor, não o escopo
 > de aplicação, que já é por conversa.

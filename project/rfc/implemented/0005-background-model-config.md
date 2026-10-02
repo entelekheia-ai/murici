@@ -20,7 +20,7 @@ vibe-ops-template: rfc@2
 | Created | 2026-06-19 |
 | Author | Danilo Borges |
 | Depends on | [RFC-0001](./0001-local-model-autodiscovery.md) — Local Model Autodiscovery |
-| Related | [RFC-0004](./0004-knowledge-graph-enrichment-and-traversal.md) — Knowledge Enrichment |
+| Related | [RFC-0004](../0004-knowledge-graph-enrichment-and-traversal.md) — Knowledge Enrichment |
 
 ---
 

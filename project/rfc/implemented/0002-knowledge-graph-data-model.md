@@ -22,7 +22,7 @@ vibe-ops-template: rfc@2
 | Author | Danilo Borges |
 | Depends on | — |
 | Required by | [RFC-0003](./0003-knowledge-graph-navigation-ui.md) — Navigation UI |
-| Related | [MAG Architecture](../../docs/architecture/mag-architecture.md) — Cognitive Memory Landscapes (Murici docs) |
+| Related | [MAG Architecture](../../../docs/explanation/mag-architecture.md) — Cognitive Memory Landscapes (Murici docs) |
 | Related | dot-agent-spec RFC-0014 — Data Contract (`complete ... with Type`) |
 
 ---

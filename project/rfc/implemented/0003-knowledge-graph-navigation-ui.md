@@ -21,7 +21,7 @@ vibe-ops-template: rfc@2
 | Implemented | 2026-06-19 |
 | Author | Danilo Borges |
 | Depends on | [RFC-0002](./0002-knowledge-graph-data-model.md) — Knowledge Graph Data Model |
-| Required by | [RFC-0004](./0004-knowledge-graph-enrichment-and-traversal.md) — Enrichment & Traversal |
+| Required by | [RFC-0004](../0004-knowledge-graph-enrichment-and-traversal.md) — Enrichment & Traversal |
 
 ---
 

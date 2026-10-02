@@ -1,11 +1,8 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- * Licensed under the Apache License, Version 2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import { logger } from "@/lib/logger"
 
-// The runtime-action vocabulary. See docs/architecture/runtime-actions.md for
+// The runtime-action vocabulary. See docs/reference/runtime-actions.md for
 // the full contract (naming convention, core vs runtime-specific layers,
 // why there is no vendor prefix). This array is the single source of truth —
 // the doc mirrors it, it doesn't define it.

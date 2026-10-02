@@ -19,8 +19,8 @@ vibe-ops-template: rfc@2
 | Status | Draft (v1+ roadmap) |
 | Created | 2026-06-19 |
 | Author | Danilo Borges |
-| Depends on | [RFC-0002](./0002-knowledge-graph-data-model.md) — Data Model |
-| Depends on | [RFC-0003](./0003-knowledge-graph-navigation-ui.md) — Navigation UI |
+| Depends on | [RFC-0002](./implemented/0002-knowledge-graph-data-model.md) — Data Model |
+| Depends on | [RFC-0003](./implemented/0003-knowledge-graph-navigation-ui.md) — Navigation UI |
 | Related | dot-agent-spec RFC-0014 — Data Contract |
 | Related | dot-agent-spec RFC-0012 — Cognitive Memory Landscapes |
 
