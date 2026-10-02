@@ -37,6 +37,6 @@ jobs:
             exit 1
           fi
           if [[ "$base" != main && "$tag" != "$base" ]]; then
-            echo "::error::.changeset/pre.json names '${tag:-no channel}' but this PR targets '$base'. Forward-ports go from main to each channel, never from one channel to another."
+            echo "::error::.changeset/pre.json names '${tag:-no channel}' but this PR targets '$base'. Keep the target channel's pre.json (a promotion keeps beta's side); never merge beta into alpha."
             exit 1
           fi
