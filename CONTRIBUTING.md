@@ -32,12 +32,16 @@ Where a change lands depends on what it does:
 
 - **A fix** — `fix/…` off `main`, PR into `main`. It ships in the next stable
   patch.
-- **A change of behaviour or contract** — `feat/…` off `beta`, PR into `beta`.
+- **A change of behaviour or contract** — `feat/…` off `main`, PR into `beta`.
   It reaches `main` only through a promotion.
 - **A rough experiment** — the same `feat/…` branch, PR into `alpha` first. When
-  it is ready, open the same branch's PR into `beta`. `alpha` is never merged
-  into `beta`: its `.changeset/pre.json` would switch beta's channel without a
-  conflict.
+  it is ready, open the same branch's PR into `beta`.
+
+Every branch starts from `main`, never from a channel: a channel branch carries
+its own `.changeset/pre.json`, so a branch cut from `beta` cannot merge into
+`alpha` cleanly, and one cut from either would carry pre mode into `main`. For
+the same reason `alpha` is never merged into `beta`: its `pre.json` would switch
+beta's channel without a conflict.
 
 **Forward-port.** Every push to `main` opens or updates a PR from
 `forward-port/<channel>` into `beta` and into `alpha`
@@ -168,7 +172,7 @@ Rules: masters only (electron-builder generates every derived size), always
 - **CI enforces headers independently** (`.github/workflows/license-headers.yml`
   runs the script in `--check` mode), so `--no-verify` can't merge unlicensed
   code. Run `bash scripts/ensure-license-headers.sh --check` locally to preview.
-- Fixes branch off `main`, features off `beta` — see
+- Every branch starts from `main`; fixes PR into `main`, features into `beta` — see
   [Branches & release channels](#branches--release-channels). Every PR carries a
   changeset ([Declaring a change](#declaring-a-change)).
 - Do not commit build artifacts (`public/worker-*.js`, `.next/`, `dist-electron/`).
