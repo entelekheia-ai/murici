@@ -10,7 +10,7 @@ on:
 jobs:
   changeset:
     # The release PR consumes the changesets, and a forward-port carries main's, already gated there.
-    if: ${{ !startsWith(github.head_ref, 'chore/release-') && !startsWith(github.head_ref, 'forward-port/') }}
+    if: ${{ !startsWith(github.head_ref, 'release/') && !startsWith(github.head_ref, 'forward-port/') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

@@ -89,10 +89,10 @@ Same steps on every channel; only the branch differs. The version comes from
 ```bash
 # 1. Version on a release branch off the channel (beta here)
 git checkout beta && git pull
-git checkout -b chore/release-beta
+git checkout -b release/beta
 npx changeset version          # bumps package.json, writes CHANGELOG.md
 git commit -am "chore: release $(node -p 'require("./package.json").version')"
-git push -u origin chore/release-beta   # PR into beta, merge it
+git push -u origin release/beta   # PR into beta, merge it
 
 # 2. Tag the merged commit and push the tag — builds and publishes all 3 OSes
 git checkout beta && git pull
@@ -114,11 +114,11 @@ If the promotion carries an `@dot-agent/*` bump, dispatch the
 
 ```bash
 git checkout beta && git pull
-git checkout -b chore/release-X.Y.Z
+git checkout -b release/X.Y.Z
 npx changeset pre exit
 npx changeset version          # X.Y.Z, pre.json removed, changelog collapsed
 git commit -am "chore: release X.Y.Z"
-git push -u origin chore/release-X.Y.Z  # PR into main, merge it
+git push -u origin release/X.Y.Z  # PR into main, merge it
 
 git checkout main && git pull
 git tag vX.Y.Z && git push origin --tags   # publishes the full release on `latest`
