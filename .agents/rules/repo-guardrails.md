@@ -46,3 +46,8 @@ trigger: always_on
 15. Desktop data **MUST** be verified in the Electron window's DevTools, rather than in a browser tab on
     `localhost:3000`: Electron's IndexedDB lives in its per-app partition, so the tab reads a different,
     usually empty, copy.
+16. A feature or any change of behaviour **MUST** be developed on a branch cut from `main` and opened into
+    `alpha`, and reach `beta` and `main` only by promotion ([`CONTRIBUTING.md`](../../CONTRIBUTING.md)) — a
+    fix is the one change opened into `main` directly. A work branch **MUST NOT** be cut from `alpha` or
+    `beta`, even when that is the checked-out branch: it carries the channel's `.changeset/pre.json`. `beta`
+    **MUST NOT** be merged into `alpha` — it switches alpha to `-beta.N` without a conflict.
