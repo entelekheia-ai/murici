@@ -1,81 +1,63 @@
 <p align="center">
-  <img src="docs/images/header.png" alt="dot-agent" width="800">
+  <img src="docs/images/header.png" alt="Murici" width="800">
 </p>
 
-# Murici
+<h1 align="center">Murici</h1>
 
-> A LLM chat runtime with deterministic state-machine behavior routing powered by [@dot-agent/sdk](https://github.com/dot-agent-spec/platform/tree/main/packages/sdk).
+<p align="center">
+  <strong>A lightweight desktop chat UI for running deterministic state-machine agents.</strong><br>
+  Built on the <a href="https://github.com/dot-agent-spec/platform"><code>.agent</code></a> standard: drag a bundle onto the window and watch the run as it happens.
+</p>
 
-Murici is a lightweight, responsive desktop and web Chat UI designed for running deterministic state-machine agent behaviors. By integrating LLM chat interactions with structured finite state machine (FSM) controls, Murici allows developers to design predictable, goal-driven conversational flows.
+<p align="center">
+  <a href="https://github.com/entelekheia-ai/murici/releases"><img src="https://img.shields.io/github/v/release/entelekheia-ai/murici?label=release" alt="Latest release"></a>
+  <a href="license"><img src="https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-blue.svg" alt="Apache-2.0 and MIT"></a>
+  <a href="https://github.com/entelekheia-ai/murici/releases/latest"><img src="https://img.shields.io/badge/desktop-Electron-47848F?logo=electron&logoColor=white" alt="Electron desktop"></a>
+</p>
 
----
+<p align="center">
+  <a href="https://github.com/entelekheia-ai/murici/releases/latest">Download</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#known-limitations">Known limitations</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="https://entelekheia.ai">entelekheia.ai</a>
+</p>
 
-## Key Features
+![Murici running the Fridge Assistant agent: the conversation on the left, and on the right the agent's state history — responsive marked done, show_catalog in progress, and the remaining states still pending.](https://github.com/entelekheia-ai/.github/raw/main/assets/murici.png)
 
-- **Deterministic Behavior Routing**: Manage chat sessions, goals, styles, and instructions using [@dot-agent/sdk](https://github.com/dot-agent-spec/platform/tree/main/packages/sdk) and `AgentSession` runtimes.
-- **Local Model Auto-Discovery**: Automatically scan and connect to local LLM servers (e.g., Ollama or custom local API endpoints) alongside standard hosted APIs.
-- **Drag-and-Drop Agent Bundles**: Instantly load and compile behaviors by dragging and dropping `.agent` bundles (packaged using the [dot-agent-cli](https://github.com/dot-agent-spec/platform/tree/main/apps/dot-agent-cli)).
-- **SCXML State Graph**: Visually monitor conversation state, visited steps, and active transitions in real time using a custom SVG-rendered state graph parsed from SCXML.
-- **IndexedDB Persistence**: Save chat history, settings, and custom models directly in the client database (`idb`), requiring no external database or authentication setup.
-- **Electron Desktop packaging**: Easily build standalone binaries (`.dmg`, `.exe`, `.AppImage`) using `electron-builder` for local-first desktop usage.
-- **Warm & Modern Aesthetic**: A clean, premium, and unified dark/warm-themed user interface optimized for readability and developer productivity.
+## Why
 
----
+A chat with an LLM agent is usually something you infer: you read the answers and guess which step the
+agent thinks it is on. Murici makes it something you watch. The panel on the right tracks the run as it
+happens — which states are done, which one is executing, which are still ahead — alongside the agent's own
+description and its execution graph.
 
-## Quick Start
+## How it works
 
-### Prerequisites
-- Node.js ≥ 18
+Routing is deterministic. An `.agent` bundle declares a state machine; the model signals intent through a
+`trigger_intent` tool call, a WASM kernel ([`@dot-agent/sdk`](https://github.com/dot-agent-spec/platform/tree/main/packages/sdk))
+decides the transition, and the interface updates from the effects it returns — goal, guide and teach
+instructions for the model, transitions for the panel. The model never decides where the conversation goes
+on its own, and no control tokens leak into the chat.
 
-### Running in Web Dev Mode
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Start the Next.js development server:
-   ```bash
-   npm run dev
-   ```
-3. Open [http://localhost:3000](http://localhost:3000) in your browser.
+- **Drag and drop.** Drop an `.agent` bundle (packed with
+  [`dot-agent-cli`](https://github.com/dot-agent-spec/platform/tree/main/apps/dot-agent-cli)) onto the
+  window and it compiles and starts. Recently used agents are kept so a chat can be resumed.
+- **Any model.** Hosted providers and locally discovered LLM servers (Ollama, or any OpenAI-compatible
+  endpoint) connect on the same footing.
+- **Local only.** Chats, models, keys and agents live in IndexedDB on your own machine. There is no account
+  and no server to sign into.
+- **Reasoning kept apart.** A model's `<think>` output is shown in a collapsible block, never mixed into the
+  answer.
 
-### Running in Electron Desktop Mode
-For desktop development with hot reloading:
-```bash
-npm run electron:dev
-```
+## Install
 
-To compile production-ready distributable installers:
-```bash
-npm run electron:build
-```
-The installers will land in the `dist-electron/` directory.
+Download the installer for macOS or Windows from the
+**[latest release](https://github.com/entelekheia-ai/murici/releases/latest)**.
 
----
+To run from source, see [CONTRIBUTING.md](CONTRIBUTING.md#running-from-source).
 
-## Persistence
-
-All data is stored locally in the user's browser or Electron renderer process via **IndexedDB** using the [`idb`](https://github.com/jakearchibald/idb) library in a database named `"entelekheia"`.
-
-- **Schema**: `conversations`, `messages`, `customModels`, `settings`.
-- **Location**: Implementation is located in [lib/local-db/](lib/local-db/) (with backwards-compatible shims in [db/](db/)).
-
----
-
-## Behavior Integration
-
-Murici runs deterministic state-machine execution via the [@dot-agent/sdk](https://github.com/dot-agent-spec/platform/tree/main/packages/sdk) monorepo packages.
-
-- Drag-and-drop or copy-paste `.flow` DSL files into the Behavior Panel.
-- The state machine directs the conversation via structured instructions (`goal`, `guide`, `teach` effects).
-- Intent signaling uses structured tool calling (`trigger_intent`) instead of brittle regex parsing on raw LLM output, preventing control token leakage.
-- Detailed transition event timelines and collapsible thinking blocks (`<think>`) are rendered natively in the message thread.
-
-For in-depth architecture details, see [dot-agent.md](./dot-agent.md).  
-For developer and agent guidelines, see [AGENTS.md](./AGENTS.md).
-
----
-
-## Known Limitations
+## Known limitations
 
 ### A malformed tool call from a weak model can poison a chat
 
@@ -96,11 +78,8 @@ an `.agent` loaded.
 
 Tracked in [#1](https://github.com/entelekheia-ai/murici/issues/1).
 
----
-
 ## License
 
-- Copyright (c) 2026 Danilo Borges — **Apache License 2.0**.
-- Portions Copyright (c) 2023 McKay Wrigley — **MIT License**.
-- See [`license`](./license) and [`NOTICE`](./NOTICE) for full terms and attributions.
-
+Apache License 2.0, with portions from [Chatbot UI](https://github.com/mckaywrigley/chatbot-ui)
+(McKay Wrigley) under the MIT License. Copyright is held by the Murici authors — see [`license`](license),
+[`NOTICE`](NOTICE) and [`AUTHORS`](AUTHORS).

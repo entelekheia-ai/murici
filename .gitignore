@@ -65,3 +65,7 @@ graphify-out/
 
 # Claude Code local settings (machine-specific, should never be committed)
 .claude/settings.local.json
+
+# graphify: local-only agent rule and workflow (no graph is committed here)
+.agents/rules/graphify.md
+.agents/workflows/graphify.md
