@@ -1,0 +1,33 @@
+name: Canary
+
+# Runs the test suite against @dot-agent/* as the registry serves them under each dist-tag, instead of
+# the exact pins in package.json — packaging defects in a published release show up here before a bump.
+# Before promoting a murici channel that bumps @dot-agent/*, dispatch it and link the green run.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [latest, beta]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      - run: node scripts/canary-install.mjs --channel ${{ matrix.channel }}
+      - run: node scripts/copy-tree-sitter-assets.js
+      - run: npm test

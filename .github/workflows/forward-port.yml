@@ -1,0 +1,62 @@
+name: Forward-port
+
+# A fix merged into main must reach every channel before that channel is next promoted, or the promotion
+# regresses it. Each push to main opens or updates a PR from forward-port/<channel> into <channel>;
+# a conflict shows up as a red PR, not as something to remember.
+#
+# The head is a disposable branch, never main: GitHub's conflict editor commits the resolution to the
+# head, and with main as the head that would carry the channel's pre.json into main. The branch is kept
+# and main is merged into it on each run, so a resolution committed there survives.
+#
+# Needs the FORWARD_PORT_TOKEN secret (a fine-grained token with contents + pull-requests write): a PR
+# opened with GITHUB_TOKEN triggers no workflow, so release-checks would never run on it.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  forward-port:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [beta, alpha]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.FORWARD_PORT_TOKEN }}
+      - name: Update forward-port/${{ matrix.channel }} and open its PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.FORWARD_PORT_TOKEN }}
+          CHANNEL: ${{ matrix.channel }}
+        run: |
+          if ! git ls-remote --exit-code --heads origin "$CHANNEL" >/dev/null; then
+            echo "No $CHANNEL branch — that channel is not open; nothing to forward-port."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          head="forward-port/$CHANNEL"
+          if git ls-remote --exit-code --heads origin "$head" >/dev/null; then
+            git checkout -B "$head" "origin/$head"
+            git merge --no-edit origin/main
+          else
+            git checkout -B "$head" origin/main
+          fi
+          if [[ -z "$(git log --oneline "origin/$CHANNEL..HEAD")" ]]; then
+            echo "$CHANNEL already contains main."
+            exit 0
+          fi
+          git push origin "$head"
+          if [[ -z "$(gh pr list --head "$head" --base "$CHANNEL" --state open --json number --jq '.[].number')" ]]; then
+            gh pr create --head "$head" --base "$CHANNEL" \
+              --title "Forward-port main into $CHANNEL" \
+              --body "Automatic forward-port: carries what landed on main into the $CHANNEL channel. Keep $CHANNEL's side of .changeset/pre.json and package.json on conflict."
+          fi

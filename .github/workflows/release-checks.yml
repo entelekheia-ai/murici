@@ -1,0 +1,42 @@
+name: Release checks
+
+# The PR gate of the release-channel flow (CONTRIBUTING.md § Branches & release channels):
+# every PR declares its change intent, and no PR carries a channel's pre mode where it does not belong.
+
+on:
+  pull_request:
+    branches: [main, beta, alpha]
+
+jobs:
+  changeset:
+    # The release PR consumes the changesets, and a forward-port carries main's, already gated there.
+    if: ${{ !startsWith(github.head_ref, 'release/') && !startsWith(github.head_ref, 'forward-port/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # status reads only package.json files and git, so no npm ci. Compared with the PR's own base:
+      # pre mode keeps every changeset until it exits, so comparing with main would pass on old ones.
+      - run: npx --yes @changesets/cli@2.31.1 status --since=origin/${{ github.base_ref }}
+
+  pre-mode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: pre.json matches the target branch
+        shell: bash
+        run: |
+          base="${{ github.base_ref }}"
+          tag=""
+          if [[ -f .changeset/pre.json ]]; then
+            tag=$(node -p 'const p=require("./.changeset/pre.json"); p.mode==="pre" ? p.tag : ""')
+          fi
+          if [[ "$base" == main && -n "$tag" ]]; then
+            echo "::error::.changeset/pre.json is in pre mode ($tag). Run 'changeset pre exit' before merging into main, or the stable release comes out as a prerelease."
+            exit 1
+          fi
+          if [[ "$base" != main && "$tag" != "$base" ]]; then
+            echo "::error::.changeset/pre.json names '${tag:-no channel}' but this PR targets '$base'. Forward-ports go from main to each channel, never from one channel to another."
+            exit 1
+          fi
