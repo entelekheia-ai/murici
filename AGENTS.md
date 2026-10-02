@@ -65,6 +65,11 @@ language reference is the [dot-agent platform](https://github.com/dot-agent-spec
 | IndexedDB | The store lives in Electron's per-app partition, not the origin's: a browser tab on the same `localhost:3000` reads a different, usually empty, copy. Verify real data in the Electron window's DevTools. |
 | Release channels | Driven by the git tag; `electron/updater.ts` derives the channel from the build's version. **Never tag a prerelease off `main`.** Procedure: [`CONTRIBUTING.md`](CONTRIBUTING.md). |
 
+## Agent config
+
+Skills live in `.agents/skills/<verb>/SKILL.md`; `.claude/skills/<verb>` is a relative symlink to it.
+Never put the real file under `.claude/`. To verify a UI or chat change, use the `verify` skill.
+
 ## Troubleshooting an agent that does not transition
 
 1. **Tool in the request?** The request to `/api/chat/<provider>` must carry `trigger_intent` with a
