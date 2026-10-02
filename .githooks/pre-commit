@@ -11,6 +11,14 @@ set -e
 staged_ts=$(git diff --cached --name-only --diff-filter=ACM -- "*.ts" "*.tsx")
 
 if [ -n "$staged_ts" ]; then
+  # Without a local install (a fresh worktree), npx would fetch the registry's
+  # latest major, which fails on a config error that hides the real cause.
+  for bin in eslint prettier; do
+    if [ ! -x "node_modules/.bin/$bin" ]; then
+      echo "pre-commit: node_modules/.bin/$bin is missing — run npm install in this checkout first." >&2
+      exit 1
+    fi
+  done
   echo "$staged_ts" | xargs npx eslint --fix
   echo "$staged_ts" | xargs npx prettier --write
   echo "$staged_ts" | xargs git add
