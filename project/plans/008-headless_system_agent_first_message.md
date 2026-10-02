@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Future Plan: Headless System Agent para Primeira Mensagem Automática
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-03 |
+| Author | Danilo Borges |
 
 Ideia levantada em 2026-07-03 durante o teste real do onboarding-agent, ainda sem plano formal — este documento só registra o conceito e as dúvidas em aberto para quando o modo de plano for aberto sobre o tema.
 

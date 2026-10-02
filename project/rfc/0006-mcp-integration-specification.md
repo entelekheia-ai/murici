@@ -1,3 +1,7 @@
+---
+vibe-ops-template: rfc@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 
@@ -15,7 +19,7 @@
 | Status | Proposed |
 | Created | 2026-06-21 |
 | Author | Danilo Borges |
-| Depends on | [dot-agent.md](../dot-agent.md), [AGENTS.md](../AGENTS.md) |
+| Depends on | [project/adr/](../adr/), [AGENTS.md](../../AGENTS.md) |
 | Related | None |
 
 ---

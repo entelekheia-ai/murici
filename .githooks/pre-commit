@@ -17,3 +17,23 @@ if [ -n "$staged_ts" ]; then
 fi
 
 bash scripts/ensure-license-headers.sh
+
+# --- The governance gate, after the checks above ---
+# Appended rather than replacing this hook: eslint/prettier autofix and license headers must run first,
+# so the gate checks the tree as staged, including whatever the autofix re-staged. `vibe-ops check`
+# composes every check itself (built-ins, the ops this repository's config declares) and prints only
+# what failed or warned. `set -e` is active, so the gate's nonzero return is captured through `||`.
+if ! command -v vibe-ops >/dev/null 2>&1; then
+  echo "pre-commit: no \`vibe-ops\` on PATH — this repository's gate cannot run." >&2
+  echo "Install it with: npm i -g @entelekheia/vibe-ops-cli" >&2
+  exit 2
+fi
+
+ROOT=$(git rev-parse --show-toplevel)
+GIT_DIR=$(git rev-parse --git-dir)
+export GATE_ARTIFACT_DIR="$GIT_DIR/gate-artifacts"
+mkdir -p "$GATE_ARTIFACT_DIR"
+
+GATE_RC=0
+vibe-ops check "$ROOT" || GATE_RC=$?
+exit "$GATE_RC"

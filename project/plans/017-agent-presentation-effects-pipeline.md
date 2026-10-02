@@ -1,3 +1,7 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan-017: Per-Thread Agent Presentation-Effects Pipeline
 
 | Field | Value |
@@ -6,7 +10,7 @@
 | Created | 2026-07-15 |
 | Author | Danilo Borges |
 | Depends on | ADR-0007 (per-thread chat channels) |
-| Related | Plan-006 (onboarding agent — supersedes its "CSS Scope Persistance" section), Plan-007 (GenUI & Web Components), Plan-014 (channel-store consumer migration), [Runtime Actions](../../docs/architecture/runtime-actions.md) |
+| Related | Plan-006 (onboarding agent — supersedes its "CSS Scope Persistance" section), Plan-007 (GenUI & Web Components), Plan-014 (channel-store consumer migration), [Runtime Actions](../../docs/reference/runtime-actions.md) |
 
 ---
 
@@ -14,7 +18,7 @@
 
 Agent behaviors emit two kinds of effects that change how Murici looks and behaves while the user talks to an agent: **declarative presentation state** (`apply css` / `remove css`, later `apply html`) and **runtime actions** (`run script "chat:models-selector-open"` and friends — deterministic host UI actions). Two structural gaps make both misbehave: (1) they are only processed on the agent's **initial load**, not on the FSM advances (`send_intent`) that drive the actual conversation, so most per-state effects never fire; and (2) the CSS effects mutate `document.head` **globally**, with no per-thread scoping and no teardown on chat switch, so the onboarding theme "leaks" into every other chat and never goes away.
 
-This plan replaces the ad-hoc `applyKernelCss`/`handleKernelEffects` calls with a single **unidirectional pipeline**: declarative effects are folded into **per-thread desired presentation state** in the channel store, and one React **reconciler** materializes only the *viewed* thread's state into the DOM; runtime actions are routed through a single vendor-neutral **dispatcher** (see [Runtime Actions](../../docs/architecture/runtime-actions.md)). This fixes the leak, makes per-state effects fire, and establishes the runtime foundation that Plan-007 (GenUI / Shadow-DOM widgets) will build on.
+This plan replaces the ad-hoc `applyKernelCss`/`handleKernelEffects` calls with a single **unidirectional pipeline**: declarative effects are folded into **per-thread desired presentation state** in the channel store, and one React **reconciler** materializes only the *viewed* thread's state into the DOM; runtime actions are routed through a single vendor-neutral **dispatcher** (see [Runtime Actions](../../docs/reference/runtime-actions.md)). This fixes the leak, makes per-state effects fire, and establishes the runtime foundation that Plan-007 (GenUI / Shadow-DOM widgets) will build on.
 
 ## Goals
 
@@ -32,7 +36,7 @@ This plan replaces the ad-hoc `applyKernelCss`/`handleKernelEffects` calls with 
 - A pure effect fold + a DOM reconciler in `lib/kernel-effects.ts`.
 - Effect ingestion on **both** kernel-call paths: initial load (`agent-session-provider.tsx`) and FSM advance (`channel-controller.ts`).
 - A single React reconciler component (DOM sink) keyed on the viewed thread.
-- A vendor-neutral runtime-action vocabulary + dispatcher (`lib/runtime/runtime-actions.ts`) per [Runtime Actions](../../docs/architecture/runtime-actions.md), replacing today's hardcoded `run_script` target strings; renaming the four existing targets to the namespaced vocabulary and updating the onboarding `.behavior` files to match.
+- A vendor-neutral runtime-action vocabulary + dispatcher (`lib/runtime/runtime-actions.ts`) per [Runtime Actions](../../docs/reference/runtime-actions.md), replacing today's hardcoded `run_script` target strings; renaming the four existing targets to the namespaced vocabulary and updating the onboarding `.behavior` files to match.
 - Unit tests for the fold + store action + dispatcher validation; a Playwright off-screen leak regression test.
 
 ### Out of Scope
@@ -68,7 +72,7 @@ KernelPresentationHost (one React reconciler)   ← DOM sink; materializes ONLY 
 Two kinds of effects, handled by two mechanisms:
 
 - **Declarative presentation state** (`apply_css`, `remove_css`, future `apply_html`): accumulate into per-thread desired state. Materialized by the reconciler, for the viewed thread only. Order-preserving (CSS cascade: later `apply` wins).
-- **Runtime actions** (carried today by `run_script`; deterministic host UI actions): fire-once, for the **viewed/active** thread only — a background onboarding step must not yank open a panel while the user looks at another chat. Routed through the vendor-neutral vocabulary + dispatcher in [Runtime Actions](../../docs/architecture/runtime-actions.md), so a single `dispatchRuntimeAction(action)` works identically from React and from the vanilla controller.
+- **Runtime actions** (carried today by `run_script`; deterministic host UI actions): fire-once, for the **viewed/active** thread only — a background onboarding step must not yank open a panel while the user looks at another chat. Routed through the vendor-neutral vocabulary + dispatcher in [Runtime Actions](../../docs/reference/runtime-actions.md), so a single `dispatchRuntimeAction(action)` works identically from React and from the vanilla controller.
 
 The four current actions are renamed to the namespaced vocabulary:
 
@@ -112,7 +116,7 @@ The `run_script` → hardcoded-CustomEvent logic moves out to the dispatcher (be
 
 ### `runtime-actions.ts` — vendor-neutral vocabulary + dispatcher
 
-New `lib/runtime/runtime-actions.ts`, the single source of truth for the action vocabulary (see [Runtime Actions](../../docs/architecture/runtime-actions.md)):
+New `lib/runtime/runtime-actions.ts`, the single source of truth for the action vocabulary (see [Runtime Actions](../../docs/reference/runtime-actions.md)):
 
 ```ts
 export const RUNTIME_ACTIONS = [
@@ -189,7 +193,7 @@ The onboarding agent's `main.behavior` / `onboarding.behavior` change their `run
 
 - Should `reconcileCssLinks` guarantee `<head>` ordering matches the desired array exactly (re-inserting to reorder), or only guarantee set membership (add missing / remove extra)? Set membership is simpler and sufficient unless two agent stylesheets have conflicting rules on the same selector. Default: set membership; revisit if a real cascade conflict appears.
 - When `apply css` names a file already present in a thread's set, keep its position or move to end? Default: keep position (avoid surprising cascade reorders).
-- **Parameterized runtime actions** (deferred, tracked in [Runtime Actions](../../docs/architecture/runtime-actions.md)): the current `run script "<string>"` transport carries no payload, so all four v0 actions are argument-free. The first action that needs an argument (e.g. `settings:theme-set`) forces a payload design — out of scope here, noted so the vocabulary isn't accidentally locked into string-only.
+- **Parameterized runtime actions** (deferred, tracked in [Runtime Actions](../../docs/reference/runtime-actions.md)): the current `run script "<string>"` transport carries no payload, so all four v0 actions are argument-free. The first action that needs an argument (e.g. `settings:theme-set`) forces a payload design — out of scope here, noted so the vocabulary isn't accidentally locked into string-only.
 
 ## Related
 

@@ -1,4 +1,14 @@
+---
+vibe-ops-template: rfc@2
+---
+
 # RFC: Dual-Model Agent Orchestration Architecture
+
+| Field | Value |
+|---|---|
+| Status | Draft |
+| Created | 2026-07-06 |
+| Author | Danilo Borges |
 
 ## 1. Context and Motivation
 

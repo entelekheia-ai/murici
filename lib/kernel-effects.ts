@@ -1,18 +1,4 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import { Effect } from "@/types/kernel-effect"
 import { dispatchRuntimeAction } from "@/lib/runtime/runtime-actions"
@@ -70,7 +56,7 @@ export function reconcileCssLinks(desired: string[]) {
   }
 }
 
-// Runtime actions (project/plans/017, docs/architecture/runtime-actions.md)
+// Runtime actions (project/plans/017, docs/reference/runtime-actions.md)
 // currently ride on the `run_script` effect — a stopgap until the dot-agent
 // spec separates "run an external script" from "invoke a host UI action".
 // Forwards each target straight into the dispatcher: the action's name IS the

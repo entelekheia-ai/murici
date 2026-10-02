@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 012: Remote Model Usage Visibility & Account-Eligibility Errors
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-11 |
+| Author | Danilo Borges |
 
 ## Objective
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import { FileDown, User } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -120,7 +122,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     // Opens on the default tab.
     const openGeneric = openOnTab("profile")
     // The two agent runtime actions (project/plans/017,
-    // docs/architecture/runtime-actions.md) that open this panel, each on its
+    // docs/reference/runtime-actions.md) that open this panel, each on its
     // own tab — they used to share "murici:profile-open" with a detail.tab
     // payload; the namespaced vocabulary gives each its own event instead.
     const openMcp = openOnTab("mcp")

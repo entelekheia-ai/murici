@@ -1,3 +1,7 @@
+---
+vibe-ops-template: adr@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 
@@ -33,7 +37,7 @@ Esse desenho concreto causou dois bugs:
 1. **`handleNewChat()`** (`use-chat-handler.tsx`) resetava `chatMessages`/`chatFiles`/`selectedChat` e chamava `destroyChatAgentSession("__new__")`, mas nunca chamava `setSelectedAssistant(null)` — todo chat novo herdava o `assistant_id` da conversa anterior (`handleCreateChat(..., selectedAssistant!, ...)` gravava o valor antigo).
 2. O reset do painel do agente dependia de um `useEffect([selectedChat?.id])` em `right-sidebar.tsx`. Clicar "Novo" já estando no bucket não salvo `"__new__"` não muda `selectedChat?.id` (`undefined → undefined`), então o efeito não disparava e o painel ficava com o agente antigo — o mesmo problema já tinha sido corrigido ad hoc só dentro de `goToNewChatWithPayload`, nunca em `handleNewChat`.
 
-Ver o log de investigação completo em [`0002-agent-session-viewmodel-extraction-log.md`](0002-agent-session-viewmodel-extraction-log.md) (diagrama mermaid da arquitetura anterior, sequência exata do bug, erros de console das sessões anteriores).
+Ver o log de investigação completo em [`0002-agent-session-viewmodel-extraction-log.md`](https://github.com/entelekheia-ai/murici/blob/c9fba63e3ddd830cb5b0c85b98bd0caae005279d/project/adr/0002-agent-session-viewmodel-extraction-log.md) (diagrama mermaid da arquitetura anterior, sequência exata do bug, erros de console das sessões anteriores).
 
 ## Decision
 
@@ -72,7 +76,7 @@ Extraímos o estado e a lógica de sessão do agente para um ViewModel próprio,
 
 ## Related
 
-- [Log de investigação (long-form)](0002-agent-session-viewmodel-extraction-log.md)
+- [Log de investigação (long-form)](https://github.com/entelekheia-ai/murici/blob/c9fba63e3ddd830cb5b0c85b98bd0caae005279d/project/adr/0002-agent-session-viewmodel-extraction-log.md)
 - [Plan 001 — Zustand State Migration](../plans/001-zustand-state-migration.md)
 - [Plan 004 — Chat Handler Strategy Pattern](../plans/004-chat-handler-strategy.md)
 - `context/agent-session-context.tsx`, `components/utility/agent-session-provider.tsx`, `lib/hooks/use-agent-session.ts`

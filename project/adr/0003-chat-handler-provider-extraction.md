@@ -1,3 +1,7 @@
+---
+vibe-ops-template: adr@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 
@@ -45,7 +49,7 @@ instâncias); um lock module-level também não resolve, porque a duplicação n
 instância montada.
 
 Ver o log de investigação completo em
-[`0003-chat-handler-provider-extraction-log.md`](0003-chat-handler-provider-extraction-log.md)
+[`0003-chat-handler-provider-extraction-log.md`](https://github.com/entelekheia-ai/murici/blob/c9fba63e3ddd830cb5b0c85b98bd0caae005279d/project/adr/0003-chat-handler-provider-extraction-log.md)
 — inclui um **segundo bug, independente e mais grave**, achado só depois que a extração do
 Provider já estava implementada e o teste E2E (`random-model-smoke.spec.ts`) continuava
 falhando: um bug de desestruturação em `onFinish` que fazia toda resposta do modelo, mesmo
@@ -186,12 +190,12 @@ troca de provider, sem dependência nova, tool-calling intacto. (Mesma ideia do 
 Qwen3.5-9B e gpt-oss-20b), tool-calling 2/2 (sem regressão do `.chat()`), `tsc` limpo, `jest`
 44/45 (a mesma falha pré-existente e não relacionada). Commits `c4987c0` (fonte única) e `6f73cd0`
 (reasoning_content + retrabalho do teste). Log detalhado na continuação de
-[`0003-chat-handler-provider-extraction-log.md`](0003-chat-handler-provider-extraction-log.md).
+[`0003-chat-handler-provider-extraction-log.md`](https://github.com/entelekheia-ai/murici/blob/c9fba63e3ddd830cb5b0c85b98bd0caae005279d/project/adr/0003-chat-handler-provider-extraction-log.md).
 
 ## Related
 
 - [ADR-0002 — Agent Session ViewModel Extraction](0002-agent-session-viewmodel-extraction.md) (padrão replicado)
-- [Log de investigação (long-form)](0003-chat-handler-provider-extraction-log.md)
+- [Log de investigação (long-form)](https://github.com/entelekheia-ai/murici/blob/c9fba63e3ddd830cb5b0c85b98bd0caae005279d/project/adr/0003-chat-handler-provider-extraction-log.md)
 - [Plan 001 — Zustand State Migration](../plans/001-zustand-state-migration.md)
 - [Plan 004 — Chat Handler Strategy Pattern](../plans/004-chat-handler-strategy.md)
 - `context/chat-handler-context.tsx`, `components/utility/chat-handler-provider.tsx`, `lib/hooks/use-chat-handler.ts`

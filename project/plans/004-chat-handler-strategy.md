@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 004: Chat Handler Strategy Pattern
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-06 |
+| Author | Danilo Borges |
 
 ## Objective
 Deconstruct the monolithic `use-chat-handler.tsx` and `chat-helpers/index.ts` files into a clean Strategy Pattern.

@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Future Plan: GenUI & Web Components Migration
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-06 |
+| Author | Danilo Borges |
 
 Este documento detalha o planejamento futuro para a migração estrutural do frontend do Murici, saindo de um modelo fortemente acoplado ao Tailwind (`<div>` genéricas) para uma arquitetura baseada em **Web Components (Custom Elements)** e/ou **Atributos Semânticos (`data-*`)**.
 
@@ -9,7 +19,7 @@ Com a evolução do `dot-agent-spec` e a capacidade de agentes injetarem efeitos
 > [!NOTE]
 > O pipeline de ingestão/reconciliação de `apply css` por thread já está implementado — ver
 > [Plan-017](./017-agent-presentation-effects-pipeline.md) e
-> [Runtime Actions](../../docs/architecture/runtime-actions.md). O CSS injetado é escopado por
+> [Runtime Actions](../../docs/reference/runtime-actions.md). O CSS injetado é escopado por
 > thread (`activeCss[viewedThreadId]`, reconciliado pelo `KernelPresentationHost`), não global —
 > a nota abaixo sobre CSS "global" descreve a intenção de especificidade de seletor, não o escopo
 > de aplicação, que já é por conversa.

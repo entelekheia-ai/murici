@@ -1,3 +1,7 @@
+---
+vibe-ops-template: rfc@2
+---
+
 <!--
  Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
 
@@ -15,7 +19,7 @@
 | Status | Proposed |
 | Created | 2026-06-23 |
 | Author | Danilo Borges |
-| Depends on | [0002-knowledge-graph-data-model.md](./0002-knowledge-graph-data-model.md) |
+| Depends on | [0002-knowledge-graph-data-model.md](./implemented/0002-knowledge-graph-data-model.md) |
 | Related | None |
 
 ---

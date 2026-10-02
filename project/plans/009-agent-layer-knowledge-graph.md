@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 009: Camada de Agentes no Grafo de Conhecimento
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-05 |
+| Author | Danilo Borges |
 
 ## Objective
 Adicionar uma segunda camada de conexões ao `knowledge-graph-canvas.tsx`: nós representando agentes que interagiram com as conversas, com arestas para os chats/artefatos que tocaram, visível junto com a camada atual (conversa→conhecimento) mas com uma gramática visual própria (gradientes, não paleta nova por tipo). Sem graphify, sem `remember()`/memory_summarizer (RFC-0004 Partes 2 e 5) — só a camada visual e o write-path que a alimenta.
@@ -15,9 +25,9 @@ Hoje o layout é **puramente determinístico** (posição inicial calculada por 
 3. **Sem filtro/remoção de nós para focar** — reorganizar o dataset (remover nós) dispara re-stabilization cara e visualmente abrupta, e viola a premissa de estabilidade geográfica. Em vez disso: **seletor de lente gravitacional** que só re-pesa massa/gravidade por *tipo* de nó, mais **clique-pra-enquadrar** (`network.focus()`/`network.moveTo()`, puro viewport, não mexe em física nem dataset).
 4. **De-ênfase por cor, não por opacidade** — opacidade reduzida derruba contraste de label (acessibilidade) e labels são exatamente o que precisa continuar legível em nós periféricos. Trocar cor tem o mesmo custo de performance que opacidade no vis-network (ambos são só `nodes.update()`/`edges.update()` → redraw, nenhum dos dois toca física), então a escolha é 100% pelo argumento de acessibilidade/controle — cor vence.
 5. **Modelo de cor por tier, não por identidade individual do artefato** — nó médio (artefato) nunca precisa de cor própria/individual; a identidade de "de qual pai eu vim" vive no **gradiente da aresta e da borda**, não numa cor de preenchimento própria. Isso evita esgotar paleta com centenas de artefatos.
-6. **Gradiente orgânico** (blend suave, não fatias duras) na borda dos nós médios quando há múltiplos pais — consistente com a estética "canopy orgânico" já usada no canvas (Catmull-Rom, ver `[[project_murici_knowledge_graph]]` na memória).
+6. **Gradiente orgânico** (blend suave, não fatias duras) na borda dos nós médios quando há múltiplos pais — consistente com a estética "canopy orgânico" já usada no canvas (Catmull-Rom).
 7. Desenhado para não fechar a porta em **múltiplos agentes por conversa e subagentes** (próximo passo, fora de escopo aqui): `agentRuns` já é array por artefato; `agentBundles` (hoje 1:1 por `conversationId`) é o único ponto que precisará virar 1:N depois.
-8. **Deduplicação por bare id (`namespace/name`), não pelo id completo** — um agent ID é `namespace/name:version~digest` ([dot-agent-spec/agent-id.md](../../../dot-agent-spec/docs/reference/agent-id.md)); o `digest` muda a cada republish. Deduplicar pelo id completo faz o mesmo agente virar um nó por build/versão carregada (ex.: dois "Murici Helper" com digests diferentes). O grafo agrupa pela identidade estável (`namespace/name`), não por qual build específico produziu um artefato — `bareAgentId()` faz o split no primeiro `:` (não no `~`, que em namespaces Sourcehut aparece antes dos dois-pontos, dentro do username).
+8. **Deduplicação por bare id (`namespace/name`), não pelo id completo** — um agent ID é `namespace/name:version~digest` (ver `dot-agent-spec/docs/reference/agent-id.md`); o `digest` muda a cada republish. Deduplicar pelo id completo faz o mesmo agente virar um nó por build/versão carregada (ex.: dois "Murici Helper" com digests diferentes). O grafo agrupa pela identidade estável (`namespace/name`), não por qual build específico produziu um artefato — `bareAgentId()` faz o split no primeiro `:` (não no `~`, que em namespaces Sourcehut aparece antes dos dois-pontos, dentro do username).
 
 ## Data layer — popular `agentRuns` e expor `agentBundles` em lote
 

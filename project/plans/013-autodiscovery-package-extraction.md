@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Estudo: extrair o autodiscovery (local + remoto) para um pacote próprio
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-12 |
+| Author | Danilo Borges |
 
 > Documento de pesquisa, não um plano de implementação aprovado. Nada aqui foi
 > codificado em `murici` ainda. Objetivo: decidir se/como extrair a lógica de
@@ -10,7 +20,7 @@
 
 - **Pacote**: `packages/autodiscovery/` dentro do próprio repo `murici`, consumido
   via **`file:` symlink** — o mesmo padrão já validado neste repo pro consumo do
-  `dot-agent-spec` ([[project_murici_dot_agent_sync]]). Sem introduzir npm
+  `dot-agent-spec`. Sem introduzir npm
   workspaces do zero; publicar no registry fica como passo 2, depois que a API
   estabilizar (a estrutura abaixo já deixa isso barato — é só `npm publish`,
   não um redesenho).
@@ -255,4 +265,3 @@ achar duplicatas entre provedores) ou (b) um consumidor não-JS real aparecer.
 - SDK estudado: `@opencode-ai/models` — https://github.com/anomalyco/models.dev/tree/dev/packages/sdk
   (clonado em `/private/tmp/claude-501/.../scratchpad/models-dev-study/models.dev`
   pra esta sessão — não commitado em lugar nenhum, é só material de estudo)
-- Memória: `project_murici_dot_agent_sync` (padrão `file:` já validado neste repo)

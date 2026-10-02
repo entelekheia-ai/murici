@@ -1,5 +1,19 @@
 # Contributing to Murici
 
+## Running from source
+
+Node version: [`.nvmrc`](.nvmrc).
+
+```bash
+npm install
+npm run dev            # web: Next.js on http://localhost:3000
+npm run electron:dev   # desktop, with hot reload
+npm run electron:build # installers into dist-electron/
+```
+
+A browser tab on `localhost:3000` reads its own IndexedDB, not the Electron
+window's: verify desktop data in the Electron window's DevTools.
+
 ## Branches & release channels
 
 Murici ships on three channels. **Branch = channel = update track.**
@@ -101,6 +115,10 @@ Rules: masters only (electron-builder generates every derived size), always
   formats staged TS and injects license headers via
   `scripts/ensure-license-headers.sh`. If hooks don't fire, run
   `npm install` (or `git config core.hooksPath .githooks`) once.
+- **The hook ends with the governance gate**, `vibe-ops check`: docs, records
+  and links. It needs the CLI on `PATH` (`npm i -g @entelekheia/vibe-ops-cli`)
+  and refuses the commit without it. Run `vibe-ops check` to preview;
+  repository-specific settings live in [`vibeops.config.mjs`](vibeops.config.mjs).
 - **CI enforces headers independently** (`.github/workflows/license-headers.yml`
   runs the script in `--check` mode), so `--no-verify` can't merge unlicensed
   code. Run `bash scripts/ensure-license-headers.sh --check` locally to preview.

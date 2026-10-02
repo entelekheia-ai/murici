@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 002: Vercel AI SDK Upgrade & XML Tags Fallback (Vercel AI SDK v7)
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-02 |
+| Author | Danilo Borges |
 
 ## Objetivo
 
@@ -36,7 +46,7 @@ Iremos reescrever as rotas de backend para usar as novas funções `streamText` 
 
 ### 3. Parsing do Streaming (Frontend)
 Substituir a lógica legada e frágil de parsing por regex.
-#### [MODIFY] [components/chat/chat-helpers/index.ts](../../components/chat/chat-helpers/index.ts)
+#### [MODIFY] `components/chat/chat-helpers/index.ts`
 - Importar `parseDataStreamPart` ou usar o loop do novo Data Stream Protocol fornecido pelo `ai`.
 - Remover a função `extractThinkBlocks` inteiramente (já que os tokens de raciocínio não virão mais misturados no texto, mas sim como partes do tipo `reasoning` / tag `g:` no novo protocolo).
 - Processar partes do tipo `tool_call` de modo a manter o `trigger_intent` 100% invisível na interface (ocultando seu retorno).

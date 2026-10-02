@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 015: Future Agent Topology (subagents, system observers, multi-agent)
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-14 |
+| Author | Danilo Borges |
 
 > **Status:** briefing / tracking doc. Nothing here is being built now. This exists so the
 > channel architecture ([ADR-0007](../adr/0007-per-thread-chat-channels.md)) is *shaped* to

@@ -1,147 +1,53 @@
 # Murici — Agent Guidelines
 
-AI agent documentation for maintaining and expanding the `dot-agent-spec` integration in **Murici** (`chatbot-ui/`).
+Murici is a Next.js + Electron chat app that runs `.agent` behaviours: a deterministic state machine,
+executed by the `@dot-agent/sdk` WASM kernel, decides where a conversation goes, and the model only signals
+intent. It is a fork of [`mckaywrigley/chatbot-ui`](https://github.com/mckaywrigley/chatbot-ui) (MIT),
+relicensed Apache-2.0 with dual attribution — see [`NOTICE`](NOTICE).
 
-## Fork Context
+The `@dot-agent/*` packages are pinned to exact versions from npm (`package.json`). Their
+language reference is the [dot-agent platform](https://github.com/dot-agent-spec/platform), not this repo.
 
-Murici is a fork of [`mckaywrigley/chatbot-ui`](https://github.com/mckaywrigley/chatbot-ui) (MIT) relicensed under **Apache License 2.0** with dual attribution. It lives at `chatbot-ui/` inside the `entelekheia` monorepo and depends on `dot-agent-spec/` for the WASM FSM kernel.
+## Source of truth
 
-Key divergences from upstream:
-- **No Supabase** — all persistence via IndexedDB (`idb`, database `"entelekheia"`)
-- **Electron desktop** — packaged as `.dmg` / `.exe` / `.AppImage` via `electron-builder`
-- **dot-agent-kernel** — Rust/WASM FSM executor integrated for deterministic chat routing (using `@dot-agent/sdk`)
-- **License** — Apache 2.0 (`license` file) + `NOTICE` with dual attribution; source files carry copyright headers
+| What | Where |
+|---|---|
+| Architecture decisions (sessions, turn loop, channels, streaming errors) | [`project/adr/`](project/adr/) — 0007 (per-thread channels) is the current shape |
+| Persona, rules and per-turn FSM text sent to the model | [`lib/runtime/dot-agent-injector.ts`](lib/runtime/dot-agent-injector.ts) |
+| The `trigger_intent` tool actually sent | [`lib/tools/registry.ts`](lib/tools/registry.ts) (`buildTriggerIntentTool` in the injector only feeds the sidebar) |
+| The turn loop: tool call → `send_intent` → effects | [`lib/channels/channel-controller.ts`](lib/channels/channel-controller.ts) (`onToolCall`) |
+| Per-thread status, flow events, active CSS | [`lib/store/channel-store.ts`](lib/store/channel-store.ts) |
+| IndexedDB schema (`"entelekheia"`) | [`lib/local-db/schema.ts`](lib/local-db/schema.ts) |
+| Effect types | [`types/kernel-effect.ts`](types/kernel-effect.ts), hand-mirrored from the kernel's `src/effect.rs` |
+| Release, branches, license headers, running from source | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 
-Technical architecture: see [`dot-agent.md`](./dot-agent.md).
+## How this repo works
 
----
+The invariants — what breaks the worker, the channels, the injector, streaming, persistence and the
+packaged app — are [`.agents/rules/repo-guardrails.md`](.agents/rules/repo-guardrails.md), always loaded.
+Governance records (`project/`) follow [`.agents/rules/governance.md`](.agents/rules/governance.md) and are
+opened and closed with the `vibe-ops` plugin.
 
-## Persona
+| Electron | |
+|---|---|
+| Server | Packaged builds run the Next.js standalone server via `utilityProcess.fork` on a free `127.0.0.1` port ([`electron/next-server.ts`](electron/next-server.ts)). LLM calls go through it, not IPC. |
+| Release channels | Driven by the git tag; `electron/updater.ts` derives the channel from the build's version. **Never tag a prerelease off `main`.** Procedure: [`CONTRIBUTING.md`](CONTRIBUTING.md). |
 
-You are the guardian of the `dot-agent` architecture in Murici. Your role is to ensure that the `.agent` and `.flow` behavior specification design is respected at all times.
+## Agent config
 
-**Obligation:** Never introduce coupling between the FSM parser/engine and React components or Next.js routes. The Flow Engine is a black box (WASM wrapper).
+Rules and skills live in `.agents/` (`rules/<name>.md`, `skills/<verb>/SKILL.md`); `.claude/rules/` and
+`.claude/skills/` hold relative symlinks to them. Never put the real file under `.claude/`. To verify a UI
+or chat change, use the `verify` skill; to debug an agent that does not move, see
+[`docs/how-to/troubleshoot-agent-transitions.md`](docs/how-to/troubleshoot-agent-transitions.md).
 
-**Expertise:**
-- Safe FSM manipulation.
-- WASM (`wasm-bindgen`) integration via server APIs and Electron main/utility processes.
-- Prompt Engineering (System Prompt Injection, Tool Calling).
-- The deterministic `dot-agent-spec` paradigm (`language.md`).
+## Keeping this file current
 
----
+Update this file as part of any task that changes what it describes:
 
-## Absolute Rules
+- a file named in *Source of truth* moves or is renamed;
+- an ADR is added or supersedes 0007;
+- an invariant in `repo-guardrails.md` stops holding, or a new "this breaks if…" is found (edit the rule);
+- the worker, the injector, the channel controller or the chat routes change shape;
+- an IndexedDB store is added, or the Electron server/updater mechanics change.
 
-1. **Agent packages are in-memory only:** No `.agent` or `.flow` behavior file is written to any database (Supabase is removed; IndexedDB stores conversations/messages/models/keys only). The behavior lifecycle is 100% in-memory in the browser. If asked to persist behavior packages to IndexedDB, warn the user and ask for permission before doing so.
-
-2. **Runtime isolation:** Never write an AST interpreter or regex parser for `.flow` in TypeScript. Murici uses `@dot-agent/sdk`, `@dot-agent/kernel-dsl`, and `@dot-agent/compiler` (linked from `../dot-agent-spec/packages/*`) to execute all FSM logic. To avoid client-side Next.js/Webpack scheme errors (such as `node:fs` imports), behavior state machine logic is run server-side via API endpoints `/api/agent/kernel/*` or in Electron's main process/utilityProcess via `AgentSession`.
-
-3. **Centralized injection:** All prompt modifications for the behavior — goal, guide, teach, intent routing — must go through `lib/runtime/flow-injector.ts`. Never spread behavior-related prompt rules into individual route files.
-
-4. **Direct Effect Returns (not polling):** The UI and the chat handler drive transitions by invoking `KernelProxy` methods (`load_behavior`, `send_intent`, `tick_prompt`, `send_offtopic`), which synchronously return the array of transition effects (`Effect[]`). React components update their state reactively using these returned effects. Do not use `setInterval` or repeatedly call `get_current_state()` to poll the FSM.
-
-5. **Engine in context:** The engine instance proxy (`flowEngine` of type `KernelProxy`) lives in `ChatbotUIContext` so both `agent-right-panel.tsx` (which loads behaviors and renders the graph) and `use-chat-handler.tsx` (which drives `send_intent` / `tick_prompt` after each LLM turn) can access it without prop-drilling.
-
-6. **No intent tags in text:** Intent signaling must use the `trigger_intent` tool call — never `<intent>` text tags. The model must never output control tokens visible to the user. If you are tempted to use regex to extract intents, stop and use tool calling instead.
-
-7. **Context hygiene:** The injector filters previous `[FLOW_CONTEXT]` blocks before re-injecting the current state's block. Never append behavior context cumulatively; always replace.
-
-8. **Non-streaming for behavior turns:** When a behavior state has valid intents, the API request uses `stream: false` so that `tool_calls` are available in the full JSON response. The streaming path is reserved for turns without active intent routing.
-
-9. **Thinking content isolation:** `<think>...</think>` blocks must be extracted from `message.content` by `extractThinkBlocks()` in `processResponse` / `handleFlowChat`. Never store or display raw `<think>` tags in the message content. Reasoning content goes to `thinkingLog`, not to the message text.
-
-10. **Real-time event dispatch:** Behavior events (`FlowEvent`) must be dispatched via `addFlowEvent` at the moment they occur, not batch-written at end of turn. The `flowEvents` array is the authoritative real-time log; `flowDebugLog` is a legacy end-of-turn snapshot kept for raw inspection only.
-
-11. **API streaming:** The `openai` and `custom` routes use a manual `for await` loop on the OpenAI SDK async iterator — never `OpenAIStream` from the `ai` package. This ensures `delta.reasoning_content` is captured and emitted as `<think>` tags for downstream parsing.
-
-12. **License headers are mandatory on every source file.** Before committing any `.ts`, `.tsx`, `.js`, or `.jsx` file you must ensure the correct header is present at the very top of the file. Headers are SPDX identifiers, not copyright prose — per [ASF's own current practice](https://www.apache.org/legal/src-headers.html), a copyright line per file is not recommended (it goes stale the moment anyone else touches the file); copyright lives collectively in [`NOTICE`](NOTICE) + [`AUTHORS`](AUTHORS), where contributors retain their own copyright. The pre-commit hook classifies each file from **the header it already has** (not from an `upstream` remote — none is configured in this repo):
-    - **No header at all** (brand new file): `// SPDX-License-Identifier: Apache-2.0`
-    - **Old block header mentioning MIT *and* Apache/Murici/Danilo** (modified legacy — was forked from `chatbot-ui` and changed here): migrated to `// SPDX-License-Identifier: Apache-2.0 AND MIT` + a one-line pointer to `NOTICE` (MIT requires the original notice be retained; `NOTICE` carries it).
-    - **Old block header mentioning MIT only, no Apache/Murici/Danilo** (unmodified legacy — never touched by this project): left completely untouched, never relicensed.
-    - **Old block header with no MIT mention** (sole Murici authorship): migrated to plain `Apache-2.0`.
-    Migration is **opportunistic, on touch** — staging a file that still carries the old `Copyright (c) 2026 …` prose block replaces it with the SPDX form in that same commit. Files nobody touches keep their old (still valid) header; there is no repo-wide retrofit.
-    Two layers enforce this: the git-native pre-commit hook (`scripts/ensure-license-headers.sh`, wired via `core.hooksPath=.githooks`, set by the `prepare` npm script — no husky) injects/migrates and re-stages headers locally, and the `License headers` CI workflow runs the same script in `--check` mode (accepts either SPDX or the old block) so `--no-verify` or a missing hook cannot merge unlicensed code. If you add a file programmatically and bypass the hook, inject the header manually before staging. Never remove or alter existing license headers.
-
----
-
-## Electron Constraints
-
-| Concern | Rule |
-|---------|------|
-| **WASM loading** | `asarUnpack` must include `**/*.wasm` and `**/dot-agent-kernel/**`. Never bundle WASM inside ASAR. |
-| **Server process** | Production Electron spawns `node server/server.js` (Next.js standalone) as a child process. LLM API calls go through this server — not via IPC. Do not rewrite routes as IPC handlers. |
-| **IndexedDB** | Renderer process uses IndexedDB directly (Chromium engine). No migration needed for Electron vs web. |
-| **Renderer security** | `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. The renderer has no Node.js access; all server logic stays in the embedded Next.js process. |
-| **Auto-update** | `electron-updater` in `electron/updater.ts`. Only active in packaged builds (`app.isPackaged`). Channel-aware: the update channel (`alpha`/`beta`/`latest`) is derived from the build's own version — see below. |
-
-## Release channels
-
-Murici ships on three side-by-side channels driven by the git tag: `main`/stable
-(`vX.Y.Z`), `beta` (`vX.Y.Z-beta.N`), `alpha` (`vX.Y.Z-alpha.N`). Each gets a
-distinct `appId` + `productName` (so they install alongside each other) and its
-own icon set, all selected in `.github/workflows/electron-release.yml` from the
-tag. `electron/updater.ts` reads `app.getVersion()` to opt a prerelease build
-into its channel; stable builds stay on `latest` with `allowPrerelease=false`.
-
-Full procedure (cut / promote / install): [`CONTRIBUTING.md`](CONTRIBUTING.md).
-Design record: [`project/plans/019-prerelease-track.md`](project/plans/019-prerelease-track.md).
-**Never tag a prerelease off `main`** — prereleases come from `alpha`/`beta`.
-
----
-
-## Key Components
-
-| Area | File(s) | Role |
-|------|---------|------|
-| **UI** | `components/agents/agent-right-panel.tsx` | Loads behavior (via text or drag-and-drop of `.agent` / `.flow` files), tracks visited states, renders `StateGraph` (custom SVG layout derived from SCXML), and provides simulation buttons. |
-| **Engine** | `lib/kernel-proxy.ts` / `@dot-agent/sdk` | Compiles behavior DSL and manages FSM execution sessions via Rust/WASM. FSM execution runs server-side to avoid frontend build errors. |
-| **LLM Bridge** | `lib/runtime/flow-injector.ts` | Builds the `[FLOW_CONTEXT]` block, filters old injections, injects style guides into the last user message, and generates the `trigger_intent` tool definition. |
-| **Behavior Chat** | `components/chat/chat-helpers/index.ts` → `handleFlowChat` | Non-streaming first turn with tool definition; parses provider-specific tool calls. Streams the second turn and extracts reasoning tags via `extractThinkBlocks`. |
-| **Chat Handler** | `components/chat/chat-hooks/use-chat-handler.tsx` | Branches to `handleFlowChat` when behavior has active intents; coordinates `send_intent()` and `tick_prompt()`, dispatches real-time event logs, and records debugging snapshots. |
-| **Thinking Display** | `components/messages/message-thinking-block.tsx` | Collapsible `🧠 Raciocínio` block rendered inside assistant message bubble; reads `thinkingLog[sequence_number]` from context. |
-| **Flow Event Cards** | `components/messages/flow-event-card.tsx` | Visual timeline cards representing FSM state transitions and execution events, rendered in `chat-messages.tsx` in timestamp order. |
-| **Context** | `context/context.tsx` + `components/utility/global-state.tsx` | Stores `flowEngine`, `flowState`, `flowDebugLog`, `thinkingLog`, `flowEvents` + `addFlowEvent`. |
-| **API Routes** | `app/api/chat/openai`, `anthropic`, `custom` | OpenAI and custom routes use manual `for await` streaming to wrap `delta.reasoning_content` in `<think>` tags. Switch to `stream: false` only when tool calls are present. |
-| **Types** | `types/flow-event.ts`, `types/flow-debug.ts` | `FlowEvent` (real-time event log) and `FlowTurnDebug` (end-of-turn debug snapshot, including `toolExchange`). |
-
----
-
-## Troubleshooting Behavior Flow
-
-If the behavior fails to transition state, investigate in this order:
-
-1. **Effects loaded?** Check that `load_behavior()` successfully returns the initial goal and guide effects and sets `flowState` in the context.
-
-2. **`flowState` injected?** Open the debug panel on the assistant message. Check "Sent messages" — the system message should start with `[FLOW_CONTEXT]` containing the current state and goal.
-
-3. **Tool in request?** In the browser Network tab, inspect the request to `/api/chat/{provider}`. It should contain a `tools` array with `trigger_intent`. If not, check that `flowState.validIntents` is non-empty and that `handleFlowChat` branch was taken.
-
-4. **Model called the tool?** Check the Transition Event Cards or debug panel. If the `fsm_transition` event is triggered and its intent is non-null, the tool was called and `send_intent()` was invoked. If null, the model didn't call the tool — adjust the behavior goal description, knowledge, or guide.
-
-5. **StateGraph not updating?** The `StateGraph` updates reactively based on `scxml={graphData}` and `visitedStates` updates in context. Check that `KernelState.graph` (SCXML string) is parsed successfully using `DOMParser` in `components/agents/state-graph.tsx`.
-
-6. **Flow event cards not appearing?** Check `flowEvents` in React DevTools. Events are keyed by `seqNum` — verify the `seqNum` computed in `use-chat-handler.tsx` matches `message.sequence_number` rendered by `Message`.
-
-7. **Thinking block not showing after turn?** `handleFlowChat`'s `showIndicatorAndStream` calls `onThinkingUpdate` during the second-turn stream. Verify that `thinkingLog[seqNum]` is set correctly.
-
-8. **`<think>` tags visible in message?** `extractThinkBlocks` wasn't called on that content path. Check that both the streaming path (`processResponse`) and the non-streaming fallback in `handleFlowChat` apply the extraction.
-
-9. **Electron: WASM not loading in packaged app?** The standalone Next.js server serves unpacked files through its HTTP layer. Ensure `electron-builder.yml` has `asarUnpack` covering `**/*.wasm` and `**/dot-agent-kernel/**`.
-
----
-
-## Effect Reference (WASM → JS)
-
-Effects are returned in the response array from `load_behavior()`, `send_intent()`, `send_offtopic()`, or `tick_prompt()`:
-
-| `effect.type` | Fields | What to do |
-|---------------|--------|-----------|
-| `goal` | `text` | Injected into the system prompt `[FLOW_CONTEXT]` block |
-| `guide` | `text` | Prepended to the last user message to guide style/response style |
-| `teach` | `text` | Injected as a knowledge block inside system prompt |
-| `request_interact` | *(no fields)* | Marks behavior engine as waiting for user input |
-| `transition` | `from`, `to` | Highlights transition from `from` to `to` states; updates visited states |
-| `run_script` | `target`, `label`, `silent` | Executes script; calls `engine.send_event("script.done")` when done |
-| `run_tool` | `target`, `label` | Invokes tool; passes result to LLM; calls `engine.send_event("tool.done")` |
-| `parse_error` | `message` | Logs compilation/syntax error; halts FSM execution |
-
+Adjust the one affected line, keep entries short, and mention the edit in the task's summary.

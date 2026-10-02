@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -220,7 +222,7 @@ export const AgentSessionProvider: FC<AgentSessionProviderProps> = ({
   }, [flowState?.currentState])
 
   // Implements the "chat:agents-details-open" runtime action (project/plans/017,
-  // docs/architecture/runtime-actions.md) — dispatched by dispatchRuntimeAction
+  // docs/reference/runtime-actions.md) — dispatched by dispatchRuntimeAction
   // when a `run script` effect targets it. Mirrors the existing listener idiom
   // in chat-settings.tsx / profile-settings.tsx. Replaces the old direct-setter
   // path that used to run inside handleKernelEffects.

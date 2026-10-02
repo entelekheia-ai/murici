@@ -1,4 +1,14 @@
+---
+vibe-ops-template: plan@0.1
+---
+
 # Plan 001: Zustand State Migration
+
+| Field | Value |
+|---|---|
+| Status | Backlog |
+| Created | 2026-07-06 |
+| Author | Danilo Borges |
 
 ## Objective
 Migrate the massive FSM-related state (`flowEngine`, `flowEvents`, `flowState`, `thinkingLog`) out of the monolithic `ChatbotUIContext`.
