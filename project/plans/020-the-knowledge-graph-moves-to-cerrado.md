@@ -221,6 +221,11 @@ allowlist are checked rather than assumed to need no change.
   Rationale: the package grants this repository read access, so the token every workflow already has is
   enough, and it neither expires nor belongs to one person's account.
   Date / Author: 2026-10-08 / Danilo Borges
+- Decision: the agent's identifier drops the version — `ref:unknown:dot-agent:<namespace>/<name>`,
+  revising the entry above.
+  Rationale: the graph deduplicates agents by namespace and name on purpose, one node per agent whatever
+  build produced an artifact; a versioned identifier would split that node or name only one of its builds.
+  Date / Author: 2026-10-08 / Danilo Borges
 - Decision: delegation split — Track 2's adapter and its tests go to an implementer subagent behind
   `npm test`; the `.cmap` and `.cview` files, Track 3's fallback selection and Track 4's lifecycle stay
   in the main loop; each track's diff is reviewed by a reviewer subagent before it merges; Track 5 is the
