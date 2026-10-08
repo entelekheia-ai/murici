@@ -1,9 +1,5 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- * Licensed under the Apache License, Version 2.0
- *
- * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
- */
+// SPDX-License-Identifier: Apache-2.0 AND MIT
+// Portions from Chatbot UI (McKay Wrigley) — see NOTICE
 
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true"
@@ -17,7 +13,6 @@ const withPWA = require("next-pwa")({
 module.exports = withBundleAnalyzer(
   withPWA({
     reactStrictMode: true,
-    eslint: { ignoreDuringBuilds: true },
     typescript: { ignoreBuildErrors: true },
     // Standalone output for Electron production builds
     ...(process.env.ELECTRON_BUILD ? { output: "standalone" } : {}),
@@ -37,14 +32,12 @@ module.exports = withBundleAnalyzer(
         }
       ]
     },
-    experimental: {
-      serverComponentsExternalPackages: [
+    serverExternalPackages: [
         "sharp",
         "onnxruntime-node",
         "@dot-agent/cli",
         "@dot-agent/kernel-dsl"
-      ]
-    },
+      ],
     webpack: (config, { isServer, dev }) => {
       config.experiments = {
         ...config.experiments,

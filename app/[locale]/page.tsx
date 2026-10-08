@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -9,9 +11,12 @@
 import Loading from "./loading"
 import { localeHref } from "@/lib/locale-href"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, use } from "react"
 
-export default function HomePage({ params }: { params: { locale: string } }) {
+export default function HomePage(props: {
+  params: Promise<{ locale: string }>
+}) {
+  const params = use(props.params)
   const router = useRouter()
   useEffect(() => {
     router.replace(localeHref(params.locale, "/local/chat"))
