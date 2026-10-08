@@ -102,7 +102,7 @@ export const SidebarItem: FC<SidebarItemProps> = ({
       <div
         ref={itemRef}
         className={cn(
-          "group flex h-[37px] w-full cursor-pointer items-center rounded-lg px-2 py-1 font-instrument text-foreground-secondary transition-colors hover:bg-accent/50 focus:outline-none"
+          "group flex h-[37px] w-full cursor-pointer items-center rounded-lg px-2 py-1 font-instrument text-foreground-secondary transition-colors hover:bg-accent/50 focus:outline-hidden"
         )}
         tabIndex={0}
         onKeyDown={handleKeyDown}

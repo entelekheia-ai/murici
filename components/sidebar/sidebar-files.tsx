@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -74,7 +76,7 @@ export const SidebarFilesContent: FC = () => {
       {/* Floating Button */}
       <div className="absolute bottom-4 left-1/2 z-10 w-[90%] -translate-x-1/2">
         <Button
-          className="w-full rounded-xl bg-murici-orange text-sm font-semibold text-white shadow-lg hover:bg-[#C05621]/90"
+          className="w-full rounded-xl bg-murici-orange text-sm font-semibold text-white shadow-lg hover:bg-murici-orange/90"
           onClick={() =>
             router.push(localeHref(locale, `/${workspaceid}/graph`))
           }

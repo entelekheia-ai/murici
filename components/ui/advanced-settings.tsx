@@ -30,7 +30,7 @@ export const AdvancedSettings: FC<AdvancedSettingsProps> = ({ children }) => {
       open={isOpen}
       onOpenChange={handleOpenChange}
     >
-      <CollapsibleTrigger className="w-full outline-none focus-visible:opacity-70">
+      <CollapsibleTrigger className="w-full outline-hidden focus-visible:opacity-70">
         <div className="text-small-semi-strong flex w-full items-center justify-between text-foreground-primary">
           <span>{t("Advanced Settings")}</span>
           <IconChevron

@@ -1,18 +1,4 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import { cn } from "@/lib/utils"
 import { FC, KeyboardEvent, LiHTMLAttributes } from "react"
@@ -46,7 +32,7 @@ export const ListItem: FC<ListItemProps> = ({
       onClick={onClick}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex h-[37px] w-full cursor-pointer select-none items-center justify-start rounded-[8px] px-3 py-2.5 outline-none transition-colors focus-visible:bg-black/5 dark:focus-visible:bg-white/5",
+        "flex h-[37px] w-full cursor-pointer select-none items-center justify-start rounded-[8px] px-3 py-2.5 outline-hidden transition-colors focus-visible:bg-black/5 dark:focus-visible:bg-white/5",
         selected
           ? "text-small-semi-strong bg-background-secondary text-foreground-primary"
           : "text-small-regular bg-transparent text-foreground-primary hover:bg-black/5 dark:hover:bg-white/5",

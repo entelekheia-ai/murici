@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import { Paperclip, Send } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -68,7 +70,7 @@ export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({
         ) : (
           <>
             {/* Floating View Toggle */}
-            <div className="absolute right-4 top-4 z-[60] flex gap-1 rounded-lg border bg-background/80 p-1 backdrop-blur-sm">
+            <div className="absolute right-4 top-4 z-60 flex gap-1 rounded-lg border bg-background/80 p-1 backdrop-blur-xs">
               <Button
                 size="sm"
                 variant={view === "graph" ? "default" : "ghost"}

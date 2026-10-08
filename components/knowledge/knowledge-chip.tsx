@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 import { Copy, Check, Pencil } from "lucide-react"
 /*
@@ -102,7 +104,7 @@ export const KnowledgeChip: FC<KnowledgeChipProps> = ({
         {editing ? (
           <input
             ref={inputRef}
-            className="w-full rounded border bg-background px-1 text-[13px] font-medium text-foreground-primary outline-none"
+            className="w-full rounded border bg-background px-1 text-[13px] font-medium text-foreground-primary outline-hidden"
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
             onBlur={handleTitleSave}

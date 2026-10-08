@@ -1,18 +1,4 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-License-Identifier: Apache-2.0
 
 "use client"
 import {
@@ -460,7 +446,7 @@ export const RightSidebar: FC = () => {
                       <div className="flex w-full justify-end">
                         <Button
                           variant="ghost"
-                          className="h-auto justify-end p-0 text-[13px] font-medium text-murici-orange hover:bg-transparent hover:text-[#C05621]/80"
+                          className="h-auto justify-end p-0 text-[13px] font-medium text-murici-orange hover:bg-transparent hover:text-murici-orange/80"
                           onClick={() => {
                             setShowRightSidebar(false)
                             router.push(

@@ -202,7 +202,7 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
 
         <TextareaAutosize
           textareaRef={chatInputRef}
-          className="text-md flex w-full resize-none rounded-md border-none bg-transparent p-0 text-foreground-primary placeholder:text-foreground-secondary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="text-md flex w-full resize-none rounded-md border-none bg-transparent p-0 text-foreground-primary placeholder:text-foreground-secondary focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={t("How can I help today?")}
           onValueChange={handleInputChange}
           value={userInput}
