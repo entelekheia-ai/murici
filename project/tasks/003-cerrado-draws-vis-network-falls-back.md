@@ -72,7 +72,8 @@ copies the sample host's: `buildScene` → `morphTo(scene.nodes, scene.paint)` �
 ### 4. `KnowledgeGraph` — P0
 
 **What:** renders `CerradoGraphCanvas`; on `onUnavailable` it renders `KnowledgeGraphCanvas` in the same
-place with the same props, for the rest of that mount. `KnowledgeHomeView` renders `KnowledgeGraph`.
+place with the same props (`knowledge`, `chats`, `agentBundles`, `recentAgents`), for the rest of that
+mount. `CerradoGraphCanvas` builds its data with `buildGraphData` including `recentAgents`. `KnowledgeHomeView` renders `KnowledgeGraph`.
 
 ### 5. Browser check — P0
 
@@ -94,6 +95,11 @@ WebGPU disabled the vis-network canvas appears.
   `LayoutStore` is the synchronous Web Storage slice (`getItem`/`setItem`/`removeItem`), and Electron keeps
   `localStorage` in the same per-app partition as IndexedDB — cost if wrong: layouts share the 5 MB
   `localStorage` quota with the rest of the app; one layout is a few kilobytes per (map, view).
+
+- Ruling: the code of items 1–4 goes to an implementer subagent behind the gate, and item 5 (the browser
+  check) stays in the main loop — the fallback choice the plan reserved to the main loop is settled in
+  item 3 and 4 above, so what remains is implementation under a written contract — cost if wrong: a
+  judgement the dossier left implicit is taken by the implementer and caught only at review.
 
 ## Closure
 
