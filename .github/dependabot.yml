@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    # Integration branch of the release-channel flow (CONTRIBUTING.md § Branches & release channels).
+    target-branch: alpha
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      ai-sdk:
+        patterns: ["ai", "@ai-sdk/*"]
+      dot-agent:
+        patterns: ["@dot-agent/*"]
+      radix:
+        patterns: ["@radix-ui/*"]
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # `typescript` stays on 5.x for Next 14 and typescript-eslint, which load its JS API;
+      # the compiler itself runs from `typescript7`. Lift this when both support TypeScript 7.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: alpha
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

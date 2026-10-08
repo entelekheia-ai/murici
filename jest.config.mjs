@@ -3,7 +3,7 @@
  * This file is part of a derivative work, originally licensed under the MIT License.
  */
 
-import type { Config } from "jest"
+// Plain ESM: Jest loads a .ts config through ts-node, which needs the TypeScript JS API that TypeScript 7 does not ship.
 import nextJest from "next/jest.js"
 
 const createJestConfig = nextJest({
@@ -12,7 +12,8 @@ const createJestConfig = nextJest({
 })
 
 // Add any custom config to be passed to Jest
-const config: Config = {
+/** @type {import("jest").Config} */
+const config = {
   coverageProvider: "v8",
   testEnvironment: "jsdom",
   setupFiles: ["<rootDir>/jest.setup.ts"],
