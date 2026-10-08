@@ -1,0 +1,44 @@
+# Overview lens: each territory anchors its conversations, and each
+# conversation the knowledge it produced; agents stay loose. Under a region
+# anchor, conversations and knowledge are both members, so both agent edges
+# are member-loose and draw light.
+# No canvas_background: the host takes the page colour from the app theme.
+id: murici_default
+name: "Overview"
+for_map: murici_knowledge
+
+targets:
+  tier_high:
+    - { type: conversation }
+  tier_medium:
+    - { type: knowledge }
+
+hierarchy:
+  - region
+  - { type: conversation }
+  - { type: knowledge }
+
+distortion:
+  tier_high: { mass_multiplier: 3.0, size_multiplier: 1.6 }
+  tier_medium: { mass_multiplier: 1.0, size_multiplier: 1.0 }
+  tier_low: { mass_multiplier: 0.6, size_multiplier: 0.9, repulsion: 0.6 }
+
+theme:
+  loose_color: "#c4922a"
+  edge_default: { width: 1, color: "rgba(120, 120, 130, 0.6)" }
+  edge_roles:
+    member-member: { width: 2.0, opacity: 0.8 }
+    member-loose: { opacity: 0.15 }
+  tier_high:
+    color_fill: "#6b9ec4"
+  tier_medium:
+    color_fill: "#9a9488"
+  tier_low:
+    color_fill: "#c4922a"
+
+paint:
+  softness: 0.09
+  alpha: 0.85
+  edge_strength: 0.95
+  wash_depth: 0.45
+  bands: 3

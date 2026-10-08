@@ -1,0 +1,44 @@
+# Agents lens: each agent anchors the knowledge it produced; conversations
+# stay loose. Mirrors the vis-network "agent" lens: agent to knowledge solid,
+# knowledge to conversation light, agent to conversation not drawn.
+# No canvas_background: the host takes the page colour from the app theme.
+id: murici_agent
+name: "Agents"
+for_map: murici_knowledge
+
+targets:
+  tier_high:
+    - { type: agent }
+  tier_medium:
+    - { type: knowledge }
+
+hierarchy:
+  - { type: agent }
+  - { type: knowledge }
+
+distortion:
+  tier_high: { mass_multiplier: 3.0, size_multiplier: 1.8, repulsion: 1.4 }
+  tier_medium: { mass_multiplier: 1.0, size_multiplier: 1.0 }
+  tier_low: { mass_multiplier: 0.6, size_multiplier: 0.9, repulsion: 0.6 }
+
+theme:
+  loose_color: "#c4922a"
+  edge_default: { width: 1, color: "rgba(120, 120, 130, 0.6)" }
+  edge_roles:
+    anchor-member: { width: 2.5, opacity: 0.85 }
+    member-loose: { opacity: 0.15 }
+    anchor-loose: { hidden: true }
+  tier_high:
+    color_fill: "#d99a2b"
+    canopy_gradient: ["rgba(217, 154, 43, 0.30)", "rgba(120, 80, 10, 0)"]
+  tier_medium:
+    color_fill: "#9a9488"
+  tier_low:
+    color_fill: "#c4922a"
+
+paint:
+  softness: 0.09
+  alpha: 0.85
+  edge_strength: 0.95
+  wash_depth: 0.45
+  bands: 3

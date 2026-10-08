@@ -129,6 +129,22 @@ Edge ids inside vis-network stay whatever string is unique; nothing outside the 
   the bare id, so a conversation's agent-lens colour always falls back to `LOW_TIER_COLOR`; this predates
   the track.
 
+- Ruling: `murici.cmap` has three territories — Agents, Conversations, Knowledge — routed by `type`, with
+  relations conversation–knowledge 0.7, agent–conversation 0.4, agent–knowledge 0.3 — a region per agent
+  cannot be declared, because a map is static and the agents are data — cost if wrong: agents of one
+  kind of work are not grouped spatially; a later map can route by `attr` once agents carry a domain.
+- Ruling: the three lenses follow the engine's own conversations and agents sample lenses — hierarchy
+  roles and `edge_roles` hide or lighten each edge pair as the vis-network lenses did; `hidden` keeps the
+  edge in the physics — cost if wrong: the layout differs from vis-network's even where the look matches.
+- Ruling: no lens declares `canvas_background` or icons — the host takes the page colour from the app's
+  light or dark theme, and icons would need the icon font loaded — cost if wrong: Track 3 adds both.
+- Ruling: colour is per tier, not the vis-network per-conversation palette — a `.cview` cannot assign a
+  colour per node from insertion order — cost if wrong: conversations are no longer told apart by colour.
+- Observation: map and lenses verified — `__tests__/lib/knowledge/murici-map.test.ts` routes every node of
+  the adapter's output (no `null`), every tier of every lens holds a node, the three lenses draw the same
+  node ids and edge count, and no top-level or distortion key is dropped; gate: 27 suites / 145 tests,
+  type-check 0, oxlint 0.
+
 ## Closure
 
 - [ ] Run `/vibe-ops:close-task` — do not just delete this file. Stays unchecked until closure actually

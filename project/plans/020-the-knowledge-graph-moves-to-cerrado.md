@@ -89,26 +89,30 @@ Every node id is a `ref:` identifier, derived from the record on demand and neve
 |---|---|
 | Conversation | `ref:unknown:murici:conversations/<chatId>` |
 | Knowledge record | `ref:unknown:murici:knowledge/<record.id>` |
-| Agent | `ref:unknown:dot-agent:<namespace>/<name>@<version>` |
+| Agent | `ref:unknown:dot-agent:<namespace>/<name>` |
 
 The `unknown` type with a declared species is the form for an entity no registered `ref:` type names; the
 species is the application for what only this app holds, and `dot-agent` for an agent, so the same agent
-carries the same identifier in any application that runs it. The agent's stored id, `ns/name:v~digest`, is
-mapped to `<namespace>/<name>@<version>` by the adapter. One module, `lib/knowledge/ref.ts`, is the only
+carries the same identifier in any application that runs it. The agent's identifier carries no version:
+the graph draws one node per agent whatever build produced an artifact (`lib/knowledge/agent-layer.ts`
+deduplicates by namespace and name), and an unversioned identifier names the living agent. An agent in a
+namespace the locator grammar refuses (`~user/…`) gets no identifier and is left out of both renderers. One module, `lib/knowledge/ref.ts`, is the only
 place that builds or parses these identifiers: it builds through `@entelekheia/ref-id` and parses the
 result back, so a string that does not survive both is a programming error caught in the tests rather than
 an identifier that travels malformed. Edges keep plain derived ids (`<from>-><to>`), because nothing outside
 the graph names an edge.
 
-Each node also carries a `type` — `conversation`, the record's `nodeType`, or `agent` — which is what
-`murici.cmap`'s routing rules match; routing never parses an identifier. The agent layer is reused from `lib/knowledge/agent-layer.ts` (`buildAgentLayer`), so the hidden
+Each node also carries a `type` — `conversation`, `knowledge` or `agent` — which is what `murici.cmap`'s
+routing rules match, with a record's own `nodeType` in `attrs.nodeType`; routing never parses an
+identifier. Edges carry `type` `generated_in` (knowledge to conversation), `ran_in` (agent to
+conversation) and `produced` (agent to knowledge). The agent layer is reused from `lib/knowledge/agent-layer.ts` (`buildAgentLayer`), so the hidden
 `BackgroundSystem` agent stays hidden in both renderers. The adapter is pure and has no GPU or DOM
 dependency, which is what lets it be unit-tested.
 
 ### Map and lenses
 
-`lib/knowledge/graph/murici.cmap` declares the regions (conversations, knowledge artifacts, agents), the
-routing by `type`, and a `default_region`. `default.cview`, `chat.cview` and `agent.cview` reproduce the
+`lib/knowledge/graph/murici.cmap` declares three regions (Agents, Conversations, Knowledge) and routes by
+`type`; every node is routed, so it declares no `default_region`. `default.cview`, `chat.cview` and `agent.cview` reproduce the
 current lenses (`knowledge-graph-canvas.tsx:670-780`: mass re-weighting, recolouring, which edges show).
 All three are written with cerrado's `authoring-a-map` and `authoring-a-view` skills, and validated with
 `validateMap`/`validateView` against data from the adapter. A lens switch calls `morphTo`, which needs the
@@ -152,7 +156,7 @@ allowlist are checked rather than assumed to need no change.
   `@entelekheia-ai/cerrado@0.2.0` pinned exactly in `package.json`. Acceptance: `npm ci` succeeds locally
   and in CI, `npm run build` and `npm run electron:build` succeed with the package imported from a
   throwaway call site, and `scripts/verify-electron-deps.js` passes.
-- [ ] **Track 2 — Identifiers, adapter, map and lenses.** Task: [tasks/002-graph-identifiers-and-the-cerrado-adapter.md](../tasks/002-graph-identifiers-and-the-cerrado-adapter.md). `lib/knowledge/ref.ts` and
+- [x] **Track 2 — Identifiers, adapter, map and lenses.** Task: [tasks/002-graph-identifiers-and-the-cerrado-adapter.md](../tasks/002-graph-identifiers-and-the-cerrado-adapter.md). `lib/knowledge/ref.ts` and
   `lib/knowledge/cerrado-adapter.ts`, with unit tests over a fixture of records (every node kind, the
   hidden agent, an agent id carrying `:v~digest`), `@entelekheia/ref-id` added as a dependency, the
   vis-network canvas moved onto the adapter's output, and `murici.cmap` plus the three `.cview` files.
@@ -240,5 +244,3 @@ allowlist are checked rather than assumed to need no change.
   it lands.
 - Whether Electron 44's Chromium, with `sandbox: true`, exposes a WebGPU adapter on Linux for the
   machines this app ships to. Track 5 measures it.
-- How conversation nodes are placed in the map: one region for all conversations, or a region per
-  agent that produced them. Decided while writing `murici.cmap` in Track 2.
