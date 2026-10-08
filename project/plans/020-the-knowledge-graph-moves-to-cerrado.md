@@ -9,7 +9,7 @@ vibe-ops-template: plan@3
 | Status | Backlog |
 | Created | 2026-10-08 |
 | Author | Danilo Borges |
-| Depends on | The repository's own upgrade to TypeScript 7 (in progress); `@entelekheia-ai/cerrado` with `Engine.destroy()` and `onDeviceLost` (Track 4) |
+| Depends on | `@entelekheia-ai/cerrado` with `Engine.destroy()` and `onDeviceLost` (Track 4) |
 
 ---
 
@@ -54,7 +54,6 @@ never learns which of the two is drawing.
   (`lib/hooks/use-knowledge-data.ts:12-27`); that stays as it is.
 - **Classification ids (`scheme:id`, Wikidata QIDs) on nodes.** cerrado's routing rules match on node
   `type` as well, and the existing `conv-`/`know-`/`agent-` prefixes are enough to route.
-- **The TypeScript 7 upgrade itself**, which is its own work and a prerequisite of Track 1.
 
 ## Design
 
@@ -110,7 +109,7 @@ dependency, which is what lets it be unit-tested.
 
 `lib/knowledge/graph/murici.cmap` declares the regions (conversations, knowledge artifacts, agents), the
 routing by `type`, and a `default_region`. `default.cview`, `chat.cview` and `agent.cview` reproduce the
-current lenses (`knowledge-graph-canvas.tsx:668-779`: mass re-weighting, recolouring, which edges show).
+current lenses (`knowledge-graph-canvas.tsx:670-780`: mass re-weighting, recolouring, which edges show).
 All three are written with cerrado's `authoring-a-map` and `authoring-a-view` skills, and validated with
 `validateMap`/`validateView` against data from the adapter. A lens switch calls `morphTo`, which needs the
 same node count across lenses; the adapter therefore emits every node in every lens, and a lens hides by
@@ -119,7 +118,7 @@ tier, never by omission.
 ### Events out
 
 cerrado reports `onClick` and `onHover` with a node index; `scene.meta[i].id` turns it into the `ref:`
-identifier, and the existing click branch (`knowledge-graph-canvas.tsx:781-809`) moves into a shared
+identifier, and the existing click branch (`knowledge-graph-canvas.tsx:783-811`) moves into a shared
 `handleGraphClick(id)` that both canvases call, which parses the identifier through `lib/knowledge/ref.ts`
 instead of testing a prefix. The vis-network canvas stops building its own `conv-`/`know-`/`agent-` ids
 and draws the adapter's output, so the two renderers share one source of identifiers. Hover shows the node kind, as today.
@@ -144,7 +143,7 @@ the cleanup real.
 `@entelekheia-ai/cerrado` is private on GitHub Packages. A committed `.npmrc` maps the `@entelekheia-ai`
 scope to `https://npm.pkg.github.com` and reads the token from an environment variable, never from the
 file. CI and the Electron release workflow get a token with `read:packages`. The package is bundled by
-Next's webpack into the renderer, so `scripts/verify-electron-deps.js` and the electron-builder `files`
+Next's webpack build (`next build --webpack`) into the renderer, so `scripts/verify-electron-deps.js` and the electron-builder `files`
 allowlist are checked rather than assumed to need no change.
 
 ## Tracks
@@ -206,6 +205,13 @@ allowlist are checked rather than assumed to need no change.
   own cerrado graph, and an agent id under the `dot-agent` species is then the same node in both; the
   prefixed `conv-`/`know-`/`agent-` ids would be a third, home-made scheme.
   Date / Author: 2026-10-08 / Danilo Borges
+- Decision: the plan's branch is cut from `alpha`, not from `main`.
+  Rationale: `alpha` carries the toolchain this plan builds on — TypeScript 7, Next 16 and Electron 44 —
+  and `main` does not yet; cutting from `main` would build the graph against a toolchain about to be
+  replaced. This departs from the repository's rule that a work branch is cut from `main`, by the
+  maintainer's decision; the branch carries `alpha`'s `.changeset/pre.json` and is opened back into
+  `alpha`.
+  Date / Author: 2026-10-08 / Danilo Borges
 - Decision: delegation split — Track 2's adapter and its tests go to an implementer subagent behind
   `npm test`; the `.cmap` and `.cview` files, Track 3's fallback selection and Track 4's lifecycle stay
   in the main loop; each track's diff is reviewed by a reviewer subagent before it merges; Track 5 is the
@@ -222,7 +228,7 @@ allowlist are checked rather than assumed to need no change.
 
 ## Open questions
 
-- Whether Electron 43's Chromium, with `sandbox: true`, exposes a WebGPU adapter on Linux for the
+- Whether Electron 44's Chromium, with `sandbox: true`, exposes a WebGPU adapter on Linux for the
   machines this app ships to. Track 5 measures it.
 - How conversation nodes are placed in the map: one region for all conversations, or a region per
   agent that produced them. Decided while writing `murici.cmap` in Track 2.
