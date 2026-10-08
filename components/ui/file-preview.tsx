@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import { File } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -32,7 +34,7 @@ export const FilePreview: FC<FilePreviewProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "flex items-center justify-center outline-none",
+          "flex items-center justify-center outline-hidden",
           "border-transparent bg-transparent"
         )}
       >

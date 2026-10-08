@@ -1,9 +1,5 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- * Licensed under the Apache License, Version 2.0
- *
- * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
- */
+// SPDX-License-Identifier: Apache-2.0 AND MIT
+// Portions from Chatbot UI (McKay Wrigley) — see NOTICE
 
 import { cn } from "@/lib/utils"
 import { useChannelStore, isChannelBusy } from "@/lib/store/channel-store"
@@ -46,7 +42,7 @@ export const ChatItem: FC<ChatItemProps> = ({
     <div
       ref={itemRef}
       className={cn(
-        "group flex h-[37px] w-full cursor-pointer items-center rounded-lg px-2 py-1 transition-colors focus:outline-none",
+        "group flex h-[37px] w-full cursor-pointer items-center rounded-lg px-2 py-1 transition-colors focus:outline-hidden",
         isActive
           ? "bg-background-secondary text-foreground-primary"
           : "text-foreground-secondary-80 hover:bg-background-secondary/40"

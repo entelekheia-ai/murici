@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 import { ChevronUp, File, MessageSquare, Settings, Network } from "lucide-react"
 /*
@@ -80,7 +82,7 @@ export const MenuSettings: FC<MenuSettingsProps> = ({
       <DropdownMenuContent
         side="top"
         align="start"
-        className="w-[var(--radix-dropdown-menu-trigger-width)]"
+        className="w-(--radix-dropdown-menu-trigger-width)"
       >
         {MENU_ITEMS.map(({ type, icon: Icon, label }) => (
           <DropdownMenuItem

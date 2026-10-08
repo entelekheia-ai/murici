@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -31,7 +33,7 @@ export const AgentRowItem: FC<AgentRowItemProps> = ({
 
   return (
     <div
-      className="group flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 font-instrument text-foreground-secondary transition-colors hover:bg-accent/50 focus:outline-none"
+      className="group flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 font-instrument text-foreground-secondary transition-colors hover:bg-accent/50 focus:outline-hidden"
       tabIndex={0}
       role="button"
       onKeyDown={handleKeyDown}

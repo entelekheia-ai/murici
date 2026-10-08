@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import { Search } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
@@ -241,7 +243,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
         <Search className="shrink-0 text-foreground-secondary" size={18} />
         <input
           ref={inputRef}
-          className="size-full border-none bg-transparent p-0 text-sm text-foreground-primary outline-none placeholder:text-foreground-secondary focus:ring-0"
+          className="size-full border-none bg-transparent p-0 text-sm text-foreground-primary outline-hidden placeholder:text-foreground-secondary focus:ring-0"
           placeholder={t("Search models...")}
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -474,7 +476,7 @@ const GroupHeader: FC<GroupHeaderProps> = ({
   <div className="flex w-full items-center justify-between p-1">
     <button
       onClick={onToggle}
-      className="flex flex-1 items-center gap-1.5 outline-none hover:opacity-75 focus-visible:opacity-75"
+      className="flex flex-1 items-center gap-1.5 outline-hidden hover:opacity-75 focus-visible:opacity-75"
     >
       <IconChevron
         size={12}

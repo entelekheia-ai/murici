@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import { ChevronDown, ChevronRight } from "lucide-react"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -71,7 +73,7 @@ export const Folder: FC<FolderProps> = ({
     <div
       ref={itemRef}
       id="folder"
-      className={cn("rounded focus:outline-none", isDragOver && "bg-accent")}
+      className={cn("rounded focus:outline-hidden", isDragOver && "bg-accent")}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -83,7 +85,7 @@ export const Folder: FC<FolderProps> = ({
       <div
         tabIndex={0}
         className={cn(
-          "flex w-full cursor-pointer items-center justify-between rounded p-2 hover:bg-accent hover:opacity-50 focus:bg-accent focus:outline-none"
+          "flex w-full cursor-pointer items-center justify-between rounded p-2 hover:bg-accent hover:opacity-50 focus:bg-accent focus:outline-hidden"
         )}
         onClick={handleClick}
       >

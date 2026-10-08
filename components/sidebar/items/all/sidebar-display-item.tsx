@@ -1,9 +1,5 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- * Licensed under the Apache License, Version 2.0
- *
- * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
- */
+// SPDX-License-Identifier: Apache-2.0 AND MIT
+// Portions from Chatbot UI (McKay Wrigley) — see NOTICE
 
 import { ChatbotUIContext } from "@/context/context"
 import { createChat } from "@/db/chats"
@@ -12,7 +8,7 @@ import { localeHref } from "@/lib/locale-href"
 import { Tables } from "@/types/database"
 import { ContentType, DataItemType } from "@/types"
 import { useParams, useRouter } from "next/navigation"
-import { FC, useContext, useRef, useState } from "react"
+import { FC, useContext, useRef, useState, type JSX } from "react"
 import { SidebarUpdateItem } from "./sidebar-update-item"
 
 interface SidebarItemProps {
@@ -106,7 +102,7 @@ export const SidebarItem: FC<SidebarItemProps> = ({
       <div
         ref={itemRef}
         className={cn(
-          "group flex h-[37px] w-full cursor-pointer items-center rounded-lg px-2 py-1 font-instrument text-foreground-secondary transition-colors hover:bg-accent/50 focus:outline-none"
+          "group flex h-[37px] w-full cursor-pointer items-center rounded-lg px-2 py-1 font-instrument text-foreground-secondary transition-colors hover:bg-accent/50 focus:outline-hidden"
         )}
         tabIndex={0}
         onKeyDown={handleKeyDown}

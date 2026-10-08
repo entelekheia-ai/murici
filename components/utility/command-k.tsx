@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import { Loader2, Send } from "lucide-react"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
@@ -64,7 +66,7 @@ export const CommandK: FC<CommandKProps> = ({}) => {
 
               <div className="relative flex min-h-[50px] w-full items-center justify-center rounded-xl border-2 border-input">
                 <TextareaAutosize
-                  className="text-md flex w-full resize-none rounded-md border-none bg-transparent px-3 py-2 pr-14 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="text-md flex w-full resize-none rounded-md border-none bg-transparent px-3 py-2 pr-14 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="create a prompt for writing sql code"
                   value={value}
                   onValueChange={setValue}

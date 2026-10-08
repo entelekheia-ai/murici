@@ -1,7 +1,4 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- * Licensed under the Apache License, Version 2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import { ChatMessage } from "@/types"
 import { RefObject, createContext } from "react"
@@ -25,7 +22,7 @@ export interface ChatHandlerContextType {
   handleFocusChatInput: () => void
   handleStopMessage: () => void
   handleSendEdit: () => Promise<void>
-  chatInputRef: RefObject<HTMLTextAreaElement>
+  chatInputRef: RefObject<HTMLTextAreaElement | null>
 }
 
 const defaultChatHandlerContext: ChatHandlerContextType = {

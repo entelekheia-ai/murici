@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -823,7 +825,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
 
   return (
     <div className="relative size-full">
-      <div className="absolute left-4 top-4 z-[60] flex gap-1 rounded-lg border bg-background/80 p-1 backdrop-blur-sm">
+      <div className="absolute left-4 top-4 z-60 flex gap-1 rounded-lg border bg-background/80 p-1 backdrop-blur-xs">
         {(["default", "chat", "agent"] as Lens[]).map(lens => (
           <Button
             key={lens}

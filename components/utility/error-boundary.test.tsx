@@ -5,6 +5,7 @@ jest.mock("@/lib/logger", () => ({
   logger: { error: (...args: any[]) => loggerErrorMock(...args) }
 }))
 
+import type { JSX } from "react"
 import { render, screen } from "@testing-library/react"
 import { ErrorBoundary } from "./error-boundary"
 

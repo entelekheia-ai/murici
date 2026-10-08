@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 import { ChevronDown, ChevronUp } from "lucide-react"
 /*
@@ -93,7 +95,7 @@ export const KnowledgeListView: FC<Props> = ({ knowledge, chats }) => {
     <div className="flex h-full flex-col overflow-hidden p-6">
       <div className="mb-4">
         <input
-          className="w-full rounded-lg border bg-muted px-3 py-2 text-sm outline-none focus:ring-2"
+          className="w-full rounded-lg border bg-muted px-3 py-2 text-sm outline-hidden focus:ring-2"
           placeholder={t("Search by title or summary…")}
           value={query}
           onChange={e => setQuery(e.target.value)}
