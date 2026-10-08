@@ -148,7 +148,7 @@ allowlist are checked rather than assumed to need no change.
 
 ## Tracks
 
-- [ ] **Track 1 — The package installs.** `.npmrc`, the CI and release-workflow token, and
+- [x] **Track 1 — The package installs.** Task: [tasks/001-the-cerrado-package-installs.md](../tasks/001-the-cerrado-package-installs.md). `.npmrc`, the CI and release-workflow token, and
   `@entelekheia-ai/cerrado@0.2.0` pinned exactly in `package.json`. Acceptance: `npm ci` succeeds locally
   and in CI, `npm run build` and `npm run electron:build` succeed with the package imported from a
   throwaway call site, and `scripts/verify-electron-deps.js` passes.
@@ -211,6 +211,11 @@ allowlist are checked rather than assumed to need no change.
   replaced. This departs from the repository's rule that a work branch is cut from `main`, by the
   maintainer's decision; the branch carries `alpha`'s `.changeset/pre.json` and is opened back into
   `alpha`.
+  Date / Author: 2026-10-08 / Danilo Borges
+- Decision: CI reads the private package with `GITHUB_TOKEN` and `permissions: packages: read`; no
+  secret is added.
+  Rationale: the package grants this repository read access, so the token every workflow already has is
+  enough, and it neither expires nor belongs to one person's account.
   Date / Author: 2026-10-08 / Danilo Borges
 - Decision: delegation split — Track 2's adapter and its tests go to an implementer subagent behind
   `npm test`; the `.cmap` and `.cview` files, Track 3's fallback selection and Track 4's lifecycle stay

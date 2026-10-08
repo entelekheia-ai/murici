@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   canary:
@@ -25,8 +26,11 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          registry-url: https://npm.pkg.github.com
+          scope: "@entelekheia-ai"
       - run: npm ci
         env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
       - run: node scripts/canary-install.mjs --channel ${{ matrix.channel }}
       - run: node scripts/copy-tree-sitter-assets.js

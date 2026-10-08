@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: read
 
 jobs:
   release:
@@ -24,6 +25,8 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          registry-url: https://npm.pkg.github.com
+          scope: "@entelekheia-ai"
 
       - name: Configure npm script-shell on Windows
         if: matrix.os == 'windows-latest'
@@ -59,6 +62,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Publish Next.js + Electron
         shell: bash
