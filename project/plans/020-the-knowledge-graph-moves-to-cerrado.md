@@ -83,11 +83,26 @@ flowchart TD
 
 ### Data in
 
-`lib/knowledge/cerrado-adapter.ts` turns the records into cerrado's `GraphData` (`nodes`, `edges`) with
-the same ids the vis-network canvas builds today: `conv-<chatId>`, `know-<record.id>`,
-`agent-<bareAgentId>`, and the edges `intra-`, `agent-conv-` and `agent-know-`. Each node carries a
-`type` — `conversation`, the record's `nodeType`, or `agent` — which is what `murici.cmap`'s routing rules
-match. The agent layer is reused from `lib/knowledge/agent-layer.ts` (`buildAgentLayer`), so the hidden
+`lib/knowledge/cerrado-adapter.ts` turns the records into cerrado's `GraphData` (`nodes`, `edges`).
+Every node id is a `ref:` identifier, derived from the record on demand and never stored:
+
+| Entity | Identifier |
+|---|---|
+| Conversation | `ref:unknown:murici:conversations/<chatId>` |
+| Knowledge record | `ref:unknown:murici:knowledge/<record.id>` |
+| Agent | `ref:unknown:dot-agent:<namespace>/<name>@<version>` |
+
+The `unknown` type with a declared species is the form for an entity no registered `ref:` type names; the
+species is the application for what only this app holds, and `dot-agent` for an agent, so the same agent
+carries the same identifier in any application that runs it. The agent's stored id, `ns/name:v~digest`, is
+mapped to `<namespace>/<name>@<version>` by the adapter. One module, `lib/knowledge/ref.ts`, is the only
+place that builds or parses these identifiers: it builds through `@entelekheia/ref-id` and parses the
+result back, so a string that does not survive both is a programming error caught in the tests rather than
+an identifier that travels malformed. Edges keep plain derived ids (`<from>-><to>`), because nothing outside
+the graph names an edge.
+
+Each node also carries a `type` — `conversation`, the record's `nodeType`, or `agent` — which is what
+`murici.cmap`'s routing rules match; routing never parses an identifier. The agent layer is reused from `lib/knowledge/agent-layer.ts` (`buildAgentLayer`), so the hidden
 `BackgroundSystem` agent stays hidden in both renderers. The adapter is pure and has no GPU or DOM
 dependency, which is what lets it be unit-tested.
 
@@ -103,9 +118,11 @@ tier, never by omission.
 
 ### Events out
 
-cerrado reports `onClick` and `onHover` with a node index; `scene.meta[i].id` turns it into the prefixed
-id, and the existing click branch (`knowledge-graph-canvas.tsx:781-809`) moves into a shared
-`handleGraphClick(id)` that both canvases call. Hover shows the node kind, as today.
+cerrado reports `onClick` and `onHover` with a node index; `scene.meta[i].id` turns it into the `ref:`
+identifier, and the existing click branch (`knowledge-graph-canvas.tsx:781-809`) moves into a shared
+`handleGraphClick(id)` that both canvases call, which parses the identifier through `lib/knowledge/ref.ts`
+instead of testing a prefix. The vis-network canvas stops building its own `conv-`/`know-`/`agent-` ids
+and draws the adapter's output, so the two renderers share one source of identifiers. Hover shows the node kind, as today.
 
 ### Layout
 
@@ -136,10 +153,13 @@ allowlist are checked rather than assumed to need no change.
   `@entelekheia-ai/cerrado@0.2.0` pinned exactly in `package.json`. Acceptance: `npm ci` succeeds locally
   and in CI, `npm run build` and `npm run electron:build` succeed with the package imported from a
   throwaway call site, and `scripts/verify-electron-deps.js` passes.
-- [ ] **Track 2 — Adapter, map and lenses.** `lib/knowledge/cerrado-adapter.ts` with unit tests over a
-  fixture of records (every node kind, the hidden agent, an agent id carrying `:v~digest`), and
-  `murici.cmap` plus the three `.cview` files. Acceptance: the adapter tests pass, and `validateMap` and
-  `validateView` report no error against the adapter's output for the fixture.
+- [ ] **Track 2 — Identifiers, adapter, map and lenses.** `lib/knowledge/ref.ts` and
+  `lib/knowledge/cerrado-adapter.ts`, with unit tests over a fixture of records (every node kind, the
+  hidden agent, an agent id carrying `:v~digest`), `@entelekheia/ref-id` added as a dependency, the
+  vis-network canvas moved onto the adapter's output, and `murici.cmap` plus the three `.cview` files.
+  Acceptance: the adapter tests pass; every node id the adapter emits parses through `@entelekheia/ref-id`
+  with the type `unknown` and the species `murici` or `dot-agent`; and `validateMap` and `validateView`
+  report no error against the adapter's output for the fixture.
 - [ ] **Track 3 — cerrado draws, vis-network falls back.** `KnowledgeGraph`, `CerradoGraphCanvas`,
   `handleGraphClick`, the `graphLayouts` store, and the fallback on `init()` failure. Acceptance: in a
   browser with WebGPU the graph is drawn by cerrado and each node kind's click does what it does today;
@@ -178,6 +198,13 @@ allowlist are checked rather than assumed to need no change.
 - Decision: teardown belongs to the engine (`Engine.destroy()`), not to a singleton kept alive here.
   Rationale: the graph mounts and unmounts on every navigation between the chat and the graph page; a
   workaround here would be maintained by every future consumer of the engine as well.
+  Date / Author: 2026-10-08 / Danilo Borges
+- Decision: graph node ids are `ref:` identifiers — `ref:unknown:murici:conversations/<id>`,
+  `ref:unknown:murici:knowledge/<id>`, `ref:unknown:dot-agent:<namespace>/<name>@<version>` — derived
+  on demand and never stored.
+  Rationale: another application of the same maintainer already names the same entities this way for its
+  own cerrado graph, and an agent id under the `dot-agent` species is then the same node in both; the
+  prefixed `conv-`/`know-`/`agent-` ids would be a third, home-made scheme.
   Date / Author: 2026-10-08 / Danilo Borges
 - Decision: delegation split — Track 2's adapter and its tests go to an implementer subagent behind
   `npm test`; the `.cmap` and `.cview` files, Track 3's fallback selection and Track 4's lifecycle stay
