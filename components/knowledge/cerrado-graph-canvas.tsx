@@ -110,17 +110,28 @@ function territoryLabels(
   })
 }
 
-/**
- * The knowledge graph drawn by cerrado's WebGPU engine, mounted the way the
- * engine's own sample host mounts it: the map's zoom course, the saved layout
- * (frozen when it covers every node), territory names and node captions, lens
- * buttons that morph the layout in place. A click acts through `useGraphClick`.
- *
- * Any failure before the engine starts — including a browser without WebGPU —
- * calls `onUnavailable` instead of throwing. Unmounting calls `stop()`; the
- * engine of cerrado 0.2.0 has no teardown, so its GPU resources outlive the
- * component until the page does.
- */
+// The lens the reader last chose. A reload opens on it, which is what lets the
+// layout saved for that lens be read back: a live lens switch re-solves, and only
+// a reload restores (cerrado's solve-once, freeze, persist per map and view).
+const LAST_LENS_KEY = "murici.graph.lens"
+
+function readLastLens(store: Storage): LensKey {
+  try {
+    const v = store.getItem(LAST_LENS_KEY)
+    return v === "chat" || v === "agent" ? v : "default"
+  } catch {
+    return "default"
+  }
+}
+
+function writeLastLens(store: Storage, lens: LensKey): void {
+  try {
+    store.setItem(LAST_LENS_KEY, lens)
+  } catch {
+    // Storage full or unavailable: the next reload opens on the default lens.
+  }
+}
+
 /**
  * Registers lucide as the engine's icon font, so a lens's `icon: "lucide:<name>"`
  * draws that glyph inside the node. The font and its codepoints load on demand,
@@ -134,7 +145,12 @@ async function loadIcons(eng: Engine): Promise<boolean> {
     ])
     const face = new FontFace("lucide", `url(${fontUrl})`)
     document.fonts.add(face)
-    await face.load()
+    try {
+      await face.load()
+    } catch (err) {
+      document.fonts.delete(face)
+      throw err
+    }
     const table = codepoints as Record<string, number>
     await eng.loadIconFont({
       prefix: "lucide",
@@ -151,6 +167,17 @@ async function loadIcons(eng: Engine): Promise<boolean> {
   }
 }
 
+/**
+ * The knowledge graph drawn by cerrado's WebGPU engine, mounted the way the
+ * engine's own sample host mounts it: the map's zoom course, the saved layout
+ * (frozen when it covers every node), territory names and node captions, lens
+ * buttons that morph the layout in place. A click acts through `useGraphClick`.
+ *
+ * Any failure before the engine starts — including a browser without WebGPU —
+ * calls `onUnavailable` instead of throwing. Unmounting calls `stop()`; the
+ * engine of cerrado 0.2.0 has no teardown, so its GPU resources outlive the
+ * component until the page does.
+ */
 export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
   knowledge,
   chats,
@@ -168,6 +195,7 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const [activeLens, setActiveLens] = useState<LensKey>("default")
   const [hoverKind, setHoverKind] = useState("")
+  const [ready, setReady] = useState(false)
   // Read through refs so a new callback identity never remounts the engine.
   const onNodeClickRef = useRef(onNodeClick)
   const onUnavailableRef = useRef(onUnavailable)
@@ -180,7 +208,7 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
-    setActiveLens("default")
+    setReady(false)
     setHoverKind("")
     let cancelled = false
     let engine: Engine | null = null
@@ -212,6 +240,7 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
         agent: parseView(LENS_SOURCES.agent)
       }
 
+      if (cancelled) return
       const eng = new EngineClass(canvas)
       engine = eng
       await eng.init()
@@ -230,9 +259,9 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
       eng.camera.elastic = map.zoom?.elastic ?? eng.camera.elastic
 
       const store = window.localStorage
-      let active: LensKey = "default"
+      let active: LensKey = readLastLens(store)
       const keyFor = (lens: LensKey): string => layoutKey(map, views[lens])
-      let scene = buildScene(data, map, views.default)
+      let scene = buildScene(data, map, views[active])
       const idsOf = (s: Scene): string[] => s.meta.map(m => m.id)
 
       const saved = loadLayout(store, keyFor(active))
@@ -338,6 +367,7 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
 
       switchLensRef.current = lens => {
         active = lens
+        writeLastLens(store, lens)
         scene = buildScene(data, map, views[lens])
         applyCrossfade()
         eng.morphTo(scene.nodes, scene.paint)
@@ -349,6 +379,8 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
       if (cancelled) return
       eng.start()
       started = true
+      setActiveLens(active)
+      setReady(true)
     }
 
     mount().catch(err => {
@@ -381,6 +413,7 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
             key={lens}
             size="sm"
             variant={activeLens === lens ? "default" : "ghost"}
+            disabled={!ready}
             onClick={() => {
               setActiveLens(lens)
               switchLensRef.current(lens)

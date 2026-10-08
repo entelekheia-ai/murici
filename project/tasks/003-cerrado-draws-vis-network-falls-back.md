@@ -133,6 +133,20 @@ WebGPU disabled the vis-network canvas appears.
 - Deferred minor: the synthetic pointer events of the browser check raise `setPointerCapture` errors in
   the dev overlay; real pointers do not.
 
+- Observation: review of Track 3 (no blocker, no major), triaged by reading each cited line. Fixed: no
+  engine is constructed once the mount is cancelled; the lens buttons stay disabled until the engine has
+  started; the reader's last lens is remembered (`murici.graph.lens`), so a reload opens on it and the
+  layout saved for that lens is read back — a live switch re-solves by cerrado's design, so without this
+  only the default lens's saved layout was ever restored (revises the implementer's ruling 6); the
+  component's doc comment sits on the component again; a font face that fails to load is removed.
+  Browser re-check: after choosing Agent and reloading, the page opened on Agent.
+- Deferred minor: a throw from `start()` itself fires `onUnavailable` while the cleanup skips `stop()`.
+- Deferred minor: the effect depends on array identities, so a new `chats` array from the context
+  remounts the engine — each remount leaks a GPU device until Track 4 brings `destroy()`.
+- Deferred minor: `lucide-static` is pinned exactly while `lucide-react` is `^1.53.0`.
+- Deferred minor: no test covers unmount before failure, a lens switch, `saveLayout`, the icon-font
+  failure path, or that every prop reaches the fallback.
+
 ## Closure
 
 - [ ] Run `/vibe-ops:close-task` — do not just delete this file. Stays unchecked until closure actually
