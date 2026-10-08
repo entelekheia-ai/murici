@@ -9,6 +9,7 @@ import { buildAgentLayer } from "@/lib/knowledge/agent-layer"
 import {
   agentRef,
   canRefAgent,
+  drawableRecords,
   conversationRef,
   knowledgeRef
 } from "@/lib/knowledge/ref"
@@ -44,11 +45,12 @@ function toMillis(iso: string | null | undefined): number | undefined {
  * namespace) has no identifier and is left out with its edges. Pure: no DOM,
  * no IndexedDB.
  */
-export function buildGraphData({
-  knowledge,
-  agentBundles,
-  chats
-}: GraphSource): GraphData {
+export function buildGraphData(source: GraphSource): GraphData {
+  const { chats } = source
+  const { knowledge, agentBundles } = drawableRecords(
+    source.knowledge,
+    source.agentBundles
+  )
   const chatMap = new Map(chats.map(c => [c.id, c]))
   const involvedChatIds = Array.from(
     new Set([

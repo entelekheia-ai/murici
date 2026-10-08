@@ -120,9 +120,6 @@ Edge ids inside vis-network stay whatever string is unique; nothing outside the 
   intermittent exit the implementer saw.
   Evidence: `build({type:"unknown",locator:"dot-agent:~user/Name"})` throws "refused at the locator";
   `dot-agent:acme/Name` builds.
-- Deferred minor: `conversationRef` and `knowledgeRef` throw on a key outside `[A-Za-z0-9._-]`; every
-  writer found uses `crypto.randomUUID()` (`db/chats.ts:58`, `lib/local-db/conversations.ts:36`), but
-  `chat.id ??` accepts a caller-supplied id, and one non-conforming id would blank the graph.
 - Deferred minor: `countParentsByArtifact` (`lib/knowledge/agent-layer.ts`) still returns `conv-`/`agent-`
   strings, translated at its one use site in the canvas.
 - Deferred minor: the canvas `convAgentId` map holds the full `aboutme.id` while `agentColor` is keyed by
@@ -144,6 +141,18 @@ Edge ids inside vis-network stay whatever string is unique; nothing outside the 
   the adapter's output (no `null`), every tier of every lens holds a node, the three lenses draw the same
   node ids and edge count, and no top-level or distortion key is dropped; gate: 27 suites / 145 tests,
   type-check 0, oxlint 0.
+
+- Observation: review of Tracks 1–2 (no blocker, no major) — five minors and three notes. Fixed here: the
+  lens tests now assert which node type each lens puts in each tier and compare every written key at any
+  depth in `targets`, `distortion`, `theme` and `paint` (both proven by breaking `agent.cview` on purpose:
+  a swapped tier and `mass_multiplyer` each fail the suite); the always-green "same nodes in every lens"
+  test was dropped; `drawableRecords` in `lib/knowledge/ref.ts` leaves out a record or bundle whose id the
+  grammar refuses, in the adapter and the canvas alike, instead of throwing and blanking the graph;
+  `CONTRIBUTING.md` says local installs need a `read:packages` token.
+- Deferred minor: no test compares the vis-network canvas's node set with the adapter's; by reading they
+  agree (same `involvedChatIds`, `buildAgentLayer`, `canRefAgent`, `drawableRecords`).
+- Deferred minor: `canary.yml`'s `canary-install.mjs` step carries no `NODE_AUTH_TOKEN`; it installs only
+  `@dot-agent/*` from npmjs, so it should not need one — add it if the first CI run returns 401.
 
 ## Closure
 

@@ -6,7 +6,7 @@
  * Licensed under the Apache License, Version 2.0
  */
 
-import { FC, useEffect, useRef, useState } from "react"
+import { FC, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useTranslation } from "react-i18next"
 import { Network } from "vis-network"
@@ -32,6 +32,7 @@ import {
 import {
   agentRef,
   canRefAgent,
+  drawableRecords,
   conversationRef,
   knowledgeRef,
   parseGraphRef
@@ -242,10 +243,15 @@ interface AgentPreview {
 }
 
 export const KnowledgeGraphCanvas: FC<Props> = ({
-  knowledge,
+  knowledge: allKnowledge,
   chats,
-  agentBundles
+  agentBundles: allAgentBundles
 }) => {
+  // Only records whose identifiers can be built are drawn (see drawableRecords).
+  const { knowledge, agentBundles } = useMemo(
+    () => drawableRecords(allKnowledge, allAgentBundles),
+    [allKnowledge, allAgentBundles]
+  )
   const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()

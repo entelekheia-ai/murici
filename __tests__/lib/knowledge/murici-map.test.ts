@@ -98,53 +98,73 @@ describe("murici.cmap", () => {
 
 describe("murici lenses", () => {
   const map = parseMap(source)
-  const LENSES = ["default", "chat", "agent"] as const
   const read = (lens: string) =>
     readFileSync(
       join(process.cwd(), `lib/knowledge/graph/${lens}.cview`),
       "utf8"
     )
 
-  it.each(LENSES)("%s parses, and every tier holds a node", lens => {
-    const scene = buildScene(data, map, parseView(read(lens)))
-    const tiers = new Map<string, number>()
-    for (const m of scene.meta) tiers.set(m.tier, (tiers.get(m.tier) ?? 0) + 1)
-    expect([...tiers.keys()].sort()).toEqual([
-      "tier_high",
-      "tier_low",
-      "tier_medium"
-    ])
-  })
-
-  it("draws the same nodes and edges in every lens, so a switch can morph", () => {
-    const scenes = LENSES.map(lens =>
-      buildScene(data, map, parseView(read(lens)))
-    )
-    const ids = scenes.map(s => s.meta.map(m => m.id).join("|"))
-    expect(new Set(ids).size).toBe(1)
-    expect(new Set(scenes.map(s => s.edges.length)).size).toBe(1)
-  })
-
-  it.each(LENSES)(
-    "%s keeps every top-level and distortion key it writes",
-    lens => {
-      const raw = yamlFrontEnd.readView(read(lens)) as unknown as Record<
-        string,
-        unknown
-      >
-      const view = parseView(read(lens)) as unknown as Record<
-        string,
-        Record<string, unknown>
-      >
-      for (const key of Object.keys(raw)) expect(view).toHaveProperty(key)
-      const distortion = raw.distortion as Record<
-        string,
-        Record<string, unknown>
-      >
-      for (const [tier, knobs] of Object.entries(distortion)) {
-        for (const knob of Object.keys(knobs))
-          expect(view.distortion[tier]).toHaveProperty(knob)
-      }
+  // Which node type each lens puts in each tier — the lens's whole point.
+  const EXPECTED: Record<string, Record<string, string>> = {
+    default: {
+      tier_high: "conversation",
+      tier_medium: "knowledge",
+      tier_low: "agent"
+    },
+    chat: {
+      tier_high: "conversation",
+      tier_medium: "knowledge",
+      tier_low: "agent"
+    },
+    agent: {
+      tier_high: "agent",
+      tier_medium: "knowledge",
+      tier_low: "conversation"
     }
-  )
+  }
+  const typeOf = new Map(data.nodes.map(n => [n.id, n.type]))
+
+  it.each(Object.keys(EXPECTED))("%s puts each node type in its tier", lens => {
+    const scene = buildScene(data, map, parseView(read(lens)))
+    const tierTypes: Record<string, Set<string>> = {}
+    for (const m of scene.meta) {
+      ;(tierTypes[m.tier] ??= new Set()).add(typeOf.get(m.id)!)
+    }
+    const actual = Object.fromEntries(
+      Object.entries(tierTypes).map(([tier, types]) => [
+        tier,
+        [...types].join(",")
+      ])
+    )
+    expect(actual).toEqual(EXPECTED[lens])
+  })
+
+  // Every key the file writes in these blocks survives parsing, at any depth:
+  // a misspelt key parses and silently falls back to a default.
+  const missingKeys = (
+    raw: unknown,
+    parsed: unknown,
+    path: string
+  ): string[] => {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return []
+    const out: string[] = []
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+      const next = (parsed as Record<string, unknown> | undefined)?.[key]
+      if (next === undefined) out.push(`${path}.${key}`)
+      else out.push(...missingKeys(value, next, `${path}.${key}`))
+    }
+    return out
+  }
+
+  it.each(Object.keys(EXPECTED))("%s keeps every key it writes", lens => {
+    const raw = yamlFrontEnd.readView(read(lens)) as unknown as Record<
+      string,
+      unknown
+    >
+    const view = parseView(read(lens)) as unknown as Record<string, unknown>
+    const missing = ["targets", "distortion", "theme", "paint"].flatMap(block =>
+      missingKeys(raw[block], view[block], block)
+    )
+    expect(missing).toEqual([])
+  })
 })

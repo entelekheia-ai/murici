@@ -136,3 +136,20 @@ describe("buildGraphData", () => {
     }
   })
 })
+
+describe("drawableRecords", () => {
+  it("leaves out a record or bundle whose id the grammar refuses, instead of throwing", () => {
+    const data = buildGraphData({
+      knowledge: [
+        record("ok", "c1"),
+        record("has space", "c1"),
+        record("k3", "bad:conv")
+      ],
+      agentBundles: [bundle("bad conv", "acme/Scribe:1.0.0~abc123", "Scribe")],
+      chats
+    })
+    expect(data.nodes.map(n => n.id).sort()).toEqual(
+      [conversationRef("c1"), knowledgeRef("ok")].sort()
+    )
+  })
+})

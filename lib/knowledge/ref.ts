@@ -65,6 +65,39 @@ export function agentRef(bareAgentId: string): string {
 }
 
 /** True when `agentRef(bareAgentId)` would succeed. Never throws. */
+/** True when `make(kind, key)` would succeed. Never throws. */
+function canRef(kind: GraphRefKind, key: string): boolean {
+  try {
+    make(kind, key)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * The records both graph renderers draw: every one whose identifiers can be
+ * built. A record id or conversation id the locator grammar refuses — none is
+ * written by this app, which uses `crypto.randomUUID()`, but a caller may
+ * supply one — leaves out that record or bundle instead of throwing, which
+ * would blank the whole graph.
+ */
+export function drawableRecords<
+  K extends { id: string; originConversationId: string },
+  B extends { conversationId: string }
+>(knowledge: K[], agentBundles: B[]): { knowledge: K[]; agentBundles: B[] } {
+  return {
+    knowledge: knowledge.filter(
+      k =>
+        canRef("knowledge", k.id) &&
+        canRef("conversation", k.originConversationId)
+    ),
+    agentBundles: agentBundles.filter(b =>
+      canRef("conversation", b.conversationId)
+    )
+  }
+}
+
 export function canRefAgent(bareAgentId: string): boolean {
   try {
     agentRef(bareAgentId)
