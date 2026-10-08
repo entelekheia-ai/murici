@@ -20,13 +20,13 @@
     "lint:fix": "next lint --fix",
     "analyze": "ANALYZE=true npm run build",
     "preview": "next build && next start",
-    "type-check": "tsc --noEmit",
+    "type-check": "node node_modules/typescript7/bin/tsc --noEmit",
     "format:write": "prettier --write \"{app,lib,components,context,types}/**/*.{ts,tsx}\" --cache",
     "format:check": "prettier --check \"{app,lib,components,context,types}**/*.{ts,tsx}\" --cache",
     "test": "jest",
     "test:e2e": "playwright test",
     "build:agents": "node scripts/build-agents.js",
-    "electron:compile": "rm -rf electron-dist && tsc -p tsconfig.electron.json",
+    "electron:compile": "rm -rf electron-dist && node node_modules/typescript7/bin/tsc -p tsconfig.electron.json",
     "electron:dev": "npm run electron:compile && NODE_ENV=development ELECTRON_ENV=development concurrently -k -n next,electron \"next dev\" \"wait-on http://localhost:3000 && electron electron-dist/main.js\"",
     "electron:build": "ELECTRON_BUILD=1 npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && npm run electron:compile && node scripts/verify-electron-deps.js && electron-builder",
     "electron:publish": "npm run electron:build -- --publish always",
@@ -120,6 +120,7 @@
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@typescript-eslint/parser": "^8.71.1",
     "autoprefixer": "^10.5.2",
     "clsx": "^2.1.1",
     "concurrently": "^9.2.3",
@@ -136,8 +137,8 @@
     "tailwind-merge": "^2.6.1",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
-    "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
+    "typescript7": "npm:typescript@^7.0.2",
     "wait-on": "^9.0.10"
   }
 }
