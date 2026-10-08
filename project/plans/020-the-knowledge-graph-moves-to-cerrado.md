@@ -152,7 +152,7 @@ allowlist are checked rather than assumed to need no change.
   `@entelekheia-ai/cerrado@0.2.0` pinned exactly in `package.json`. Acceptance: `npm ci` succeeds locally
   and in CI, `npm run build` and `npm run electron:build` succeed with the package imported from a
   throwaway call site, and `scripts/verify-electron-deps.js` passes.
-- [ ] **Track 2 — Identifiers, adapter, map and lenses.** `lib/knowledge/ref.ts` and
+- [ ] **Track 2 — Identifiers, adapter, map and lenses.** Task: [tasks/002-graph-identifiers-and-the-cerrado-adapter.md](../tasks/002-graph-identifiers-and-the-cerrado-adapter.md). `lib/knowledge/ref.ts` and
   `lib/knowledge/cerrado-adapter.ts`, with unit tests over a fixture of records (every node kind, the
   hidden agent, an agent id carrying `:v~digest`), `@entelekheia/ref-id` added as a dependency, the
   vis-network canvas moved onto the adapter's output, and `murici.cmap` plus the three `.cview` files.
