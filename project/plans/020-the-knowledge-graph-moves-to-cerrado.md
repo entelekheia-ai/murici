@@ -233,6 +233,11 @@ allowlist are checked rather than assumed to need no change.
 
 ## Open questions
 
+- **Track 2 — an agent in a Sourcehut namespace (`~user/…`) has no identifier.** The `unknown` locator
+  admits only `[A-Za-z0-9._-]` segments, so such an agent is left out of both renderers for now.
+  Options: (a) keep it out; (b) give `~` namespaces another identifier form here; (c) ask the identifier
+  scheme to admit `~` in the `unknown` locator and wait for its release. Recommended: (c), with (a) until
+  it lands.
 - Whether Electron 44's Chromium, with `sandbox: true`, exposes a WebGPU adapter on Linux for the
   machines this app ships to. Track 5 measures it.
 - How conversation nodes are placed in the map: one region for all conversations, or a region per

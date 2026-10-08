@@ -29,6 +29,13 @@ import {
   buildAgentLayer,
   countParentsByArtifact
 } from "@/lib/knowledge/agent-layer"
+import {
+  agentRef,
+  canRefAgent,
+  conversationRef,
+  knowledgeRef,
+  parseGraphRef
+} from "@/lib/knowledge/ref"
 
 // Gravitational lens: which node type is alta-tier (canopy + individual
 // color), and how much mass each type gets. Not 3 separate physics setups —
@@ -96,10 +103,16 @@ function truncate(s: string | undefined, max: number, fallback = ""): string {
 // Returns a translation key, not display text — callers with access to `t`
 // (the canvas hover-subtitle draw loop) translate it just before rendering.
 function nodeKind(id: string): string {
-  if (id.startsWith("conv-")) return "Chat"
-  if (id.startsWith("know-")) return "Knowledge"
-  if (id.startsWith("agent-")) return "Agent"
-  return ""
+  switch (parseGraphRef(id)?.kind) {
+    case "conversation":
+      return "Chat"
+    case "knowledge":
+      return "Knowledge"
+    case "agent":
+      return "Agent"
+    default:
+      return ""
+  }
 }
 
 // Andrew's monotone chain — real convex hull, not a hub-outward projection.
@@ -306,7 +319,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
       const color = convColor.get(chatId)!
       const { x, y } = hubInitPos.get(chatId)!
       return {
-        id: `conv-${chatId}`,
+        id: conversationRef(chatId),
         label: truncate(chat?.name, 20, t("Conversation")),
         shape: "dot" as const,
         size: CONV_SIZE,
@@ -337,7 +350,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
       // ring's *aggregate* multi-parent case, not this specific edge).
       const convBorderColor = convColor.get(k.originConversationId)!
       return {
-        id: `know-${k.id}`,
+        id: knowledgeRef(k.id),
         label: truncate(k.title, 26),
         shape: "dot" as const,
         size: KNOW_SIZE,
@@ -367,9 +380,11 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
     // canvas's whole geographic-stability premise depends on no randomness
     // creeping into palette-index/initial-position assignment.
     const agentLayer = buildAgentLayer(knowledge, agentBundles)
-    const sortedAgents = Array.from(agentLayer.values()).sort((a, b) =>
-      a.agentId.localeCompare(b.agentId)
-    )
+    // An agent whose id the ref-id locator grammar refuses (a Sourcehut `~`
+    // namespace) has no identifier to draw under, so it is left out.
+    const sortedAgents = Array.from(agentLayer.values())
+      .filter(agent => canRefAgent(agent.agentId))
+      .sort((a, b) => a.agentId.localeCompare(b.agentId))
     // Own identity space, only used when the "agent" lens promotes agents to
     // alta-tier — in default/chat lens agents render flat (LOW_TIER_COLOR).
     const agentColor = new Map(
@@ -426,7 +441,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
         agent.conversationIds.size === 1 ? [...agent.conversationIds][0] : null
       const color = (soloConvId && convColor.get(soloConvId)) || LOW_TIER_COLOR
       return {
-        id: `agent-${agent.agentId}`,
+        id: agentRef(agent.agentId),
         label: truncate(agent.name, 20),
         shape: "dot" as const,
         size,
@@ -456,16 +471,16 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
     const agentEdges = sortedAgents.flatMap(agent => [
       ...Array.from(agent.conversationIds).map(convId => ({
         id: `agent-conv-${agent.agentId}-${convId}`,
-        from: `agent-${agent.agentId}`,
-        to: `conv-${convId}`,
+        from: agentRef(agent.agentId),
+        to: conversationRef(convId),
         color: { inherit: "both" as const, opacity: LIGHT_OPACITY },
         width: 0.75,
         length: 120
       })),
       ...Array.from(agent.artifactIds).map(artifactId => ({
         id: `agent-know-${agent.agentId}-${artifactId}`,
-        from: `agent-${agent.agentId}`,
-        to: `know-${artifactId}`,
+        from: agentRef(agent.agentId),
+        to: knowledgeRef(artifactId),
         hidden: true,
         color: { inherit: "both" as const, opacity: SOLID_OPACITY },
         width: 1,
@@ -477,15 +492,34 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
     // Conversation parents keep their individual palette color; agent
     // parents (baixa-tier, colorless by design) all resolve to the same
     // flat LOW_TIER_COLOR, so multiple agents don't fake an individual hue.
-    const artifactParentIds = countParentsByArtifact(knowledge, agentBundles)
+    // countParentsByArtifact (agent-layer.ts) still returns its legacy
+    // `conv-<id>` / `agent-<id>` strings; they are translated to graph
+    // identifiers here, at the one place they are consumed.
+    const artifactParentIds = new Map<
+      string,
+      Array<{ kind: "conversation" | "agent"; key: string }>
+    >()
+    countParentsByArtifact(knowledge, agentBundles).forEach((ids, recordId) => {
+      artifactParentIds.set(
+        recordId,
+        ids.flatMap(
+          (id): Array<{ kind: "conversation" | "agent"; key: string }> =>
+            id.startsWith("conv-")
+              ? [{ kind: "conversation", key: id.slice("conv-".length) }]
+              : canRefAgent(id.slice("agent-".length))
+                ? [{ kind: "agent", key: id.slice("agent-".length) }]
+                : []
+        )
+      )
+    })
 
     // Intra-domain edges: short spring keeps leaves close to their hub.
     // Native gradient (alta mancha → médio borda), confirmed live 2-stop
     // support in vis-network's own source, not an assumption.
     const intraEdges = knowledge.map(k => ({
       id: `intra-${k.id}`,
-      from: `know-${k.id}`,
-      to: `conv-${k.originConversationId}`,
+      from: knowledgeRef(k.id),
+      to: conversationRef(k.originConversationId),
       color: { inherit: "both" as const, opacity: SOLID_OPACITY },
       width: 1,
       length: 80
@@ -548,7 +582,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
         sortedAgents.forEach(agent => {
           let hubP: { x: number; y: number } | null = null
           try {
-            hubP = network.getPosition(`agent-${agent.agentId}`)
+            hubP = network.getPosition(agentRef(agent.agentId))
           } catch {
             return
           }
@@ -557,7 +591,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
           const leafPts: { x: number; y: number }[] = []
           agent.conversationIds.forEach(id => {
             try {
-              leafPts.push(network.getPosition(`conv-${id}`))
+              leafPts.push(network.getPosition(conversationRef(id)))
             } catch {
               /* not yet placed */
             }
@@ -570,7 +604,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
       involvedChatIds.forEach(convId => {
         let hubP: { x: number; y: number } | null = null
         try {
-          hubP = network.getPosition(`conv-${convId}`)
+          hubP = network.getPosition(conversationRef(convId))
         } catch {
           return
         }
@@ -579,7 +613,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
         const leafPts: { x: number; y: number }[] = []
         ;(byConv.get(convId) ?? []).forEach(k => {
           try {
-            leafPts.push(network.getPosition(`know-${k.id}`))
+            leafPts.push(network.getPosition(knowledgeRef(k.id)))
           } catch {
             /* not yet placed */
           }
@@ -596,17 +630,21 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
       knowledge.forEach(k => {
         let center: { x: number; y: number } | null = null
         try {
-          center = network.getPosition(`know-${k.id}`)
+          center = network.getPosition(knowledgeRef(k.id))
         } catch {
           return
         }
         if (!center) return
 
         const ids = artifactParentIds.get(k.id) ?? []
-        const parents = ids.flatMap(id => {
+        const parents = ids.flatMap(parent => {
           let pos: { x: number; y: number } | null = null
           try {
-            pos = network.getPosition(id)
+            pos = network.getPosition(
+              parent.kind === "conversation"
+                ? conversationRef(parent.key)
+                : agentRef(parent.key)
+            )
           } catch {
             return []
           }
@@ -614,15 +652,15 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
           // Alta-tier parents carry their individual color; whichever type
           // the active lens demotes to baixa-tier goes flat, no exceptions.
           let color: string
-          if (id.startsWith("conv-")) {
+          if (parent.kind === "conversation") {
             color =
               currentLens === "agent"
                 ? LOW_TIER_COLOR
-                : convColor.get(id.replace("conv-", ""))!
+                : convColor.get(parent.key)!
           } else {
             color =
               currentLens === "agent"
-                ? (agentColor.get(id.replace("agent-", "")) ?? LOW_TIER_COLOR)
+                ? (agentColor.get(parent.key) ?? LOW_TIER_COLOR)
                 : LOW_TIER_COLOR
           }
           return [{ x: pos.x, y: pos.y, color }]
@@ -682,7 +720,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
           ? convColor.get(convId)!
           : (linkedAgentId && agentColor.get(linkedAgentId)) || LOW_TIER_COLOR
         nodeUpdates.push({
-          id: `conv-${convId}`,
+          id: conversationRef(convId),
           mass: mass.conv,
           color: {
             background: color,
@@ -707,7 +745,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
           ? agentColor.get(agent.agentId)!
           : (soloConvId && convColor.get(soloConvId)) || LOW_TIER_COLOR
         nodeUpdates.push({
-          id: `agent-${agent.agentId}`,
+          id: agentRef(agent.agentId),
           mass: mass.agent,
           color: {
             background: color,
@@ -730,7 +768,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
             ? LOW_TIER_COLOR
             : convColor.get(k.originConversationId)!
         nodeUpdates.push({
-          id: `know-${k.id}`,
+          id: knowledgeRef(k.id),
           mass: mass.know,
           color: {
             background: MEDIUM_ANCHOR_COLOR,
@@ -782,23 +820,18 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
 
     network.on("click", params => {
       if (params.nodes.length === 0) return
-      const nodeId = params.nodes[0] as string
-      if (nodeId.startsWith("conv-")) {
-        router.push(
-          localeHref(
-            locale,
-            `/${workspaceid}/chat/${nodeId.replace("conv-", "")}`
-          )
-        )
-      } else if (nodeId.startsWith("know-")) {
-        const record = knowledge.find(k => k.id === nodeId.replace("know-", ""))
+      const ref = parseGraphRef(params.nodes[0] as string)
+      if (!ref) return
+      if (ref.kind === "conversation") {
+        router.push(localeHref(locale, `/${workspaceid}/chat/${ref.key}`))
+      } else if (ref.kind === "knowledge") {
+        const record = knowledge.find(k => k.id === ref.key)
         if (record) {
           const chat = chatMap.get(record.originConversationId)
           setPreview({ record, chatName: chat?.name || t("Conversation") })
         }
-      } else if (nodeId.startsWith("agent-")) {
-        const agentId = nodeId.replace("agent-", "")
-        const agent = agentLayer.get(agentId)
+      } else if (ref.kind === "agent") {
+        const agent = agentLayer.get(ref.key)
         if (agent) {
           setAgentPreview({
             agentId: agent.agentId,

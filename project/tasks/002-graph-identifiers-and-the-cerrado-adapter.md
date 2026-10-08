@@ -81,10 +81,10 @@ Edge ids inside vis-network stay whatever string is unique; nothing outside the 
 
 ## Implementation order
 
-- [ ] P0 — `ref.ts` and its tests
-- [ ] P0 — adapter and its tests (fixture: every node kind, the hidden `BackgroundSystem` agent, an agent id
+- [x] P0 — `ref.ts` and its tests
+- [x] P0 — adapter and its tests (fixture: every node kind, the hidden `BackgroundSystem` agent, an agent id
       carrying `:v~digest`, a Sourcehut namespace with `~`)
-- [ ] P0 — vis-network canvas on `ref.ts`
+- [x] P0 — vis-network canvas on `ref.ts`
 
 ## Surprises & Discoveries
 
@@ -100,6 +100,34 @@ Edge ids inside vis-network stay whatever string is unique; nothing outside the 
   `ref.ts`, rather than drawing the adapter's output — that is what makes the identifiers shared, while
   leaving its colours, placement and lenses untouched until it is only a fallback — cost if wrong: the
   two renderers can disagree on which nodes exist, which the adapter tests do not catch.
+- Observation: the `unknown` locator grammar (`spec/ref-id.json`, `dispatch.unknown.pattern`) admits only
+  `[A-Za-z0-9._-]` segments, so a Sourcehut namespace (`~user/Name`) cannot be built — and the builder
+  never encodes a locator (`dist/build.js`: "a locator is never encoded"), contrary to the item 1
+  wording. `agentRef` throws on it; `canRefAgent` reports it.
+- Ruling: an agent whose bare id the grammar refuses is left out of the adapter output and the vis-network
+  canvas, with its edges (a throw would blank the whole graph) — cost if wrong: that agent is invisible
+  until the question on the Sourcehut namespace is answered.
+- Ruling: a conversation with no matching chat row gets no `label` in the adapter (the canvas fallback is a
+  translated string the pure adapter has no access to) — cost if wrong: a renderer shows the id.
+- Ruling: `countParentsByArtifact` (`agent-layer.ts`, not owned) still returns `conv-`/`agent-` strings;
+  the canvas translates them at its one consumption site — cost if wrong: two prefix conventions coexist
+  until agent-layer returns structured parents.
+- Observation: `convAgentId` in the canvas maps to the full `aboutme.id` but `agentColor` is keyed by the
+  bare id, so the agent-lens colour of a conversation falls back to `LOW_TIER_COLOR` (predates the track).
+
+- Observation: verified by the caller — `npx jest` 26 suites / 136 tests pass, `npm run type-check` exit 0;
+  `npm run lint` exited 1 once with no error text and 0 on three reruns of `npx oxlint`, the same
+  intermittent exit the implementer saw.
+  Evidence: `build({type:"unknown",locator:"dot-agent:~user/Name"})` throws "refused at the locator";
+  `dot-agent:acme/Name` builds.
+- Deferred minor: `conversationRef` and `knowledgeRef` throw on a key outside `[A-Za-z0-9._-]`; every
+  writer found uses `crypto.randomUUID()` (`db/chats.ts:58`, `lib/local-db/conversations.ts:36`), but
+  `chat.id ??` accepts a caller-supplied id, and one non-conforming id would blank the graph.
+- Deferred minor: `countParentsByArtifact` (`lib/knowledge/agent-layer.ts`) still returns `conv-`/`agent-`
+  strings, translated at its one use site in the canvas.
+- Deferred minor: the canvas `convAgentId` map holds the full `aboutme.id` while `agentColor` is keyed by
+  the bare id, so a conversation's agent-lens colour always falls back to `LOW_TIER_COLOR`; this predates
+  the track.
 
 ## Closure
 
