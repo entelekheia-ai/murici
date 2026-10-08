@@ -134,7 +134,8 @@ cerrado reports `onClick` and `onHover` with a node index; `scene.meta[i].id` tu
 identifier, and the existing click branch (`knowledge-graph-canvas.tsx:783-811`) moves into a shared
 `handleGraphClick(id)` that both canvases call, which parses the identifier through `lib/knowledge/ref.ts`
 instead of testing a prefix. The vis-network canvas stops building its own `conv-`/`know-`/`agent-` ids
-and draws the adapter's output, so the two renderers share one source of identifiers. Hover shows the node kind, as today.
+and draws the adapter's output, so the two renderers share one source of identifiers. Hover shows the node kind, as today, and each node draws its kind's icon (chat, file, agent) from the
+lucide icon font — in the cerrado renderer only.
 
 ### Layout
 
@@ -171,7 +172,7 @@ allowlist are checked rather than assumed to need no change.
   Acceptance: the adapter tests pass; every node id the adapter emits parses through `@entelekheia/ref-id`
   with the type `unknown` and the species `murici` or `dot-agent`; and `validateMap` and `validateView`
   report no error against the adapter's output for the fixture.
-- [ ] **Track 3 — cerrado draws, vis-network falls back.** Task: [tasks/003-cerrado-draws-vis-network-falls-back.md](../tasks/003-cerrado-draws-vis-network-falls-back.md). `KnowledgeGraph`, `CerradoGraphCanvas`,
+- [x] **Track 3 — cerrado draws, vis-network falls back.** Task: [tasks/003-cerrado-draws-vis-network-falls-back.md](../tasks/003-cerrado-draws-vis-network-falls-back.md). `KnowledgeGraph`, `CerradoGraphCanvas`,
   `handleGraphClick`, layout persistence, and the fallback on `init()` failure. Acceptance: in a
   browser with WebGPU the graph is drawn by cerrado and each node kind's click does what it does today;
   with WebGPU disabled (`--disable-features=WebGPU`) the vis-network graph appears in the same place.

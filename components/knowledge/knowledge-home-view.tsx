@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
 import { AgentBundleRecord, RecentAgentRecord } from "@/lib/local-db/schema"
-import { KnowledgeGraphCanvas } from "./knowledge-graph-canvas"
+import { KnowledgeGraph } from "./knowledge-graph"
 import { KnowledgeListView } from "./knowledge-list-view"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/chat/header"
@@ -90,7 +90,7 @@ export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({
             </div>
 
             {view === "graph" ? (
-              <KnowledgeGraphCanvas
+              <KnowledgeGraph
                 knowledge={knowledge}
                 chats={chats}
                 agentBundles={agentBundles}

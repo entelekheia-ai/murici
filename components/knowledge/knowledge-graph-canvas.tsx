@@ -7,17 +7,15 @@
  */
 
 import { FC, useEffect, useMemo, useRef, useState } from "react"
-import { useRouter, useParams } from "next/navigation"
 import { useTranslation } from "react-i18next"
 import { Network } from "vis-network"
 import type { Node, Edge, Options } from "vis-network"
 import { DataSet } from "vis-data"
-import { localeHref } from "@/lib/locale-href"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
 import { AgentBundleRecord, RecentAgentRecord } from "@/lib/local-db/schema"
 import { Button } from "@/components/ui/button"
-import { KnowledgePreviewModal } from "./knowledge-preview-modal"
+import { useGraphClick } from "./use-graph-click"
 import {
   PALETTE,
   AGENT_PALETTE,
@@ -235,18 +233,6 @@ interface Props {
 // One empty list for every render, so an absent prop never re-runs the graph effect.
 const NO_RECENT_AGENTS: RecentAgentRecord[] = []
 
-interface NodePreview {
-  record: KnowledgeRecord
-  chatName: string
-}
-
-interface AgentPreview {
-  agentId: string
-  name: string
-  conversationIds: string[]
-  artifactIds: string[]
-}
-
 export const KnowledgeGraphCanvas: FC<Props> = ({
   knowledge: allKnowledge,
   chats,
@@ -259,15 +245,20 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
     [allKnowledge, allAgentBundles]
   )
   const { t } = useTranslation()
-  const router = useRouter()
-  const params = useParams()
-  const locale = (params?.locale as string) || "en"
-  const workspaceid = (params?.workspaceid as string) || "local"
+  const { onNodeClick, overlay } = useGraphClick({
+    knowledge: allKnowledge,
+    chats,
+    agentBundles: allAgentBundles,
+    recentAgents
+  })
+  // Read through a ref so a changed handler never rebuilds the network.
+  const onNodeClickRef = useRef(onNodeClick)
+  useEffect(() => {
+    onNodeClickRef.current = onNodeClick
+  })
 
   const containerRef = useRef<HTMLDivElement>(null)
   const networkRef = useRef<Network | null>(null)
-  const [preview, setPreview] = useState<NodePreview | null>(null)
-  const [agentPreview, setAgentPreview] = useState<AgentPreview | null>(null)
   const [activeLens, setActiveLens] = useState<Lens>("default")
   const applyLensRef = useRef<(lens: Lens) => void>(() => {})
 
@@ -835,27 +826,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
 
     network.on("click", params => {
       if (params.nodes.length === 0) return
-      const ref = parseGraphRef(params.nodes[0] as string)
-      if (!ref) return
-      if (ref.kind === "conversation") {
-        router.push(localeHref(locale, `/${workspaceid}/chat/${ref.key}`))
-      } else if (ref.kind === "knowledge") {
-        const record = knowledge.find(k => k.id === ref.key)
-        if (record) {
-          const chat = chatMap.get(record.originConversationId)
-          setPreview({ record, chatName: chat?.name || t("Conversation") })
-        }
-      } else if (ref.kind === "agent") {
-        const agent = agentLayer.get(ref.key)
-        if (agent) {
-          setAgentPreview({
-            agentId: agent.agentId,
-            name: agent.name,
-            conversationIds: Array.from(agent.conversationIds),
-            artifactIds: Array.from(agent.artifactIds)
-          })
-        }
-      }
+      onNodeClickRef.current(params.nodes[0] as string)
     })
 
     return () => {
@@ -889,31 +860,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
         ))}
       </div>
       <div ref={containerRef} className="size-full" />
-      {preview && (
-        <KnowledgePreviewModal
-          record={preview.record}
-          chatName={preview.chatName}
-          onClose={() => setPreview(null)}
-          overlay="absolute"
-        />
-      )}
-      {agentPreview && (
-        <div
-          className="absolute inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setAgentPreview(null)}
-        >
-          <div
-            className="max-w-sm rounded-xl border bg-background p-4 shadow-xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 className="font-semibold">{agentPreview.name}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {agentPreview.conversationIds.length} conversa(s),{" "}
-              {agentPreview.artifactIds.length} artefato(s)
-            </p>
-          </div>
-        </div>
-      )}
+      {overlay}
     </div>
   )
 }

@@ -31,10 +31,13 @@ theme:
   tier_high:
     color_fill: "#d99a2b"
     canopy_gradient: ["rgba(217, 154, 43, 0.30)", "rgba(120, 80, 10, 0)"]
+    icon: "lucide:bot"
   tier_medium:
     color_fill: "#9a9488"
+    icon: "lucide:file-text"
   tier_low:
     color_fill: "#c4922a"
+    icon: "lucide:message-circle"
 
 paint:
   softness: 0.09

@@ -83,11 +83,11 @@ WebGPU disabled the vis-network canvas appears.
 
 ## Implementation order
 
-- [ ] P0 — sources
-- [ ] P0 — click
-- [ ] P0 — `CerradoGraphCanvas`
-- [ ] P0 — `KnowledgeGraph` and the home view
-- [ ] P0 — browser check
+- [x] P0 — sources
+- [x] P0 — click
+- [x] P0 — `CerradoGraphCanvas`
+- [x] P0 — `KnowledgeGraph` and the home view
+- [x] P0 — browser check
 
 ## Surprises & Discoveries
 
@@ -100,6 +100,38 @@ WebGPU disabled the vis-network canvas appears.
   check) stays in the main loop — the fallback choice the plan reserved to the main loop is settled in
   item 3 and 4 above, so what remains is implementation under a written contract — cost if wrong: a
   judgement the dossier left implicit is taken by the implementer and caught only at review.
+- Ruling: `useGraphClick(source)` takes the four collections and returns `{ onNodeClick, overlay }`, not a bare
+  `(id) => void` — the preview and agent overlay state must live somewhere both canvases share, and the file is
+  `.ts`, so the overlay is built with `createElement` — cost if wrong: callers destructure instead of calling.
+
+- Ruling: the Jest transform for `.cmap`/`.cview` lives in a new root file `jest.text-transform.cjs` — a
+  transformer must be a file and `jest.config.mjs` cannot hold one inline — cost if wrong: one unlisted file to move.
+
+- Ruling: the canvas element is created inside the effect and removed on cleanup, so a re-run (new props, strict
+  mode) gets a fresh canvas — cost if wrong: cerrado 0.2.0 has no `destroy()`, so each run leaves its GPU device alive.
+
+- Ruling: territory labels are a local helper in `cerrado-graph-canvas.tsx` ported from the sample host's
+  `territories.ts`; label ink and region darkening follow the page background's luminance — cost if wrong: a dark
+  theme's colours may need tuning in the browser check.
+
+- Observation: browser check on `next dev` (Chrome with a WebGPU adapter, records seeded into the page's
+  IndexedDB): the graph is cerrado's — one canvas, no `.vis-network` — with the three territories, their
+  names, the canopy wash and node captions; hover shows the kind; a click on a conversation navigated to
+  `/en/local/chat/c1`, on a knowledge record opened its preview, on an agent opened its overlay
+  ("1 conversa(s), 1 artefato(s)"); the Agent lens morphed on the same canvas; the layouts of the three
+  lenses were saved under `cerrado.layout.murici_knowledge@1/…`. With `navigator.gpu` removed by an
+  init script, the same mount showed the vis-network graph.
+- Observation: the `unknown`-namespace agent `loja` opened from a folder rendered as its own node.
+- Ruling: icons per node type, at the maintainer's request and in the cerrado renderer only — chat
+  `lucide:message-circle`, file `lucide:file-text`, agent `lucide:bot`, declared per tier in each lens's
+  theme; the font comes from `lucide-static` (pinned to the `lucide-react` version, 1.53.0) and loads on
+  demand with the engine; a failed load draws without icons — cost if wrong: about 290 KB of font fetched
+  on the first graph mount.
+- Observation: `next dev` on Next 16 appends a block to `AGENTS.md` on every start
+  (`node_modules/next/dist/server/lib/generate-agent-files.js`; `agentRules: false` in `next.config`
+  turns it off). It was left out of this track's commits.
+- Deferred minor: the synthetic pointer events of the browser check raise `setPointerCapture` errors in
+  the dev overlay; real pointers do not.
 
 ## Closure
 

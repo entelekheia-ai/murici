@@ -30,10 +30,13 @@ theme:
     member-loose: { hidden: true }
   tier_high:
     color_fill: "#6b9ec4"
+    icon: "lucide:message-circle"
   tier_medium:
     color_fill: "#9a9488"
+    icon: "lucide:file-text"
   tier_low:
     color_fill: "#c4922a"
+    icon: "lucide:bot"
 
 paint:
   softness: 0.09
