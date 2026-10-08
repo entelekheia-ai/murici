@@ -5,7 +5,10 @@ import type {
   GraphEdge,
   GraphNode
 } from "@entelekheia-ai/cerrado/spec"
-import { buildAgentLayer } from "@/lib/knowledge/agent-layer"
+import {
+  buildAgentLayer,
+  locateFromRecentAgents
+} from "@/lib/knowledge/agent-layer"
 import {
   agentRef,
   canRefAgent,
@@ -13,7 +16,10 @@ import {
   conversationRef,
   knowledgeRef
 } from "@/lib/knowledge/ref"
-import type { AgentBundleRecord } from "@/lib/local-db/schema"
+import type {
+  AgentBundleRecord,
+  RecentAgentRecord
+} from "@/lib/local-db/schema"
 import type { Tables } from "@/types/database"
 import type { KnowledgeRecord } from "@/types/knowledge"
 
@@ -22,6 +28,8 @@ export interface GraphSource {
   knowledge: KnowledgeRecord[]
   agentBundles: AgentBundleRecord[]
   chats: Tables<"chats">[]
+  /** Where each agent was opened from; tells apart agents of the `unknown` namespace. */
+  recentAgents?: RecentAgentRecord[]
 }
 
 function toMillis(iso: string | null | undefined): number | undefined {
@@ -87,7 +95,13 @@ export function buildGraphData(source: GraphSource): GraphData {
     })
   }
 
-  const agents = Array.from(buildAgentLayer(knowledge, agentBundles).values())
+  const agents = Array.from(
+    buildAgentLayer(
+      knowledge,
+      agentBundles,
+      locateFromRecentAgents(source.recentAgents ?? [])
+    ).values()
+  )
     .filter(agent => canRefAgent(agent.agentId))
     .sort((a, b) => a.agentId.localeCompare(b.agentId))
   for (const agent of agents) {

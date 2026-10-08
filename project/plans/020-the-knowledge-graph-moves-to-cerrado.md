@@ -89,7 +89,7 @@ Every node id is a `ref:` identifier, derived from the record on demand and neve
 |---|---|
 | Conversation | `ref:unknown:murici:conversations/<chatId>` |
 | Knowledge record | `ref:unknown:murici:knowledge/<record.id>` |
-| Agent | by namespace tier: `ref:url:<domain-or-platform path>/<name>`, `ref:email:<address>#<name>`, or `ref:unknown:dot-agent:<name>` for the reserved `unknown` namespace |
+| Agent | by namespace tier: `ref:url:<domain-or-platform path>/<name>`, `ref:email:<address>#<name>`, or `ref:unknown:dot-agent:<name>` for the reserved `unknown` namespace, with `;origin=<repository>` or else `;path=<folder it was opened from>` when known |
 
 Conversations and knowledge records live only in this app's store, which no registered `ref:` type
 names, so they take the `unknown` type with the app as species. An agent is named by its publisher, as
@@ -100,7 +100,12 @@ the reserved `unknown` namespace is the `dot-agent` species of `unknown`. The sa
 the same identifier in any application that runs it. The identifier carries no version: the graph draws
 one node per agent whatever build produced an artifact (`lib/knowledge/agent-layer.ts` deduplicates by
 namespace and name), and an unversioned identifier names the living agent. An agent whose namespace no
-tier admits gets no identifier and is left out of both renderers. One module, `lib/knowledge/ref.ts`, is the only
+tier admits gets no identifier and is left out of both renderers. In the `unknown` namespace one name can be two unrelated agents, so
+the identifier adds the one location qualifier the scheme lets separate identity: `origin=` (the
+repository the package came from, which no record holds yet) or else `path=` (the folder it was opened
+from, read from the `recentAgents` store's `filePath`). Two different values of either make the scheme's
+verdict `distinct`; `state=` would say *the same agent in another snapshot* instead, and is not used.
+`lib/knowledge/agent-layer.ts` groups agents by that key, so both renderers draw one node per folder. One module, `lib/knowledge/ref.ts`, is the only
 place that builds or parses these identifiers: it builds through `@entelekheia/ref-id` and parses the
 result back, so a string that does not survive both is a programming error caught in the tests rather than
 an identifier that travels malformed. Edges keep plain derived ids (`<from>-><to>`), because nothing outside
@@ -236,6 +241,13 @@ allowlist are checked rather than assumed to need no change.
   dot-agent agent with a host namespace as a `url` and the `unknown` namespace as the `dot-agent` species
   of `unknown`; `ref:unknown:dot-agent:<namespace>/<name>` was a home-made form those vectors do not
   use, and it refused every Sourcehut namespace, which `url` admits.
+  Date / Author: 2026-10-08 / Danilo Borges
+- Decision: an agent of the `unknown` namespace carries `;origin=` when known, else `;path=` with the
+  folder it was opened from; `corpus=` is not used yet.
+  Rationale: the dot-agent reference says two `unknown` agents with one name are unrelated, and these are
+  the qualifiers whose conflict the identifier scheme declares `distinct`; `state=` declares the same
+  identity in another snapshot. `corpus=` is a location hint whose conflict is `undetermined`, so it
+  separates nothing; it becomes worth adding when an identifier must resolve back to its package file.
   Date / Author: 2026-10-08 / Danilo Borges
 - Decision: delegation split — Track 2's adapter and its tests go to an implementer subagent behind
   `npm test`; the `.cmap` and `.cview` files, Track 3's fallback selection and Track 4's lifecycle stay

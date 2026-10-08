@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 /*
  * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI)
@@ -35,6 +37,7 @@ export default function ChatPage() {
   const {
     knowledge,
     agentBundles,
+    recentAgents,
     loading: knowledgeLoading
   } = useKnowledgeData()
   const headerProps = useHeaderControls()
@@ -72,6 +75,7 @@ export default function ChatPage() {
             knowledge={knowledge}
             chats={chats}
             agentBundles={agentBundles}
+            recentAgents={recentAgents}
             loading={knowledgeLoading}
           />
           <div

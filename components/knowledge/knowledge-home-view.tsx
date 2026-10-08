@@ -21,7 +21,7 @@ import { FC, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
-import { AgentBundleRecord } from "@/lib/local-db/schema"
+import { AgentBundleRecord, RecentAgentRecord } from "@/lib/local-db/schema"
 import { KnowledgeGraphCanvas } from "./knowledge-graph-canvas"
 import { KnowledgeListView } from "./knowledge-list-view"
 import { Button } from "@/components/ui/button"
@@ -33,6 +33,7 @@ interface KnowledgeHomeViewProps {
   knowledge: KnowledgeRecord[]
   chats: Tables<"chats">[]
   agentBundles: AgentBundleRecord[]
+  recentAgents?: RecentAgentRecord[]
   loading?: boolean
   onStartChat?: () => void
 }
@@ -43,6 +44,7 @@ export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({
   knowledge,
   chats,
   agentBundles,
+  recentAgents,
   loading = false,
   onStartChat
 }) => {
@@ -92,6 +94,7 @@ export const KnowledgeHomeView: FC<KnowledgeHomeViewProps> = ({
                 knowledge={knowledge}
                 chats={chats}
                 agentBundles={agentBundles}
+                recentAgents={recentAgents}
               />
             ) : (
               <div className="size-full pt-24">

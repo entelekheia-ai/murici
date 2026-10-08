@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
+  agentFolder,
+  agentKey,
   agentRef,
   canRefAgent,
   conversationRef,
@@ -54,5 +56,41 @@ describe("graph identifiers", () => {
     expect(() => agentRef("acme/Scribe")).toThrow()
     expect(canRefAgent("acme/Scribe")).toBe(false)
     expect(canRefAgent("entelekheia.ai/doctor")).toBe(true)
+  })
+})
+
+describe("agents of the unknown namespace", () => {
+  it("tells two of one name apart by the folder each was opened from", () => {
+    const a = agentKey("unknown/loja", {
+      path: agentFolder("/Users/x/Agents/a/loja.agent")
+    })
+    const b = agentKey("unknown/loja", {
+      path: agentFolder("/Users/x/Agents/b/loja.agent")
+    })
+    expect(agentRef(a)).toBe(
+      "ref:unknown:dot-agent:loja;path=/Users/x/Agents/a"
+    )
+    expect(agentRef(a)).not.toBe(agentRef(b))
+    expect(parseGraphRef(agentRef(a))).toEqual({ kind: "agent", key: a })
+  })
+
+  it("prefers origin over path, and keeps the bare id with no location", () => {
+    expect(
+      agentKey("unknown/loja", {
+        origin: "https://github.com/a/loja",
+        path: "/x"
+      })
+    ).toBe("unknown/loja;origin=https://github.com/a/loja")
+    expect(agentKey("unknown/loja")).toBe("unknown/loja")
+  })
+
+  it("adds no location to an agent whose namespace already identifies it", () => {
+    expect(agentKey("entelekheia.ai/doctor", { path: "/x" })).toBe(
+      "entelekheia.ai/doctor"
+    )
+  })
+
+  it("writes a Windows folder in the local-path form", () => {
+    expect(agentFolder("C:\\Agents\\loja.agent")).toBe("c:/Agents")
   })
 })

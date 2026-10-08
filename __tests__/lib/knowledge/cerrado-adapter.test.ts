@@ -7,7 +7,10 @@ import {
   knowledgeRef,
   parseGraphRef
 } from "@/lib/knowledge/ref"
-import type { AgentBundleRecord } from "@/lib/local-db/schema"
+import type {
+  AgentBundleRecord,
+  RecentAgentRecord
+} from "@/lib/local-db/schema"
 import type { Tables } from "@/types/database"
 import type { KnowledgeRecord } from "@/types/knowledge"
 
@@ -163,5 +166,58 @@ describe("drawableRecords", () => {
     expect(data.nodes.map(n => n.id).sort()).toEqual(
       [conversationRef("c1"), knowledgeRef("ok")].sort()
     )
+  })
+})
+
+describe("agents of the unknown namespace", () => {
+  const knowledgeAB: KnowledgeRecord[] = []
+  const bundles = [
+    bundle("c1", "unknown/loja:v1~aaaaaaa", "loja"),
+    bundle("c2", "unknown/loja:v1~bbbbbbb", "loja")
+  ]
+  const recent = [
+    {
+      id: "r1",
+      dedupeKey: "/A/loja.agent",
+      filePath: "/A/loja.agent",
+      aboutme: { id: "unknown/loja:v1~aaaaaaa" },
+      openedAt: "2026-01-01"
+    },
+    {
+      id: "r2",
+      dedupeKey: "/B/loja.agent",
+      filePath: "/B/loja.agent",
+      aboutme: { id: "unknown/loja:v1~bbbbbbb" },
+      openedAt: "2026-01-02"
+    }
+  ] as unknown as RecentAgentRecord[]
+
+  it("draws one node per folder an agent of one name was opened from", () => {
+    const data = buildGraphData({
+      knowledge: knowledgeAB,
+      agentBundles: bundles,
+      chats,
+      recentAgents: recent
+    })
+    expect(
+      data.nodes
+        .filter(n => n.type === "agent")
+        .map(n => n.id)
+        .sort()
+    ).toEqual([
+      "ref:unknown:dot-agent:loja;path=/A",
+      "ref:unknown:dot-agent:loja;path=/B"
+    ])
+  })
+
+  it("draws a single node when no folder is known", () => {
+    const data = buildGraphData({
+      knowledge: knowledgeAB,
+      agentBundles: bundles,
+      chats
+    })
+    expect(data.nodes.filter(n => n.type === "agent").map(n => n.id)).toEqual([
+      "ref:unknown:dot-agent:loja"
+    ])
   })
 })

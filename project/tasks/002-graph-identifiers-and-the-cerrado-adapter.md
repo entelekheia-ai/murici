@@ -165,6 +165,13 @@ Edge ids inside vis-network stay whatever string is unique; nothing outside the 
   `ref:url:mentor.pessoal.agent/MentorUniversitario@1.4.1` and `ref:unknown:dot-agent:doctor@v1.0`.
   Both bundled agents declare `domain entelekheia.ai`, so they are `ref:url:entelekheia.ai/<name>`.
 
+- Ruling: the `path=` value is the folder of the `.agent` file, `\` written as `/` and a Windows drive
+  letter lowercased; for an agent opened more than once the most recent `recentAgents` record wins —
+  cost if wrong: an agent re-opened from a new folder moves to a new node, and its old layout position is
+  lost.
+- Observation: verified with the scheme's `verdict` — two `path=` values differing with neither `origin=`
+  nor `state=` give identity `distinct`; `state=` alone gives `same`; `corpus=` gives `undetermined`.
+
 ## Closure
 
 - [ ] Run `/vibe-ops:close-task` — do not just delete this file. Stays unchecked until closure actually

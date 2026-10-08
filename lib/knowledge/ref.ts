@@ -25,17 +25,69 @@ const COLLECTION_PREFIX: Record<"conversation" | "knowledge", string> = {
 // as the declared name inside it, and the reserved `unknown` namespace is the
 // `dot-agent` species of `unknown`. No version and no digest: the graph draws one
 // node per agent, and an unversioned identifier names the living agent.
+//
+// An agent in the `unknown` namespace has no publisher to tell two of them apart,
+// and the dot-agent reference says two such agents with one name are unrelated.
+// The location qualifiers do it: `origin=` (the repository it was packaged from)
+// and `path=` (the folder it was opened from) each make the identity `distinct`
+// in the ref-id verdict when they differ. The agent key carries them in the same
+// `;key=value` syntax, after the bare id.
 const UNKNOWN_NAMESPACE = "unknown/"
 const DOT_AGENT_SPECIES = "dot-agent:"
+const LOCATION_KEYS = ["origin", "path"] as const
 
 type BuildParts = Parameters<typeof build>[0]
 
-function agentParts(bareAgentId: string): BuildParts {
+/** Where an agent was found: its origin repository, or the folder it was opened from. */
+export interface AgentLocation {
+  origin?: string
+  path?: string
+}
+
+/**
+ * The key `buildAgentLayer` groups agents by, and `agentRef` names: the bare id
+ * (`<namespace>/<name>`), plus — for the `unknown` namespace only — the one
+ * location that tells it apart, `origin` when known, else `path`.
+ */
+export function agentKey(
+  bareAgentId: string,
+  location?: AgentLocation
+): string {
+  if (!bareAgentId.startsWith(UNKNOWN_NAMESPACE) || !location)
+    return bareAgentId
+  if (location.origin) return `${bareAgentId};origin=${location.origin}`
+  if (location.path) return `${bareAgentId};path=${location.path}`
+  return bareAgentId
+}
+
+/**
+ * The `path=` value for an agent opened from `filePath`: its folder, with `\`
+ * as `/` and a Windows drive letter lowercased, the local-path form the
+ * ref-id specification declares.
+ */
+export function agentFolder(filePath: string): string {
+  const slashed = filePath.replace(/\\/g, "/")
+  const folder = slashed.slice(0, Math.max(slashed.lastIndexOf("/"), 0))
+  return folder.replace(
+    /^([A-Z]):/,
+    (_, drive: string) => `${drive.toLowerCase()}:`
+  )
+}
+
+function agentParts(key: string): BuildParts {
+  const semi = key.indexOf(";")
+  const bareAgentId = semi === -1 ? key : key.slice(0, semi)
   if (bareAgentId.startsWith(UNKNOWN_NAMESPACE)) {
+    const qualifiers: [string, string][] = []
+    if (semi !== -1) {
+      const eq = key.indexOf("=", semi)
+      qualifiers.push([key.slice(semi + 1, eq), key.slice(eq + 1)])
+    }
     return {
       type: "unknown",
-      locator: DOT_AGENT_SPECIES + bareAgentId.slice(UNKNOWN_NAMESPACE.length)
-    }
+      locator: DOT_AGENT_SPECIES + bareAgentId.slice(UNKNOWN_NAMESPACE.length),
+      ...(qualifiers.length ? { qualifiers } : {})
+    } as BuildParts
   }
   const slash = bareAgentId.indexOf("/")
   const at = bareAgentId.indexOf("@")
@@ -182,10 +234,14 @@ export function parseGraphRef(id: string): GraphRef | null {
     locator.startsWith(DOT_AGENT_SPECIES) &&
     locator.length > DOT_AGENT_SPECIES.length
   ) {
-    return {
-      kind: "agent",
-      key: UNKNOWN_NAMESPACE + locator.slice(DOT_AGENT_SPECIES.length)
+    const bare = UNKNOWN_NAMESPACE + locator.slice(DOT_AGENT_SPECIES.length)
+    const location: AgentLocation = {}
+    for (const [key, value] of parsed.qualifiers as [string, unknown][]) {
+      if (!(LOCATION_KEYS as readonly string[]).includes(key)) return null
+      if (typeof value !== "string") return null
+      location[key as (typeof LOCATION_KEYS)[number]] = value
     }
+    return { kind: "agent", key: agentKey(bare, location) }
   }
   return null
 }

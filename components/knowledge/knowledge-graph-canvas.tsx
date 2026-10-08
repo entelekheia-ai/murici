@@ -15,7 +15,7 @@ import { DataSet } from "vis-data"
 import { localeHref } from "@/lib/locale-href"
 import { KnowledgeRecord } from "@/types/knowledge"
 import { Tables } from "@/types/database"
-import { AgentBundleRecord } from "@/lib/local-db/schema"
+import { AgentBundleRecord, RecentAgentRecord } from "@/lib/local-db/schema"
 import { Button } from "@/components/ui/button"
 import { KnowledgePreviewModal } from "./knowledge-preview-modal"
 import {
@@ -27,7 +27,8 @@ import {
 } from "@/lib/knowledge/graph-theme"
 import {
   buildAgentLayer,
-  countParentsByArtifact
+  countParentsByArtifact,
+  locateFromRecentAgents
 } from "@/lib/knowledge/agent-layer"
 import {
   agentRef,
@@ -228,7 +229,11 @@ interface Props {
   knowledge: KnowledgeRecord[]
   chats: Tables<"chats">[]
   agentBundles: AgentBundleRecord[]
+  recentAgents?: RecentAgentRecord[]
 }
+
+// One empty list for every render, so an absent prop never re-runs the graph effect.
+const NO_RECENT_AGENTS: RecentAgentRecord[] = []
 
 interface NodePreview {
   record: KnowledgeRecord
@@ -245,7 +250,8 @@ interface AgentPreview {
 export const KnowledgeGraphCanvas: FC<Props> = ({
   knowledge: allKnowledge,
   chats,
-  agentBundles: allAgentBundles
+  agentBundles: allAgentBundles,
+  recentAgents = NO_RECENT_AGENTS
 }) => {
   // Only records whose identifiers can be built are drawn (see drawableRecords).
   const { knowledge, agentBundles } = useMemo(
@@ -385,7 +391,8 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
     // iteration order isn't a determinism guarantee on its own, and this
     // canvas's whole geographic-stability premise depends on no randomness
     // creeping into palette-index/initial-position assignment.
-    const agentLayer = buildAgentLayer(knowledge, agentBundles)
+    const locate = locateFromRecentAgents(recentAgents)
+    const agentLayer = buildAgentLayer(knowledge, agentBundles, locate)
     // An agent whose namespace no dot-agent tier admits (not a domain, a
     // code-hosting path, an email or `unknown`) has no identifier, so it is left out.
     const sortedAgents = Array.from(agentLayer.values())
@@ -505,19 +512,21 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
       string,
       Array<{ kind: "conversation" | "agent"; key: string }>
     >()
-    countParentsByArtifact(knowledge, agentBundles).forEach((ids, recordId) => {
-      artifactParentIds.set(
-        recordId,
-        ids.flatMap(
-          (id): Array<{ kind: "conversation" | "agent"; key: string }> =>
-            id.startsWith("conv-")
-              ? [{ kind: "conversation", key: id.slice("conv-".length) }]
-              : canRefAgent(id.slice("agent-".length))
-                ? [{ kind: "agent", key: id.slice("agent-".length) }]
-                : []
+    countParentsByArtifact(knowledge, agentBundles, locate).forEach(
+      (ids, recordId) => {
+        artifactParentIds.set(
+          recordId,
+          ids.flatMap(
+            (id): Array<{ kind: "conversation" | "agent"; key: string }> =>
+              id.startsWith("conv-")
+                ? [{ kind: "conversation", key: id.slice("conv-".length) }]
+                : canRefAgent(id.slice("agent-".length))
+                  ? [{ kind: "agent", key: id.slice("agent-".length) }]
+                  : []
+          )
         )
-      )
-    })
+      }
+    )
 
     // Intra-domain edges: short spring keeps leaves close to their hub.
     // Native gradient (alta mancha → médio borda), confirmed live 2-stop
@@ -854,7 +863,7 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
       networkRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [knowledge, chats, agentBundles])
+  }, [knowledge, chats, agentBundles, recentAgents])
 
   const LENS_LABEL: Record<Lens, string> = {
     default: t("Default"),

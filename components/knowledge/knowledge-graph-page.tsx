@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 "use client"
 /*
  * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
@@ -11,13 +13,14 @@ import { KnowledgeHomeView } from "./knowledge-home-view"
 
 export const KnowledgeGraphPage: FC = () => {
   const { chats } = useContext(ChatbotUIContext)
-  const { knowledge, agentBundles, loading } = useKnowledgeData()
+  const { knowledge, agentBundles, recentAgents, loading } = useKnowledgeData()
 
   return (
     <KnowledgeHomeView
       knowledge={knowledge}
       chats={chats}
       agentBundles={agentBundles}
+      recentAgents={recentAgents}
       loading={loading}
     />
   )
