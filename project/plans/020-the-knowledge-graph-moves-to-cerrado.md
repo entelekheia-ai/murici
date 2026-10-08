@@ -43,7 +43,7 @@ never learns which of the two is drawing.
 - An adapter from the records `useKnowledgeData` already returns to cerrado's `GraphData`.
 - `murici.cmap` and three `.cview` lenses.
 - A cerrado canvas component, a fallback selector, and the vis-network canvas kept as the fallback.
-- Layout persistence for cerrado in IndexedDB.
+- Layout persistence for cerrado in `localStorage`.
 - Tests for the adapter and an end-to-end test for mount, unmount and fallback.
 
 ### Out of scope
@@ -130,10 +130,9 @@ and draws the adapter's output, so the two renderers share one source of identif
 ### Layout
 
 cerrado solves a layout once per (map, view), freezes it and asks an injected `LayoutStore` to persist
-it. The store is backed by a new IndexedDB object store, `graphLayouts`, keyed by map and view, added
-through the existing schema migration in `lib/local-db/schema.ts`. A reload then renders the same
-landscape instead of re-solving it. A new store is one of the changes the repository's `AGENTS.md` asks to be recorded, so Track 3
-updates it.
+it. That store is the synchronous slice of the Web Storage API (`getItem`, `setItem`, `removeItem`), so
+the layout goes to `localStorage`, which Electron keeps in the same per-app partition as IndexedDB. A
+reload then renders the same landscape instead of re-solving it.
 
 ### Lifecycle
 
@@ -163,8 +162,8 @@ allowlist are checked rather than assumed to need no change.
   Acceptance: the adapter tests pass; every node id the adapter emits parses through `@entelekheia/ref-id`
   with the type `unknown` and the species `murici` or `dot-agent`; and `validateMap` and `validateView`
   report no error against the adapter's output for the fixture.
-- [ ] **Track 3 — cerrado draws, vis-network falls back.** `KnowledgeGraph`, `CerradoGraphCanvas`,
-  `handleGraphClick`, the `graphLayouts` store, and the fallback on `init()` failure. Acceptance: in a
+- [ ] **Track 3 — cerrado draws, vis-network falls back.** Task: [tasks/003-cerrado-draws-vis-network-falls-back.md](../tasks/003-cerrado-draws-vis-network-falls-back.md). `KnowledgeGraph`, `CerradoGraphCanvas`,
+  `handleGraphClick`, layout persistence, and the fallback on `init()` failure. Acceptance: in a
   browser with WebGPU the graph is drawn by cerrado and each node kind's click does what it does today;
   with WebGPU disabled (`--disable-features=WebGPU`) the vis-network graph appears in the same place.
 - [ ] **Track 4 — Lifecycle.** Bump to the cerrado prerelease that ships `destroy()` and `onDeviceLost`,
