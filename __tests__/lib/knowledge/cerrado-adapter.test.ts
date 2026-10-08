@@ -55,23 +55,27 @@ const chats = [
 const knowledge = [
   record("k1", "c1", {
     agentRuns: [
-      { agentId: "acme/Scribe:1.0.0~abc123", runAt: "x", role: "produced" },
       {
-        agentId: "acme/BackgroundSystem:1.0.0~def",
+        agentId: "acme.example/Scribe:1.0.0~abc123",
+        runAt: "x",
+        role: "produced"
+      },
+      {
+        agentId: "acme.example/BackgroundSystem:1.0.0~def",
         runAt: "x",
         role: "consumed"
       },
-      { agentId: "~sr/Hermit:2.0.0~zzz", runAt: "x", role: "produced" }
+      { agentId: "nodomain/Hermit:2.0.0~zzz", runAt: "x", role: "produced" }
     ]
   }),
   record("k2", "c2", { nodeType: "task" })
 ]
 
 const agentBundles = [
-  bundle("c1", "acme/Scribe:1.0.0~abc123", "Scribe"),
-  bundle("c2", "acme/Scribe:1.1.0~fff999", "Scribe"),
-  bundle("c2", "acme/BackgroundSystem:1.0.0~def", "BackgroundSystem"),
-  bundle("c2", "~sr/Hermit:2.0.0~zzz", "Hermit")
+  bundle("c1", "acme.example/Scribe:1.0.0~abc123", "Scribe"),
+  bundle("c2", "acme.example/Scribe:1.1.0~fff999", "Scribe"),
+  bundle("c2", "acme.example/BackgroundSystem:1.0.0~def", "BackgroundSystem"),
+  bundle("c2", "nodomain/Hermit:2.0.0~zzz", "Hermit")
 ]
 
 describe("buildGraphData", () => {
@@ -98,12 +102,12 @@ describe("buildGraphData", () => {
   })
 
   it("names an agent once by its unversioned id, whatever build produced it", () => {
-    const scribe = byId.get(agentRef("acme/Scribe"))!
+    const scribe = byId.get(agentRef("acme.example/Scribe"))!
     expect(scribe.label).toBe("Scribe")
     expect(data.nodes.filter(n => n.type === "agent")).toHaveLength(1)
     expect(parseGraphRef(scribe.id)).toEqual({
       kind: "agent",
-      key: "acme/Scribe"
+      key: "acme.example/Scribe"
     })
   })
 
@@ -123,9 +127,15 @@ describe("buildGraphData", () => {
     const edge = (from: string, to: string) =>
       data.edges.find(e => e.from === from && e.to === to)?.type
     expect(edge(knowledgeRef("k1"), conversationRef("c1"))).toBe("generated_in")
-    expect(edge(agentRef("acme/Scribe"), conversationRef("c1"))).toBe("ran_in")
-    expect(edge(agentRef("acme/Scribe"), conversationRef("c2"))).toBe("ran_in")
-    expect(edge(agentRef("acme/Scribe"), knowledgeRef("k1"))).toBe("produced")
+    expect(edge(agentRef("acme.example/Scribe"), conversationRef("c1"))).toBe(
+      "ran_in"
+    )
+    expect(edge(agentRef("acme.example/Scribe"), conversationRef("c2"))).toBe(
+      "ran_in"
+    )
+    expect(edge(agentRef("acme.example/Scribe"), knowledgeRef("k1"))).toBe(
+      "produced"
+    )
     expect(data.edges).toHaveLength(5)
   })
 
@@ -145,7 +155,9 @@ describe("drawableRecords", () => {
         record("has space", "c1"),
         record("k3", "bad:conv")
       ],
-      agentBundles: [bundle("bad conv", "acme/Scribe:1.0.0~abc123", "Scribe")],
+      agentBundles: [
+        bundle("bad conv", "acme.example/Scribe:1.0.0~abc123", "Scribe")
+      ],
       chats
     })
     expect(data.nodes.map(n => n.id).sort()).toEqual(

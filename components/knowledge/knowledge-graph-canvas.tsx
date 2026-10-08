@@ -386,8 +386,8 @@ export const KnowledgeGraphCanvas: FC<Props> = ({
     // canvas's whole geographic-stability premise depends on no randomness
     // creeping into palette-index/initial-position assignment.
     const agentLayer = buildAgentLayer(knowledge, agentBundles)
-    // An agent whose id the ref-id locator grammar refuses (a Sourcehut `~`
-    // namespace) has no identifier to draw under, so it is left out.
+    // An agent whose namespace no dot-agent tier admits (not a domain, a
+    // code-hosting path, an email or `unknown`) has no identifier, so it is left out.
     const sortedAgents = Array.from(agentLayer.values())
       .filter(agent => canRefAgent(agent.agentId))
       .sort((a, b) => a.agentId.localeCompare(b.agentId))

@@ -89,14 +89,18 @@ Every node id is a `ref:` identifier, derived from the record on demand and neve
 |---|---|
 | Conversation | `ref:unknown:murici:conversations/<chatId>` |
 | Knowledge record | `ref:unknown:murici:knowledge/<record.id>` |
-| Agent | `ref:unknown:dot-agent:<namespace>/<name>` |
+| Agent | by namespace tier: `ref:url:<domain-or-platform path>/<name>`, `ref:email:<address>#<name>`, or `ref:unknown:dot-agent:<name>` for the reserved `unknown` namespace |
 
-The `unknown` type with a declared species is the form for an entity no registered `ref:` type names; the
-species is the application for what only this app holds, and `dot-agent` for an agent, so the same agent
-carries the same identifier in any application that runs it. The agent's identifier carries no version:
-the graph draws one node per agent whatever build produced an artifact (`lib/knowledge/agent-layer.ts`
-deduplicates by namespace and name), and an unversioned identifier names the living agent. An agent in a
-namespace the locator grammar refuses (`~user/…`) gets no identifier and is left out of both renderers. One module, `lib/knowledge/ref.ts`, is the only
+Conversations and knowledge records live only in this app's store, which no registered `ref:` type
+names, so they take the `unknown` type with the app as species. An agent is named by its publisher, as
+the dot-agent agent-id reference's four namespace tiers declare it, mapped the way the identifier
+scheme's own conformance vectors map them: a domain or a code-hosting path (a Sourcehut `~user` included)
+is a `url`, an email namespace is an `email` with the agent's name as the declared name inside it, and
+the reserved `unknown` namespace is the `dot-agent` species of `unknown`. The same agent therefore carries
+the same identifier in any application that runs it. The identifier carries no version: the graph draws
+one node per agent whatever build produced an artifact (`lib/knowledge/agent-layer.ts` deduplicates by
+namespace and name), and an unversioned identifier names the living agent. An agent whose namespace no
+tier admits gets no identifier and is left out of both renderers. One module, `lib/knowledge/ref.ts`, is the only
 place that builds or parses these identifiers: it builds through `@entelekheia/ref-id` and parses the
 result back, so a string that does not survive both is a programming error caught in the tests rather than
 an identifier that travels malformed. Edges keep plain derived ids (`<from>-><to>`), because nothing outside
@@ -225,6 +229,14 @@ allowlist are checked rather than assumed to need no change.
   Rationale: the graph deduplicates agents by namespace and name on purpose, one node per agent whatever
   build produced an artifact; a versioned identifier would split that node or name only one of its builds.
   Date / Author: 2026-10-08 / Danilo Borges
+- Decision: an agent is identified by its namespace tier — `ref:url:…` for a domain or code-hosting
+  path, `ref:email:<address>#<name>`, `ref:unknown:dot-agent:<name>` for the reserved `unknown`
+  namespace — revising the two agent entries above.
+  Rationale: the identifier scheme retired `dot-agent` as a type and its conformance vectors name a
+  dot-agent agent with a host namespace as a `url` and the `unknown` namespace as the `dot-agent` species
+  of `unknown`; `ref:unknown:dot-agent:<namespace>/<name>` was a home-made form those vectors do not
+  use, and it refused every Sourcehut namespace, which `url` admits.
+  Date / Author: 2026-10-08 / Danilo Borges
 - Decision: delegation split — Track 2's adapter and its tests go to an implementer subagent behind
   `npm test`; the `.cmap` and `.cview` files, Track 3's fallback selection and Track 4's lifecycle stay
   in the main loop; each track's diff is reviewed by a reviewer subagent before it merges; Track 5 is the
@@ -241,10 +253,5 @@ allowlist are checked rather than assumed to need no change.
 
 ## Open questions
 
-- **Track 2 — an agent in a Sourcehut namespace (`~user/…`) has no identifier.** The `unknown` locator
-  admits only `[A-Za-z0-9._-]` segments, so such an agent is left out of both renderers for now.
-  Options: (a) keep it out; (b) give `~` namespaces another identifier form here; (c) ask the identifier
-  scheme to admit `~` in the `unknown` locator and wait for its release. Recommended: (c), with (a) until
-  it lands.
 - Whether Electron 44's Chromium, with `sandbox: true`, exposes a WebGPU adapter on Linux for the
   machines this app ships to. Track 5 measures it.

@@ -11,13 +11,56 @@ export interface GraphRef {
   key: string
 }
 
-// The `unknown` type names an authority the ref-id registry does not cover;
-// the first locator segment declares the species, so these stay precise.
+// Conversations and knowledge records exist only in this app's own store, which
+// no registered `ref:` type names: they take `unknown` with the app as species.
 const COLLECTION_PREFIX: Record<"conversation" | "knowledge", string> = {
   conversation: "murici:conversations/",
   knowledge: "murici:knowledge/"
 }
-const AGENT_PREFIX = "dot-agent:"
+
+// A dot-agent agent is named by its publisher's namespace, per the four tiers of
+// the dot-agent agent-id reference, mapped the way the ref-id specification's
+// own vectors map them: a domain or a code-hosting path (Sourcehut's `~user`
+// included) is a `url`, an email namespace is an `email` with the agent's name
+// as the declared name inside it, and the reserved `unknown` namespace is the
+// `dot-agent` species of `unknown`. No version and no digest: the graph draws one
+// node per agent, and an unversioned identifier names the living agent.
+const UNKNOWN_NAMESPACE = "unknown/"
+const DOT_AGENT_SPECIES = "dot-agent:"
+
+type BuildParts = Parameters<typeof build>[0]
+
+function agentParts(bareAgentId: string): BuildParts {
+  if (bareAgentId.startsWith(UNKNOWN_NAMESPACE)) {
+    return {
+      type: "unknown",
+      locator: DOT_AGENT_SPECIES + bareAgentId.slice(UNKNOWN_NAMESPACE.length)
+    }
+  }
+  const slash = bareAgentId.indexOf("/")
+  const at = bareAgentId.indexOf("@")
+  if (at !== -1 && slash !== -1 && at < slash) {
+    return {
+      type: "email",
+      locator: bareAgentId.slice(0, slash),
+      fragment: { path: bareAgentId.slice(slash + 1) }
+    }
+  }
+  return { type: "url", locator: bareAgentId }
+}
+
+/** The declared name of a fragment with no refinements, else null. */
+function fragmentPath(
+  fragment: { path: string; refinements: unknown[] } | null
+): string | null {
+  return fragment && fragment.refinements.length === 0 ? fragment.path : null
+}
+
+function partsFor(kind: GraphRefKind, key: string): BuildParts {
+  return kind === "agent"
+    ? agentParts(key)
+    : { type: "unknown", locator: COLLECTION_PREFIX[kind] + key }
+}
 
 // Builders run per node per animation frame in the canvas; the parse-back
 // check inside `build` is not free, so a built identifier is remembered.
@@ -27,8 +70,7 @@ function make(kind: GraphRefKind, key: string): string {
   const cacheKey = `${kind}\0${key}`
   const hit = cache.get(cacheKey)
   if (hit !== undefined) return hit
-  const prefix = kind === "agent" ? AGENT_PREFIX : COLLECTION_PREFIX[kind]
-  const id = build({ type: "unknown", locator: prefix + key })
+  const id = build(partsFor(kind, key))
   const back = parseGraphRef(id)
   if (!back || back.kind !== kind || back.key !== key) {
     throw new Error(`graph identifier does not round-trip: ${kind} ${key}`)
@@ -55,10 +97,11 @@ export function knowledgeRef(recordId: string): string {
 }
 
 /**
- * Identifier of an agent node: `ref:unknown:dot-agent:<namespace>/<name>`,
- * from the bare agent id (no version, no digest) that `agent-layer.ts` computes.
- * Throws on an id the locator grammar refuses — notably a Sourcehut namespace,
- * whose `~` the grammar does not admit; check with `canRefAgent` first.
+ * Identifier of an agent node, from the bare agent id (`<namespace>/<name>`, no
+ * version, no digest) that `agent-layer.ts` computes:
+ * `ref:url:entelekheia.ai/doctor`, `ref:url:sr.ht/~user/fonn`,
+ * `ref:email:user@mail.example#doctor`, `ref:unknown:dot-agent:doctor`.
+ * Throws on an id no tier admits; check with `canRefAgent` first.
  */
 export function agentRef(bareAgentId: string): string {
   return make("agent", bareAgentId)
@@ -119,8 +162,16 @@ export function parseGraphRef(id: string): GraphRef | null {
   } catch {
     return null
   }
-  if (parsed.status !== "ok" || parsed.type !== "unknown") return null
-  const locator = parsed.locator
+  if (parsed.status !== "ok") return null
+  const locator: string = parsed.locator
+  if (parsed.type === "url" && parsed.fragment === null) {
+    return { kind: "agent", key: locator }
+  }
+  if (parsed.type === "email") {
+    const name = fragmentPath(parsed.fragment)
+    return name ? { kind: "agent", key: `${locator}/${name}` } : null
+  }
+  if (parsed.type !== "unknown") return null
   for (const kind of ["conversation", "knowledge"] as const) {
     const prefix = COLLECTION_PREFIX[kind]
     if (locator.startsWith(prefix) && locator.length > prefix.length) {
@@ -128,10 +179,13 @@ export function parseGraphRef(id: string): GraphRef | null {
     }
   }
   if (
-    locator.startsWith(AGENT_PREFIX) &&
-    locator.length > AGENT_PREFIX.length
+    locator.startsWith(DOT_AGENT_SPECIES) &&
+    locator.length > DOT_AGENT_SPECIES.length
   ) {
-    return { kind: "agent", key: locator.slice(AGENT_PREFIX.length) }
+    return {
+      kind: "agent",
+      key: UNKNOWN_NAMESPACE + locator.slice(DOT_AGENT_SPECIES.length)
+    }
   }
   return null
 }

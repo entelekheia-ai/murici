@@ -36,7 +36,7 @@ function record(
     payload: { language: "md", content: "" },
     derivedFrom: [],
     agentRuns: [
-      { agentId: "acme/Scribe:1.0.0~abc", runAt: "x", role: "produced" }
+      { agentId: "acme.example/Scribe:1.0.0~abc", runAt: "x", role: "produced" }
     ],
     createdAt: "2026-01-02T03:04:05.000Z"
   }
@@ -48,7 +48,7 @@ const data = buildGraphData({
     {
       conversationId: "c1",
       aboutme: {
-        id: "acme/Scribe:1.0.0~abc",
+        id: "acme.example/Scribe:1.0.0~abc",
         name: "Scribe"
       } as AgentBundleRecord["aboutme"],
       behaviorText: "",

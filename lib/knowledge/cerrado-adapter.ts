@@ -41,8 +41,8 @@ function toMillis(iso: string | null | undefined): number | undefined {
  * `attrs.nodeType`. Labels are untruncated; a conversation with no matching
  * chat row carries no label, so a renderer falls back to its own.
  *
- * An agent whose bare id the ref-id locator grammar refuses (a Sourcehut `~`
- * namespace) has no identifier and is left out with its edges. Pure: no DOM,
+ * An agent whose namespace no dot-agent tier admits has no identifier and is
+ * left out with its edges. Pure: no DOM,
  * no IndexedDB.
  */
 export function buildGraphData(source: GraphSource): GraphData {

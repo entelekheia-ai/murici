@@ -154,6 +154,17 @@ Edge ids inside vis-network stay whatever string is unique; nothing outside the 
 - Deferred minor: `canary.yml`'s `canary-install.mjs` step carries no `NODE_AUTH_TOKEN`; it installs only
   `@dot-agent/*` from npmjs, so it should not need one — add it if the first CI run returns 401.
 
+- Ruling: agents follow the identifier scheme's own mapping of the dot-agent namespace tiers (`url`,
+  `email` with the name as fragment, `unknown` with the `dot-agent` species), replacing
+  `ref:unknown:dot-agent:<namespace>/<name>` — the scheme's documentation and vectors already settled it,
+  and the Sourcehut agents the first form refused now get an identifier — cost if wrong: the `email`
+  form has no vector of its own; it is the scheme's `email` type with the agent's name as the declared
+  name inside the address.
+- Observation: the maintainer pointed at the identifier scheme's documentation; `docs/reference/the-ref-scheme.md`
+  records `dot-agent` retired as a type in its 1.4.0, and the vectors carry
+  `ref:url:mentor.pessoal.agent/MentorUniversitario@1.4.1` and `ref:unknown:dot-agent:doctor@v1.0`.
+  Both bundled agents declare `domain entelekheia.ai`, so they are `ref:url:entelekheia.ai/<name>`.
+
 ## Closure
 
 - [ ] Run `/vibe-ops:close-task` — do not just delete this file. Stays unchecked until closure actually
