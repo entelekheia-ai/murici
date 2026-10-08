@@ -1,9 +1,5 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- * Licensed under the Apache License, Version 2.0
- *
- * Portions Copyright (c) 2023 McKay Wrigley (Chatbot UI), licensed under the MIT License
- */
+// SPDX-License-Identifier: Apache-2.0 AND MIT
+// Portions from Chatbot UI (McKay Wrigley) — see NOTICE
 
 import { Toaster } from "@/components/ui/sonner"
 import { AgentSessionProvider } from "@/components/utility/agent-session-provider"
@@ -38,9 +34,9 @@ const APP_DESCRIPTION = "Murici"
 
 interface RootLayoutProps {
   children: ReactNode
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
 export const metadata: Metadata = {
@@ -84,10 +80,13 @@ export const viewport: Viewport = {
 
 const i18nNamespaces = ["translation"]
 
-export default async function RootLayout({
-  children,
-  params: { locale }
-}: RootLayoutProps) {
+export default async function RootLayout(props: RootLayoutProps) {
+  const params = await props.params
+
+  const { locale } = params
+
+  const { children } = props
+
   const { resources } = await initTranslations(locale, i18nNamespaces)
 
   return (

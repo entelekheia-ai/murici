@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "react",
+    "nextjs",
+    "jsx-a11y",
+    "import"
+  ],
+  "categories": {
+    "correctness": "warn"
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/jsx-key": "error",
+    "react/no-unescaped-entities": "error"
+  },
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "ignorePatterns": [
+    "public/**",
+    "electron-dist/**",
+    "dist-electron/**",
+    ".next/**",
+    "types/kernel-effect.*"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "__tests__/playwright-test/**"
+      ],
+      "rules": {
+        "react/rules-of-hooks": "off"
+      }
+    }
+  ]
+}
