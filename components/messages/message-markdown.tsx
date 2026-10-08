@@ -15,56 +15,63 @@ interface MessageMarkdownProps {
 
 export const MessageMarkdown: FC<MessageMarkdownProps> = ({ content }) => {
   return (
-    <MessageMarkdownMemoized
-      className="prose min-w-full space-y-6 break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        p({ children }) {
-          return <p className="mb-2 last:mb-0">{children}</p>
-        },
-        img({ node, ...props }) {
-          return <img className="max-w-[67%]" {...props} />
-        },
-        code({ node, className, children, ...props }) {
-          const childArray = React.Children.toArray(children)
-          const firstChild = childArray[0] as React.ReactElement
-          const firstChildAsString = React.isValidElement(firstChild)
-            ? (firstChild as React.ReactElement).props.children
-            : firstChild
+    <div className="prose min-w-full space-y-6 break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0">
+      <MessageMarkdownMemoized
+        remarkPlugins={[remarkGfm, remarkMath]}
+        components={{
+          p({ children }) {
+            return <p className="mb-2 last:mb-0">{children}</p>
+          },
+          img({ node, ...props }) {
+            return <img className="max-w-[67%]" {...props} />
+          },
+          code({ node, className, children, ...props }) {
+            const childArray = React.Children.toArray(children)
+            const firstChild = childArray[0] as React.ReactElement
+            const firstChildAsString = React.isValidElement(firstChild)
+              ? (
+                  firstChild as React.ReactElement<{
+                    children?: React.ReactNode
+                  }>
+                ).props.children
+              : firstChild
 
-          if (firstChildAsString === "▍") {
-            return <span className="mt-1 animate-pulse cursor-default">▍</span>
-          }
+            if (firstChildAsString === "▍") {
+              return (
+                <span className="mt-1 animate-pulse cursor-default">▍</span>
+              )
+            }
 
-          if (typeof firstChildAsString === "string") {
-            childArray[0] = firstChildAsString.replace("`▍`", "▍")
-          }
+            if (typeof firstChildAsString === "string") {
+              childArray[0] = firstChildAsString.replace("`▍`", "▍")
+            }
 
-          const match = /language-(\w+)/.exec(className || "")
+            const match = /language-(\w+)/.exec(className || "")
 
-          if (
-            typeof firstChildAsString === "string" &&
-            !firstChildAsString.includes("\n")
-          ) {
+            if (
+              typeof firstChildAsString === "string" &&
+              !firstChildAsString.includes("\n")
+            ) {
+              return (
+                <code className={className} {...props}>
+                  {childArray}
+                </code>
+              )
+            }
+
             return (
-              <code className={className} {...props}>
-                {childArray}
-              </code>
+              <MessageCodeBlock
+                key={Math.random()}
+                language={(match && match[1]) || ""}
+                value={String(childArray).replace(/\n$/, "")}
+                {...props}
+              />
             )
           }
-
-          return (
-            <MessageCodeBlock
-              key={Math.random()}
-              language={(match && match[1]) || ""}
-              value={String(childArray).replace(/\n$/, "")}
-              {...props}
-            />
-          )
-        }
-      }}
-    >
-      {content}
-    </MessageMarkdownMemoized>
+        }}
+      >
+        {content}
+      </MessageMarkdownMemoized>
+    </div>
   )
 }
