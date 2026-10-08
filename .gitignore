@@ -51,6 +51,8 @@ sw.js
 sw.js.map
 workbox-*.js
 workbox-*.js.map
+# next-pwa custom worker (worker/index.js), rebuilt with a new hash on every build
+public/worker-*.js
 
 # Electron
 /electron-dist/
