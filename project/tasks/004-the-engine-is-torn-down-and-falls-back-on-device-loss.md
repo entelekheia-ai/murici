@@ -22,7 +22,8 @@ Acceptance: a Playwright test mounts the graph ten times and asserts one live GP
 forces device loss and asserts the vis-network graph is shown.
 
 Gate: `npx jest`, `npm run type-check`, `npx oxlint`, and
-`npx playwright test knowledge-graph-lifecycle --project=chromium`.
+`npx playwright test knowledge-graph-lifecycle --project=chromium` — which skips both tests on a machine
+without a WebGPU adapter, so a GPU-less CI run never exercises this acceptance.
 
 Files owned: `package.json`, `package-lock.json`, `components/knowledge/cerrado-graph-canvas.tsx`,
 `__tests__/playwright-test/tests/knowledge-graph-lifecycle.spec.ts`.
@@ -70,6 +71,13 @@ with the flags cerrado's own GPU tests use; skipped where no adapter exists.
 - Observation: the Playwright Chromium headless shell for this Playwright version was not installed;
   `npx playwright install chromium` fetched it. A role query for "Agent" also matched the sidebar's
   "dot-agent" section, so the spec queries buttons by exact name.
+
+- Observation: review of Track 4 (no blocker, no major). Fixed: the spec keeps every device and destroys
+  the one still live, rather than the last one requested, which a StrictMode double mount could make an
+  already-released device; the final counts wait with `expect.poll`, since a mount cancelled mid-init
+  releases its device only when its own init settles. Recorded: the spec skips without an adapter.
+- Observation: Track 4 also closes two of Track 3's deferred minors — the per-remount device leak, and a
+  throw from `start()` skipping the loop's stop — since the cleanup now always calls `destroy()`.
 
 ## Closure
 

@@ -17,22 +17,22 @@ test.use({
   }
 })
 
-// Counts GPU devices as the page creates and destroys them, and keeps the last
-// one so a test can destroy it from outside the engine.
+// Counts GPU devices as the page creates and destroys them, and keeps every one
+// so a test can destroy the live one from outside the engine.
 const INSTRUMENT = `(() => {
   const w = window
-  w.__gpu = { live: 0, created: 0, last: null }
+  w.__gpu = { live: 0, created: 0, devices: [] }
   if (!("GPUAdapter" in w)) return
   const request = GPUAdapter.prototype.requestDevice
   GPUAdapter.prototype.requestDevice = async function (...args) {
     const device = await request.apply(this, args)
     w.__gpu.live++
     w.__gpu.created++
-    w.__gpu.last = device
+    const entry = { device, gone: false }
+    w.__gpu.devices.push(entry)
     const destroy = device.destroy.bind(device)
-    let gone = false
     device.destroy = () => {
-      if (!gone) { gone = true; w.__gpu.live-- }
+      if (!entry.gone) { entry.gone = true; w.__gpu.live-- }
       destroy()
     }
     return device
@@ -113,21 +113,27 @@ test.describe("knowledge graph on cerrado", () => {
         page.getByRole("button", { name: "Agent", exact: true })
       ).toBeEnabled({ timeout: 30_000 })
     }
-    expect(await liveDevices(page)).toBe(1)
+    // A mount cancelled mid-init releases its device when its own init settles, so wait for it.
+    await expect.poll(() => liveDevices(page)).toBe(1)
   })
 
   test("falls back to vis-network when the GPU device is lost", async ({
     page
   }) => {
     await expect(page.locator(".vis-network")).toHaveCount(0)
-    await page.evaluate(() =>
-      (
-        window as unknown as { __gpu: { last: { destroy(): void } } }
-      ).__gpu.last.destroy()
-    )
+    // The device the drawn engine holds is the one not yet destroyed (a StrictMode
+    // double mount may have created and released another before it).
+    await page.evaluate(() => {
+      const { devices } = (
+        window as unknown as {
+          __gpu: { devices: { device: { destroy(): void }; gone: boolean }[] }
+        }
+      ).__gpu
+      for (const e of devices) if (!e.gone) e.device.destroy()
+    })
     await expect(page.locator(".vis-network")).toHaveCount(1, {
       timeout: 15_000
     })
-    expect(await liveDevices(page)).toBe(0)
+    await expect.poll(() => liveDevices(page)).toBe(0)
   })
 })
