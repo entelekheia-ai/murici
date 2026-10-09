@@ -54,15 +54,32 @@ const ZOOM_OUT_PAST_FIT = 2.5
 const NO_RECENT_AGENTS: RecentAgentRecord[] = []
 const LENSES: LensKey[] = ["default", "chat", "agent"]
 
-/** The first opaque background colour from `el` up to the document, as a CSS string. */
+/** Resolves after two animation frames, by which a class change has been applied and its CSS transitions run. */
+function nextFrames(): Promise<void> {
+  return new Promise<void>(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  )
+}
+
+/** How long the page's running colour transitions take, in ms; 230 when none is found (the app's own). */
+function transitionMs(): number {
+  if (typeof document.getAnimations !== "function") return 230
+  const longest = Math.max(
+    0,
+    ...document
+      .getAnimations()
+      .filter(a => a instanceof CSSTransition)
+      .map(a => Number(a.effect?.getComputedTiming().duration ?? 0))
+  )
+  return longest > 0 ? longest : 230
+}
+
 /**
  * Resolves once the page has stopped changing colour. A change of theme repaints the page through a CSS
  * transition, and a colour read while it runs is the old one or a blend of both.
  */
 async function pageSettled(): Promise<void> {
-  await new Promise<void>(resolve =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-  )
+  await nextFrames()
   // An environment without the Web Animations API has no CSS transition to wait for.
   if (typeof document.getAnimations !== "function") return
   await Promise.all(
@@ -73,12 +90,41 @@ async function pageSettled(): Promise<void> {
   )
 }
 
-function pageBackground(el: HTMLElement): string {
+/** The first opaque background colour from `el` up to the document, as a CSS string. */
+/** The element whose background is the page's, walking up from `el` to the first opaque one. */
+function pageBackgroundElement(el: HTMLElement): HTMLElement | null {
   for (let n: HTMLElement | null = el; n; n = n.parentElement) {
     const c = getComputedStyle(n).backgroundColor
-    if (c && c !== "transparent" && !/^rgba\([^)]*,\s*0\)$/.test(c)) return c
+    if (c && c !== "transparent" && !/^rgba\([^)]*,\s*0\)$/.test(c)) return n
   }
-  return "#ffffff"
+  return null
+}
+
+function pageBackground(el: HTMLElement): string {
+  const n = pageBackgroundElement(el)
+  return n ? getComputedStyle(n).backgroundColor : "#ffffff"
+}
+
+/**
+ * The colour the page's background is moving to, read off its running CSS transition, or `undefined` when
+ * none runs (or the Web Animations API is missing). It lets a colour that must not wait for the transition
+ * to end, such as the plate behind a caption, start at the final value.
+ */
+function pageBackgroundTarget(el: HTMLElement): string | undefined {
+  const n = pageBackgroundElement(el)
+  if (!n || typeof n.getAnimations !== "function") return undefined
+  for (const a of n.getAnimations()) {
+    if (
+      !(a instanceof CSSTransition) ||
+      a.transitionProperty !== "background-color"
+    )
+      continue
+    const frames =
+      a.effect instanceof KeyframeEffect ? a.effect.getKeyframes() : []
+    const to = frames[frames.length - 1]?.backgroundColor
+    if (typeof to === "string") return to
+  }
+  return undefined
 }
 
 /**
@@ -206,8 +252,7 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
   onUnavailable
 }) => {
   const { t } = useTranslation()
-  // Only a change of theme matters here: it remounts the engine, which reads the page's paper colour and
-  // picks the watercolour for it.
+  // A change of theme re-colours the live engine (`rethemeRef`); it does not remount it.
   const { resolvedTheme } = useTheme()
   const { onNodeClick, overlay } = useGraphClick({
     knowledge,
@@ -226,6 +271,9 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
     onUnavailableRef.current = onUnavailable
   })
   const switchLensRef = useRef<(lens: LensKey) => void>(() => {})
+  const rethemeRef = useRef<() => void>(() => {})
+  const themeRef = useRef(resolvedTheme)
+  themeRef.current = resolvedTheme
 
   useEffect(() => {
     const container = containerRef.current
@@ -277,21 +325,36 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
         loadSlots(store)
       )
       saveSlots(store, slots)
-      // The lenses declare no canvas_background: the page decides the paper colour.
-      const paper = parseColor(pageBackground(container), [1, 1, 1, 1])
-      const lightPage =
-        0.299 * paper[0]! + 0.587 * paper[1]! + 0.114 * paper[2]! > 0.5
-      const map = buildMap(data, slots, lightPage)
-      // The paint of a lens is the page theme's watercolour with the lens's own keys (its `drop_scale`) on top.
-      const withPaint = (view: GraphView): GraphView => ({
-        ...view,
-        paint: { ...paintFor(lightPage), ...view.paint }
-      })
-      const views = {
-        default: withPaint(parseView(LENS_SOURCES.default)),
-        chat: withPaint(parseView(LENS_SOURCES.chat)),
-        agent: withPaint(parseView(LENS_SOURCES.agent))
+      // Everything that follows the page theme: the paper colour, the map's node colours, the lenses' watercolour
+      // and the ink of the captions. The lenses declare no canvas_background: the page decides the paper.
+      const readTheme = (light?: boolean) => {
+        const paper = parseColor(pageBackground(container), [1, 1, 1, 1])
+        const lightPage =
+          light ??
+          0.299 * paper[0]! + 0.587 * paper[1]! + 0.114 * paper[2]! > 0.5
+        // The paint of a lens is the page theme's watercolour with the lens's own keys (its `drop_scale`) on top.
+        const withPaint = (view: GraphView): GraphView => ({
+          ...view,
+          paint: { ...paintFor(lightPage), ...view.paint }
+        })
+        return {
+          paper,
+          lightPage,
+          ink: (lightPage ? [0.16, 0.18, 0.22, 1] : [0.72, 0.74, 0.78, 1]) as [
+            number,
+            number,
+            number,
+            number
+          ],
+          map: buildMap(data, slots, lightPage),
+          views: {
+            default: withPaint(parseView(LENS_SOURCES.default)),
+            chat: withPaint(parseView(LENS_SOURCES.chat)),
+            agent: withPaint(parseView(LENS_SOURCES.agent))
+          }
+        }
       }
+      let { paper, lightPage, ink, map, views } = readTheme()
 
       if (cancelled) return
       const eng = new EngineClass(canvas)
@@ -340,9 +403,6 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
       }
 
       eng.setBackground(paper)
-      const ink: [number, number, number, number] = lightPage
-        ? [0.16, 0.18, 0.22, 1]
-        : [0.72, 0.74, 0.78, 1]
 
       const applyCrossfade = (): void => {
         if (scene.zoom.crossfade !== undefined)
@@ -438,6 +498,44 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
         eng.setLabels(allLabels())
       }
 
+      // A change of page theme eases to the new colours on the live engine, in step with the page: the
+      // background follows the page's own CSS transition frame by frame, and the nodes, the wash and the
+      // lines morph over the same time, as in a lens switch. No remount, no blink; positions do not move
+      // because the map's slots are the same. The captions take their new ink and the final paper for their
+      // plates at the start.
+      rethemeRef.current = () => {
+        const light = themeRef.current !== "dark"
+        if (light === lightPage) return
+        let following = true
+        const follow = (): void => {
+          if (cancelled || !following) return
+          eng.setBackground(parseColor(pageBackground(container), paper))
+          eng.invalidate()
+          requestAnimationFrame(follow)
+        }
+        requestAnimationFrame(follow)
+        void nextFrames().then(() => {
+          if (cancelled) return
+          const ms = transitionMs()
+          ;({ paper, lightPage, ink, map, views } = readTheme(light))
+          // The plates behind the captions take the page's FINAL colour now, not the one it has reached.
+          const target = pageBackgroundTarget(container)
+          if (target) paper = parseColor(target, paper)
+          scene = buildScene(data, map, views[active])
+          applyCrossfade()
+          eng.morphTo(scene.nodes, scene.paint, ms)
+          eng.setEdges(scene.edges)
+          eng.setLabels(allLabels())
+        })
+        void pageSettled().then(() => {
+          following = false
+          if (cancelled) return
+          paper = readTheme(light).paper
+          eng.setBackground(paper)
+          eng.setLabels(allLabels())
+        })
+      }
+
       // A lost GPU device leaves the engine inert: release it and draw with the fallback instead.
       eng.onDeviceLost(info => {
         if (cancelled) return
@@ -465,11 +563,16 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
       cancelled = true
       sizeObserver?.disconnect()
       switchLensRef.current = () => {}
+      rethemeRef.current = () => {}
       // Releases the listeners, the frame loop and the GPU device, started or not; idempotent.
       engine?.destroy()
       canvas.remove()
     }
-  }, [knowledge, chats, agentBundles, recentAgents, resolvedTheme])
+  }, [knowledge, chats, agentBundles, recentAgents])
+
+  useEffect(() => {
+    rethemeRef.current()
+  }, [resolvedTheme])
 
   const LENS_LABEL: Record<LensKey, string> = {
     default: t("Default"),

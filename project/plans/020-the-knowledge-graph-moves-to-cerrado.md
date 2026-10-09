@@ -331,8 +331,11 @@ allowlist are checked rather than assumed to need no change.
   the contour, two glazes, sub-coats crumbling at the edge, a faint broad grain), laid at alpha 0.85 with an
   underwash on a light page and at alpha 0.85 with a soft edge and a light mask on a dark one, merged into
   each view before the scene is built; the map's node colour is deep on a light page and bright on a dark
-  one. A change of theme remounts the engine, which waits for the page's colour transition to end before it
-  reads the paper.
+  one. A change of theme does not remount the engine: it waits for the page's colour transition to end, re-reads the
+  paper, rebuilds the map and the lenses for it and eases to the new colours with `buildScene` and `morphTo`,
+  as a lens switch does, so the graph does not blink. The canvas background follows the page's own CSS
+  transition frame by frame; the captions take their new ink and, for the plates behind them, the page's final
+  colour (read off the running transition) at the start.
   Rationale: the paint was the dark-canvas recipe tuned by eye against a light page, and a lens carries one
   paint block. A theme's colours are not a property of a lens, so they live in code beside the map rather than
   in duplicated `.cview` files; duplicating the lenses per theme is the fallback if a colour that the lenses
