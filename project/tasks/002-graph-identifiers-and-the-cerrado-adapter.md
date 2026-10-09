@@ -174,5 +174,5 @@ Edge ids inside vis-network stay whatever string is unique; nothing outside the 
 
 ## Closure
 
-- [ ] Run `/vibe-ops:close-task` — do not just delete this file. Stays unchecked until closure actually
+- [x] Run `/vibe-ops:close-task` — do not just delete this file. Stays unchecked until closure actually
       happens.

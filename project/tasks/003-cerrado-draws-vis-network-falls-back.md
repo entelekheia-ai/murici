@@ -149,5 +149,5 @@ WebGPU disabled the vis-network canvas appears.
 
 ## Closure
 
-- [ ] Run `/vibe-ops:close-task` — do not just delete this file. Stays unchecked until closure actually
+- [x] Run `/vibe-ops:close-task` — do not just delete this file. Stays unchecked until closure actually
       happens.
