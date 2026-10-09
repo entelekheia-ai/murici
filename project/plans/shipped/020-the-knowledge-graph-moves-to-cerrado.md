@@ -6,7 +6,7 @@ vibe-ops-template: plan@3
 
 | Field | Value |
 |---|---|
-| Status | In Progress |
+| Status | Shipped |
 | Created | 2026-10-08 |
 | Author | Danilo Borges |
 | Depends on | `@entelekheia-ai/cerrado` with `Engine.destroy()` and `onDeviceLost` (Track 4) |
@@ -16,12 +16,12 @@ vibe-ops-template: plan@3
 ## Read these first
 
 1. This plan's Decision Log — the identifier scheme, the alpha base and the fallback were decided there.
-2. `project/tasks/003-cerrado-draws-vis-network-falls-back.md` — how the cerrado canvas mounts, and the
-   browser check that proves it.
-3. `project/tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md` — teardown, device loss
-   and the Playwright lifecycle spec.
-4. `project/tasks/002-graph-identifiers-and-the-cerrado-adapter.md` — the `ref:` identifiers per node kind
-   and the dot-agent namespace tiers.
+2. The closed dossier of Track 3 — how the cerrado canvas mounts, and the browser check that proves it:
+   `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/003-cerrado-draws-vis-network-falls-back.md`.
+3. The closed dossier of Track 4 — teardown, device loss and the Playwright lifecycle spec:
+   `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md`.
+4. The closed dossier of Track 2 — the `ref:` identifiers per node kind and the dot-agent namespace tiers:
+   `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/002-graph-identifiers-and-the-cerrado-adapter.md`.
 
 ## Summary
 
@@ -175,29 +175,31 @@ allowlist are checked rather than assumed to need no change.
 
 ## Tracks
 
-- [x] **Track 1 — The package installs.** Task: [tasks/001-the-cerrado-package-installs.md](../tasks/001-the-cerrado-package-installs.md). `.npmrc`, the CI and release-workflow token, and
+- [x] **Track 1 — The package installs.** Task: tasks/001-the-cerrado-package-installs.md (closed dossier — `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/001-the-cerrado-package-installs.md`). `.npmrc`, the CI and release-workflow token, and
   `@entelekheia-ai/cerrado@0.2.0` pinned exactly in `package.json`. Acceptance: `npm ci` succeeds locally
   and in CI, `npm run build` and `npm run electron:build` succeed with the package imported from a
   throwaway call site, and `scripts/verify-electron-deps.js` passes.
-- [x] **Track 2 — Identifiers, adapter, map and lenses.** Task: [tasks/002-graph-identifiers-and-the-cerrado-adapter.md](../tasks/002-graph-identifiers-and-the-cerrado-adapter.md). `lib/knowledge/ref.ts` and
+- [x] **Track 2 — Identifiers, adapter, map and lenses.** Task: tasks/002-graph-identifiers-and-the-cerrado-adapter.md (closed dossier — `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/002-graph-identifiers-and-the-cerrado-adapter.md`). `lib/knowledge/ref.ts` and
   `lib/knowledge/cerrado-adapter.ts`, with unit tests over a fixture of records (every node kind, the
   hidden agent, an agent id carrying `:v~digest`), `@entelekheia/ref-id` added as a dependency, the
   vis-network canvas moved onto the adapter's output, and the map builder `graph/map.ts` plus the three `.cview` files.
   Acceptance: the adapter tests pass; every node id the adapter emits parses through `@entelekheia/ref-id`
   with the type `unknown` and the species `murici` or `dot-agent`; and `validateMap` and `validateView`
   report no error against the adapter's output for the fixture.
-- [x] **Track 3 — cerrado draws, vis-network falls back.** Task: [tasks/003-cerrado-draws-vis-network-falls-back.md](../tasks/003-cerrado-draws-vis-network-falls-back.md). `KnowledgeGraph`, `CerradoGraphCanvas`,
+- [x] **Track 3 — cerrado draws, vis-network falls back.** Task: tasks/003-cerrado-draws-vis-network-falls-back.md (closed dossier — `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/003-cerrado-draws-vis-network-falls-back.md`). `KnowledgeGraph`, `CerradoGraphCanvas`,
   `handleGraphClick`, layout persistence, and the fallback on `init()` failure. Acceptance: in a
   browser with WebGPU the graph is drawn by cerrado and each node kind's click does what it does today;
   with WebGPU disabled (`--disable-features=WebGPU`) the vis-network graph appears in the same place.
-- [x] **Track 4 — Lifecycle.** Task: [tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md](../tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md). Bump to the cerrado prerelease that ships `destroy()` and `onDeviceLost`,
+- [x] **Track 4 — Lifecycle.** Task: tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md (closed dossier — `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md`). Bump to the cerrado prerelease that ships `destroy()` and `onDeviceLost`,
   call `destroy()` on unmount, and fall back on device loss. Acceptance: a Playwright test navigates
   between `/chat` and `/graph` ten times and then asserts one live engine; a second test forces device
   loss and asserts the vis-network graph is shown.
-- [ ] **Track 5 — Verified in the real app.** The maintainer launches the packaged Electron build on each
+- [x] **Track 5 — Verified in the real app.** The maintainer launches the packaged Electron build on each
   desktop OS it ships to and records which renderer each one used. Acceptance: the record names the
-  renderer per OS; any OS that fell back is listed in Outcomes with the reason `init()` gave.
-- [ ] Run `/vibe-ops:close-plan` — retrospective against the goals, the demotion check. The plan file
+  renderer per OS; any OS that fell back is listed in Outcomes with the reason `init()` gave. **Closed with
+  macOS (Apple silicon) only: Windows and Linux were cut from this plan by the maintainer at closure and
+  carry to the alpha release's soak** (see Outcomes).
+- [x] Run `/vibe-ops:close-plan` — retrospective against the goals, the demotion check. The plan file
       itself is kept. Stays unchecked until the plan is actually closed.
 
 ## Success criteria
@@ -354,15 +356,105 @@ allowlist are checked rather than assumed to need no change.
 
 ## Outcomes & Retrospective
 
-- Track 5, macOS (Apple silicon), 2026-10-08: the packaged app (`electron-builder --dir`, unsigned) drew
-  the graph with cerrado on the app's real data — a WebGPU adapter present, no vis-network canvas, icons
-  loaded. Launched from the agent's shell with `--remote-debugging-port` and inspected over CDP. It showed
-  conversations with no chat row captioned by their full identifier; they now read "Conversation", as in
-  the vis-network canvas. Windows and Linux are not yet run.
+Written 2026-10-09, at closure, against the Goals and the Success criteria above. The work reached `alpha` as
+one pull request (#31, merge `e89eeb6`).
+
+### Goals
+
+1. **Both mounts drawn by cerrado on a machine with an adapter: met.** The `/graph` page and the empty-chat
+   landing mount the same `KnowledgeGraph`. Seen on the real data in the packaged macOS app (2026-10-08) and
+   in the dev build at the end of the work.
+2. **Fallback without an adapter or after device loss, no reload: met.** With `navigator.gpu` removed the
+   same mount showed the vis-network graph (Track 3's browser check), and a Playwright test destroys the
+   device from outside the engine and asserts vis-network appears (Track 4).
+3. **Clicks do what they did: met.** In the browser check a conversation opened its chat, a knowledge record
+   its preview and an agent its overlay.
+4. **Three lenses over one map, morphing rather than remounting: met in substance, not in the wording.** The
+   lenses are three `.cview` files and switch by `morphTo` on one engine. The one `.cmap` did not survive:
+   the map is generated from the graph (see "What the plan predicted wrongly").
+5. **No engine, listener or device left by an earlier mount: met.** A Playwright test unmounts the graph ten
+   times and asserts one live GPU device; it failed with 11 when the cleanup was put back to `stop()`.
+
+### Success criteria
+
+- `npm test` passes, 167 tests in 31 suites, on the merged code.
+- The Playwright suite: the two lifecycle tests of Track 4 pass. **The rest of the suite was not run for the
+  closure**; the lifecycle spec is the part this plan touches.
+- `npm run electron:build` opens on the graph drawn by cerrado: **verified on macOS (Apple silicon) only**,
+  with an unsigned `--dir` package launched from an agent's shell and inspected over CDP.
+- `grep -rn "vis-network" components/` names only the fallback: **the criterion was too literal.** It also
+  names `knowledge-graph.tsx`, in the comment that says the canvas falls back to vis-network. No other file
+  imports it, which is what the criterion meant.
+
+### What was cut, and what is open
+
+- **Windows and Linux (Track 5) were cut at closure.** Nothing was run on either. The open question this
+  plan carried (whether Electron 44's Chromium, with `sandbox: true`, exposes a WebGPU adapter on Linux)
+  stays open and moves to the soak of the alpha release: the first Linux or Windows user reports which
+  renderer drew, and a machine without an adapter lands on the vis-network fallback by design.
+- **Deferred minors still true at closure**, from the task dossiers:
+  - `countParentsByArtifact` (`lib/knowledge/agent-layer.ts`) still returns `conv-`/`agent-` strings,
+    translated at its one use site in the vis-network canvas.
+  - The vis-network canvas's `convAgentId` map holds the full `aboutme.id` while `agentColor` is keyed by
+    the bare id, so a conversation's agent-lens colour there always falls back to the low-tier colour. It
+    predates the plan.
+  - No test compares the vis-network canvas's node set with the adapter's; by reading they agree.
+  - `canary.yml`'s `canary-install.mjs` step carries no `NODE_AUTH_TOKEN`; add it if the first CI run
+    returns 401.
+  - `lucide-static` is pinned exactly while `lucide-react` is `^1.53.0`.
+  - Synthetic pointer events raise `setPointerCapture` errors in the dev overlay; real pointers do not.
+  - No test covers a lens switch, `saveLayout`, the icon-font failure path or every prop reaching the
+    fallback.
+- **Closed by Track 4 and no longer deferred:** the per-remount device leak and a throw from `start()`
+  skipping the loop's stop.
+- **Colours of nodes that no territory holds**: a conversation no agent ran in, and its files, take the
+  engine's fixed grey per tier, which is dark for the lowest tier and reads poorly on a dark page. A lens
+  can only colour a whole tier, which would also repaint the nodes that have a territory, so the fix
+  belongs in cerrado (a theme key for nodes without a region). The maintainer takes it there.
+
+### What the plan predicted wrongly
+
+- **A static map with three territories.** Track 2 ruled that "a region per agent cannot be declared,
+  because a map is static and the agents are data". A map can be built in code, as eita's tag map is, and the
+  vis-network graph had grouped by content (a canopy per hub), which three fixed regions lost. The map is now
+  generated, one territory per agent on a permanent slot (`lib/knowledge/graph/map.ts`).
+- **"The lenses reproduce vis-network."** The first lenses copied vis-network's tiers but not its sizes or
+  its canopy-per-hub look; nodes and icons had to roughly double, and the canopy radius follows the node's,
+  so it was re-balanced through `drop_scale`.
+- **The watercolour copied from a dark-canvas recipe** and tuned by eye on a light page read as a granular
+  texture; the technique study the engine came from names five signatures, and removing three of them lost
+  the form. It is now one shared form with a recipe per theme (`lib/knowledge/graph/paint.ts`).
+- **Ten navigations between `/chat` and `/graph`** as the leak test: a full navigation reloads the page and
+  frees every device, so the test unmounts the graph ten times inside one page.
+- **A map version that follows the set of territories.** It threw the saved layout away whenever an agent
+  appeared; it is now a number moved by hand, and a test pins a digest of everything that moves nodes beside
+  it, so a lens or generator change cannot ship without the bump.
+
+### What was routed
+
+- **Guard written:** `__tests__/lib/knowledge/map-version.test.ts`, proved to fail when a lens's repulsion
+  moves and when the generator's spiral step moves, and to pass when a colour changes.
+- **Dropped, out loud:** the token-from-environment 401, the Electron signing failure under a keychain that
+  cannot prompt, the block `next dev` appends to `AGENTS.md`, and the Playwright browser install notes. Each
+  is already recorded where someone meets it (`CONTRIBUTING.md`, a changeset, `AGENTS.md`, the spec).
+- **Blocked:** what the engine taught during the visual pass is a fact about cerrado and the workspace, not
+  about this repository: the zoom floor is the framing of the whole map, `nodeZoomGrowth` decides how much a
+  node follows the zoom, the node radius and the canopy radius scale together, the paper recipe reads as
+  granulation on this page, and unrouted nodes take a fixed colour. It goes to the workspace's
+  `project/learnings/` through `/route-learnings`, which the maintainer runs; nothing here can file it.
+- **Demotion check:** the work added a test and a type, and no line of `AGENTS.md` or an always-on rule
+  became redundant.
 
 ---
 
 ## Open questions
 
 - Whether Electron 44's Chromium, with `sandbox: true`, exposes a WebGPU adapter on Linux for the
-  machines this app ships to. Track 5 measures it.
+  machines this app ships to. Not measured: Track 5 was cut for Windows and Linux at closure, and the question
+  moves to the soak of the alpha release.
+
+- Task dossiers closed and removed per the task lifecycle (`Planned → In Progress → Done → file removed, git history is the archive`):
+  - `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/001-the-cerrado-package-installs.md`
+  - `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/002-graph-identifiers-and-the-cerrado-adapter.md`
+  - `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/003-cerrado-draws-vis-network-falls-back.md`
+  - `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md`
