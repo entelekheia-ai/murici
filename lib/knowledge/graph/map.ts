@@ -65,7 +65,8 @@ const GOLDEN_ANGLE = 137.508
  * that moves nodes until a reload meets another version, so it is bumped BY HAND whenever the generator or
  * a lens changes where nodes sit (a slot's position, a routing rule, a distortion, a tier). Adding a
  * territory is not such a change: a new region takes a free slot and every existing one stays where it is,
- * so the version does not follow the set of territories. History: 3 after the chat lens's repulsion,
+ * so the version does not follow the set of territories. `__tests__/lib/knowledge/map-version.test.ts` pins a
+ * digest of everything that moves nodes beside this number and fails until both are updated. History: 3 after the chat lens's repulsion,
  * edge-length and size changes and the lenses' larger nodes.
  */
 const MAP_VERSION = 3
