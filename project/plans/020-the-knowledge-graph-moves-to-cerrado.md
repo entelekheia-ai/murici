@@ -260,7 +260,11 @@ allowlist are checked rather than assumed to need no change.
 
 ## Outcomes & Retrospective
 
-*Not started.*
+- Track 5, macOS (Apple silicon), 2026-10-08: the packaged app (`electron-builder --dir`, unsigned) drew
+  the graph with cerrado on the app's real data — a WebGPU adapter present, no vis-network canvas, icons
+  loaded. Launched from the agent's shell with `--remote-debugging-port` and inspected over CDP. It showed
+  conversations with no chat row captioned by their full identifier; they now read "Conversation", as in
+  the vis-network canvas. Windows and Linux are not yet run.
 
 ---
 

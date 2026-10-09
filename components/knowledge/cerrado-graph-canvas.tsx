@@ -334,7 +334,12 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
           if (band.min >= ZOOM_ALWAYS) return []
           return [
             {
-              text: m.label ?? m.id,
+              // A conversation with no chat row has no name: say what it is, as the vis canvas does.
+              text:
+                m.label ??
+                (parseGraphRef(m.id)?.kind === "conversation"
+                  ? t("Conversation")
+                  : m.id),
               node: i,
               size: th.node,
               align: "center",
