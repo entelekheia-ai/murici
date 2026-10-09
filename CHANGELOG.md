@@ -1,5 +1,20 @@
 # murici
 
+## 0.12.0-alpha.2
+
+### Minor Changes
+
+- a122e61: The knowledge graph is drawn by `@entelekheia-ai/cerrado` (WebGPU) instead of vis-network, with one territory per agent, a watercolour that follows the light and dark themes, and the chat, agent and overview lenses over one map. vis-network stays as the fallback when WebGPU has no adapter or the GPU device is lost.
+- d55cdc3: Run on Electron 44, Tailwind CSS 4, zod 4, i18next 26, Jest 30 and the latest majors of the remaining dependencies; React 19 type definitions.
+- Run on `@dot-agent/*` 0.12.0 (compiler, kernel-dsl, sdk, tree-sitter), up from 0.10.x.
+- fb31d7b: Run on Next.js 16 and React 19, type-checked by TypeScript 7 with no compatibility copy of TypeScript 5; lint with oxlint instead of ESLint.
+
+### Patch Changes
+
+- b32150e: Replace the unmaintained next-pwa with its maintained fork and lift three vulnerable transitive dependencies; npm audit: 41 → 30, every remaining finding is in braces or sprintf-js, which have no patched release.
+- 26965ac: Type-check and compile Electron with TypeScript 7; refresh dependencies within their declared ranges; add Dependabot.
+- Fix macOS code signing in CI: update electron-builder to 26.16.1, which unlocks the temporary signing keychain with its own password instead of the certificate's import password.
+
 ## 0.12.0-alpha.1
 
 ### Patch Changes
