@@ -175,22 +175,22 @@ allowlist are checked rather than assumed to need no change.
 
 ## Tracks
 
-- [x] **Track 1 — The package installs.** Task: [tasks/001-the-cerrado-package-installs.md](../tasks/001-the-cerrado-package-installs.md). `.npmrc`, the CI and release-workflow token, and
+- [x] **Track 1 — The package installs.** Task: tasks/001-the-cerrado-package-installs.md (closed dossier — `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/001-the-cerrado-package-installs.md`). `.npmrc`, the CI and release-workflow token, and
   `@entelekheia-ai/cerrado@0.2.0` pinned exactly in `package.json`. Acceptance: `npm ci` succeeds locally
   and in CI, `npm run build` and `npm run electron:build` succeed with the package imported from a
   throwaway call site, and `scripts/verify-electron-deps.js` passes.
-- [x] **Track 2 — Identifiers, adapter, map and lenses.** Task: [tasks/002-graph-identifiers-and-the-cerrado-adapter.md](../tasks/002-graph-identifiers-and-the-cerrado-adapter.md). `lib/knowledge/ref.ts` and
+- [x] **Track 2 — Identifiers, adapter, map and lenses.** Task: tasks/002-graph-identifiers-and-the-cerrado-adapter.md (closed dossier — `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/002-graph-identifiers-and-the-cerrado-adapter.md`). `lib/knowledge/ref.ts` and
   `lib/knowledge/cerrado-adapter.ts`, with unit tests over a fixture of records (every node kind, the
   hidden agent, an agent id carrying `:v~digest`), `@entelekheia/ref-id` added as a dependency, the
   vis-network canvas moved onto the adapter's output, and the map builder `graph/map.ts` plus the three `.cview` files.
   Acceptance: the adapter tests pass; every node id the adapter emits parses through `@entelekheia/ref-id`
   with the type `unknown` and the species `murici` or `dot-agent`; and `validateMap` and `validateView`
   report no error against the adapter's output for the fixture.
-- [x] **Track 3 — cerrado draws, vis-network falls back.** Task: [tasks/003-cerrado-draws-vis-network-falls-back.md](../tasks/003-cerrado-draws-vis-network-falls-back.md). `KnowledgeGraph`, `CerradoGraphCanvas`,
+- [x] **Track 3 — cerrado draws, vis-network falls back.** Task: tasks/003-cerrado-draws-vis-network-falls-back.md (closed dossier — `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/003-cerrado-draws-vis-network-falls-back.md`). `KnowledgeGraph`, `CerradoGraphCanvas`,
   `handleGraphClick`, layout persistence, and the fallback on `init()` failure. Acceptance: in a
   browser with WebGPU the graph is drawn by cerrado and each node kind's click does what it does today;
   with WebGPU disabled (`--disable-features=WebGPU`) the vis-network graph appears in the same place.
-- [x] **Track 4 — Lifecycle.** Task: [tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md](../tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md). Bump to the cerrado prerelease that ships `destroy()` and `onDeviceLost`,
+- [x] **Track 4 — Lifecycle.** Task: tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md (closed dossier — `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md`). Bump to the cerrado prerelease that ships `destroy()` and `onDeviceLost`,
   call `destroy()` on unmount, and fall back on device loss. Acceptance: a Playwright test navigates
   between `/chat` and `/graph` ten times and then asserts one live engine; a second test forces device
   loss and asserts the vis-network graph is shown.
@@ -452,3 +452,9 @@ one pull request (#31, merge `e89eeb6`).
 - Whether Electron 44's Chromium, with `sandbox: true`, exposes a WebGPU adapter on Linux for the
   machines this app ships to. Not measured: Track 5 was cut for Windows and Linux at closure, and the question
   moves to the soak of the alpha release.
+
+- Task dossiers closed and removed per the task lifecycle (`Planned → In Progress → Done → file removed, git history is the archive`):
+  - `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/001-the-cerrado-package-installs.md`
+  - `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/002-graph-identifiers-and-the-cerrado-adapter.md`
+  - `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/003-cerrado-draws-vis-network-falls-back.md`
+  - `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md`
