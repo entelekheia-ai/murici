@@ -1,0 +1,58 @@
+# Overview lens: each territory (one per agent, built in graph/map.ts) anchors
+# its conversations, and each conversation the knowledge it produced. Under a
+# region anchor, conversations and knowledge are both members, so both agent
+# edges are member-loose and draw light.
+# No canvas_background: the host takes the page colour from the app theme.
+id: murici_default
+name: "Overview"
+for_map: murici_knowledge
+
+targets:
+  tier_high:
+    - { type: conversation }
+  tier_medium:
+    - { type: knowledge }
+
+hierarchy:
+  - region
+  - { type: conversation }
+  - { type: knowledge }
+
+distortion:
+  tier_high: { mass_multiplier: 3.0, size_multiplier: 4.8 }
+  tier_medium: { mass_multiplier: 1.0, size_multiplier: 4.0 }
+  tier_low: { mass_multiplier: 0.6, size_multiplier: 3.6, repulsion: 0.6 }
+
+# From afar only the territories' names and the node icons; at 0.6 the nodes'
+# own names arrive and the territories' names leave, crossing over the ramp.
+# Each `at` is a photograph of what is on stage from there on (cerrado's course
+# form): a layer not listed is off. `crossfade` is the width of the ramp at every
+# seam, centred on its `at`.
+semantic_zoom:
+  crossfade: 0.075
+  course:
+    - at: 0
+      name: macro
+      all_tiers: [nodes]
+      region: [labels]
+    - at: 0.61
+      name: names
+      all_tiers: [nodes, labels]
+
+theme:
+  loose_color: "rgba(0, 0, 0, 0)"
+  edge_default: { width: 1, color: "rgba(120, 120, 130, 1)" }
+  edge_roles:
+    member-member: { width: 2.0, opacity: 0.8 }
+    member-loose: { width: 3.5, opacity: 1 }
+  tier_high:
+    icon: "lucide:message-circle"
+  tier_medium:
+    icon: "lucide:file-text"
+  tier_low:
+    icon: "lucide:bot"
+
+# The rest of the watercolour depends on the page theme and lives in graph/paint.ts;
+# only the canopy radius is a property of the lens.
+paint:
+  drop_scale: 4.5 # canopy radius = node radius x this; the nodes are larger, the wash is not

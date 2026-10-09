@@ -1,0 +1,63 @@
+# Agents lens: each agent anchors the knowledge it produced; conversations
+# stay loose. Agent to knowledge solid, knowledge to conversation solid and
+# strong, agent to conversation dashed (the vis-network lens did not draw it).
+# No canvas_background: the host takes the page colour from the app theme.
+id: murici_agent
+name: "Agents"
+for_map: murici_knowledge
+
+targets:
+  tier_high:
+    - { type: agent }
+  tier_medium:
+    - { type: knowledge }
+
+hierarchy:
+  - { type: agent }
+  - { type: knowledge }
+
+distortion:
+  tier_high: { mass_multiplier: 3.0, size_multiplier: 6.8, repulsion: 2.6 }
+  tier_medium: { mass_multiplier: 1.0, size_multiplier: 4.8 }
+  tier_low: { mass_multiplier: 1.0, size_multiplier: 3.0, repulsion: 1.0, edge_length_multiplier: 2.2 }
+
+# The same zoom scale as the overview lens. From afar only the agents (tier_high) and
+# the chats (tier_low), each with its name; the files (tier_medium) show as dots and
+# the territory names stay off. At 0.6 the files' names and the territory names come in.
+# Each `at` is a photograph of what is on stage from there on: a layer not listed
+# is off. An edge shows only where both its ends do.
+semantic_zoom:
+  crossfade: 0.075
+  course:
+    - at: 0
+      name: macro
+      tier_high: [nodes, labels]
+      tier_medium: [nodes]
+      tier_low: [nodes]
+    - at: 0.5
+      name: macro
+      tier_high: [nodes, labels]
+      tier_medium: [nodes, labels]
+      tier_low: [nodes]
+    - at: 0.74
+      name: files
+      all_tiers: [nodes, labels]
+
+theme:
+  loose_color: "rgba(0, 0, 0, 0)"
+  edge_default: { width: 1, color: "rgba(120, 120, 130, 1)" }
+  edge_roles:
+    anchor-member: { width: 2.5, opacity: 0.85 }
+    member-loose: { width: 2.5, opacity: 1 }
+    anchor-loose: { type: dashed, width: 2.5, opacity: 1 }
+  tier_high:
+    icon: "lucide:bot"
+  tier_medium:
+    icon: "lucide:file-text"
+  tier_low:
+    icon: "lucide:message-circle"
+
+# The rest of the watercolour depends on the page theme and lives in graph/paint.ts;
+# only the canopy radius is a property of the lens.
+paint:
+  drop_scale: 6.5 # canopy radius = node radius x this; the nodes are larger, the wash is not

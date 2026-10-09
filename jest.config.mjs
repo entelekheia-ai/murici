@@ -42,6 +42,11 @@ export default async () => {
   const nextJestConfig = await createJestConfig(config)()
   return {
     ...nextJestConfig,
+    // .cmap/.cview import as their own text, as the webpack `asset/source` rule does in the build.
+    transform: {
+      ...nextJestConfig.transform,
+      "^.+\\.c(map|view)$": "<rootDir>/jest.text-transform.cjs"
+    },
     transformIgnorePatterns: ["^.+\\.module\\.(css|sass|scss)$"]
   }
 }

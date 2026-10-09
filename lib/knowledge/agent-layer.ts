@@ -1,15 +1,11 @@
-/*
- * Copyright (c) 2026 Danilo Borges (https://github.com/daniloborges)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import { KnowledgeRecord } from "@/types/knowledge"
-import { AgentBundleRecord } from "@/lib/local-db/schema"
+import type {
+  AgentBundleRecord,
+  RecentAgentRecord
+} from "@/lib/local-db/schema"
+import { agentFolder, agentKey, type AgentLocation } from "@/lib/knowledge/ref"
 
 export interface AgentLayerNode {
   agentId: string
@@ -52,12 +48,38 @@ function hiddenAgentIds(bundles: AgentBundleRecord[]): Set<string> {
   )
 }
 
-// Dedupes agents globally by bare agentId (namespace/name) — the same
-// agent used across N conversations, or republished as a new build, becomes
-// one node, not one per conversation or per digest.
+/** Where an agent was found, by its full id — the folder it was opened from. */
+export type LocateAgent = (fullAgentId: string) => AgentLocation | undefined
+
+/**
+ * Locates an agent by the folder it was last opened from, from the
+ * `recentAgents` store. A record without a `filePath` (opened outside Electron)
+ * locates nothing, and the agent keeps its bare id.
+ */
+export function locateFromRecentAgents(
+  recent: RecentAgentRecord[]
+): LocateAgent {
+  const latest = new Map<string, RecentAgentRecord>()
+  for (const r of recent) {
+    if (!r.filePath) continue
+    const seen = latest.get(r.aboutme.id)
+    if (!seen || r.openedAt > seen.openedAt) latest.set(r.aboutme.id, r)
+  }
+  return fullAgentId => {
+    const r = latest.get(fullAgentId)
+    return r?.filePath ? { path: agentFolder(r.filePath) } : undefined
+  }
+}
+
+// Dedupes agents globally by agent key — the bare agentId (namespace/name),
+// so the same agent used across N conversations, or republished as a new
+// build, becomes one node, not one per conversation or per digest. In the
+// `unknown` namespace, where one name can be two unrelated agents, `locate`
+// adds the folder each was opened from to the key (see `agentKey`).
 export function buildAgentLayer(
   knowledge: KnowledgeRecord[],
-  bundles: AgentBundleRecord[]
+  bundles: AgentBundleRecord[],
+  locate?: LocateAgent
 ): Map<string, AgentLayerNode> {
   const hiddenIds = hiddenAgentIds(bundles)
   const agents = new Map<string, AgentLayerNode>()
@@ -80,7 +102,8 @@ export function buildAgentLayer(
   for (const bundle of bundles) {
     const bareId = bareAgentId(bundle.aboutme.id)
     if (hiddenIds.has(bareId)) continue
-    const node = getOrCreate(bareId, bundle.aboutme.name)
+    const key = agentKey(bareId, locate?.(bundle.aboutme.id))
+    const node = getOrCreate(key, bundle.aboutme.name)
     node.conversationIds.add(bundle.conversationId)
   }
 
@@ -88,7 +111,7 @@ export function buildAgentLayer(
     for (const run of record.agentRuns) {
       const bareId = bareAgentId(run.agentId)
       if (hiddenIds.has(bareId)) continue
-      const node = getOrCreate(bareId, bareId)
+      const node = getOrCreate(agentKey(bareId, locate?.(run.agentId)), bareId)
       node.artifactIds.add(record.id)
     }
   }
@@ -109,7 +132,8 @@ export function buildAgentLayer(
 // carry them as a border-gradient parent even with no visible node.
 export function countParentsByArtifact(
   knowledge: KnowledgeRecord[],
-  bundles: AgentBundleRecord[]
+  bundles: AgentBundleRecord[],
+  locate?: LocateAgent
 ): Map<string, string[]> {
   const hiddenIds = hiddenAgentIds(bundles)
   const parents = new Map<string, string[]>()
@@ -119,7 +143,7 @@ export function countParentsByArtifact(
     for (const run of record.agentRuns) {
       const bareId = bareAgentId(run.agentId)
       if (hiddenIds.has(bareId)) continue
-      ids.push(`agent-${bareId}`)
+      ids.push(`agent-${agentKey(bareId, locate?.(run.agentId))}`)
     }
     parents.set(record.id, ids)
   }

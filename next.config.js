@@ -44,6 +44,10 @@ module.exports = withBundleAnalyzer(
         asyncWebAssembly: true,
         layers: true
       }
+      // cerrado's map and lens documents stay in their own format and reach the bundle as text.
+      config.module.rules.push({ test: /\.c(map|view)$/, type: "asset/source" })
+      // The icon font cerrado draws node glyphs from, emitted as a file and imported as its URL.
+      config.module.rules.push({ test: /lucide-static[\\/]font[\\/]lucide\.woff2$/, type: "asset/resource" })
       if (!isServer) {
         config.resolve.fallback = {
           ...config.resolve.fallback,

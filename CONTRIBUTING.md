@@ -4,6 +4,14 @@
 
 Node version: [`.nvmrc`](.nvmrc).
 
+The graph engine, `@entelekheia-ai/cerrado`, is a private package on GitHub
+Packages, so `npm install` needs a token with `read:packages` in your
+user-level `~/.npmrc` (the repository's `.npmrc` names only the registry):
+
+```ini
+//npm.pkg.github.com/:_authToken=<token>
+```
+
 ```bash
 npm install
 npm run dev            # web: Next.js on http://localhost:3000
