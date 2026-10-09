@@ -1,4 +1,6 @@
+# Log
 
+Traps and debts, each addressed by the path where someone meets it again. One entry per trap; an entry that retires is deleted.
 
 ## `(repository root)`
 
