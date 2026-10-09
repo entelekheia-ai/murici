@@ -1,6 +1,6 @@
 # Agents lens: each agent anchors the knowledge it produced; conversations
-# stay loose. Mirrors the vis-network "agent" lens: agent to knowledge solid,
-# knowledge to conversation light, agent to conversation not drawn.
+# stay loose. Agent to knowledge solid, knowledge to conversation solid and
+# strong, agent to conversation dashed (the vis-network lens did not draw it).
 # No canvas_background: the host takes the page colour from the app theme.
 id: murici_agent
 name: "Agents"
@@ -17,31 +17,47 @@ hierarchy:
   - { type: knowledge }
 
 distortion:
-  tier_high: { mass_multiplier: 3.0, size_multiplier: 1.8, repulsion: 1.4 }
-  tier_medium: { mass_multiplier: 1.0, size_multiplier: 1.0 }
-  tier_low: { mass_multiplier: 0.6, size_multiplier: 0.9, repulsion: 0.6 }
+  tier_high: { mass_multiplier: 3.0, size_multiplier: 6.8, repulsion: 2.6 }
+  tier_medium: { mass_multiplier: 1.0, size_multiplier: 4.8 }
+  tier_low: { mass_multiplier: 1.0, size_multiplier: 3.0, repulsion: 1.0, edge_length_multiplier: 2.2 }
+
+# The same zoom scale as the overview lens. From afar only the agents (tier_high) and
+# the chats (tier_low), each with its name; the files (tier_medium) show as dots and
+# the territory names stay off. At 0.6 the files' names and the territory names come in.
+# Each `at` is a photograph of what is on stage from there on: a layer not listed
+# is off. An edge shows only where both its ends do.
+semantic_zoom:
+  crossfade: 0.075
+  course:
+    - at: 0
+      name: macro
+      tier_high: [nodes, labels]
+      tier_medium: [nodes]
+      tier_low: [nodes]
+    - at: 0.5
+      name: macro
+      tier_high: [nodes, labels]
+      tier_medium: [nodes, labels]
+      tier_low: [nodes]
+    - at: 0.74
+      name: files
+      all_tiers: [nodes, labels]
 
 theme:
-  loose_color: "#c4922a"
-  edge_default: { width: 1, color: "rgba(120, 120, 130, 0.6)" }
+  loose_color: "rgba(0, 0, 0, 0)"
+  edge_default: { width: 1, color: "rgba(120, 120, 130, 1)" }
   edge_roles:
     anchor-member: { width: 2.5, opacity: 0.85 }
-    member-loose: { opacity: 0.15 }
-    anchor-loose: { hidden: true }
+    member-loose: { width: 2.5, opacity: 1 }
+    anchor-loose: { type: dashed, width: 2.5, opacity: 1 }
   tier_high:
-    color_fill: "#d99a2b"
-    canopy_gradient: ["rgba(217, 154, 43, 0.30)", "rgba(120, 80, 10, 0)"]
     icon: "lucide:bot"
   tier_medium:
-    color_fill: "#9a9488"
     icon: "lucide:file-text"
   tier_low:
-    color_fill: "#c4922a"
     icon: "lucide:message-circle"
 
+# The rest of the watercolour depends on the page theme and lives in graph/paint.ts;
+# only the canopy radius is a property of the lens.
 paint:
-  softness: 0.09
-  alpha: 0.85
-  edge_strength: 0.95
-  wash_depth: 0.45
-  bands: 3
+  drop_scale: 6.5 # canopy radius = node radius x this; the nodes are larger, the wash is not

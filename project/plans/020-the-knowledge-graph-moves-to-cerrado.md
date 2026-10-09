@@ -51,7 +51,7 @@ never learns which of the two is drawing.
 
 - Installing `@entelekheia-ai/cerrado` from GitHub Packages, locally and in CI.
 - An adapter from the records `useKnowledgeData` already returns to cerrado's `GraphData`.
-- `murici.cmap` and three `.cview` lenses.
+- The map builder (`graph/map.ts`) and three `.cview` lenses.
 - A cerrado canvas component, a fallback selector, and the vis-network canvas kept as the fallback.
 - Layout persistence for cerrado in `localStorage`.
 - Tests for the adapter and an end-to-end test for mount, unmount and fallback.
@@ -121,17 +121,21 @@ result back, so a string that does not survive both is a programming error caugh
 an identifier that travels malformed. Edges keep plain derived ids (`<from>-><to>`), because nothing outside
 the graph names an edge.
 
-Each node also carries a `type` — `conversation`, `knowledge` or `agent` — which is what `murici.cmap`'s
-routing rules match, with a record's own `nodeType` in `attrs.nodeType`; routing never parses an
-identifier. Edges carry `type` `generated_in` (knowledge to conversation), `ran_in` (agent to
+Each node also carries a `type` — `conversation`, `knowledge` or `agent` — which is what the lenses'
+tiers select, with a record's own `nodeType` in `attrs.nodeType`, and a `murici.group` classification, which
+is what the map's routing rules match; routing never parses an identifier. Edges carry `type` `generated_in` (knowledge to conversation), `ran_in` (agent to
 conversation) and `produced` (agent to knowledge). The agent layer is reused from `lib/knowledge/agent-layer.ts` (`buildAgentLayer`), so the hidden
 `BackgroundSystem` agent stays hidden in both renderers. The adapter is pure and has no GPU or DOM
 dependency, which is what lets it be unit-tested.
 
 ### Map and lenses
 
-`lib/knowledge/graph/murici.cmap` declares three regions (Agents, Conversations, Knowledge) and routes by
-`type`; every node is routed, so it declares no `default_region`. `default.cview`, `chat.cview` and `agent.cview` reproduce the
+`lib/knowledge/graph/map.ts` builds the map from the graph's own nodes, as eita builds its tag map: one region
+per agent, each on a permanent slot of a sunflower spiral from the origin. A conversation no agent ran in, and the knowledge it produced, has no
+region and settles loose by its edges (the map declares no `default_region`). A conversation
+belongs to the first agent (by id) that ran in it, and its knowledge follows it; routing reads the
+`murici.group` classification the adapter writes on every node, so a node with no group is the one left unrouted. The map's `version` is a constant: a new territory takes the next free slot, which is kept in `localStorage`, so adding one never moves another and never discards a saved layout (the version is bumped by hand, as cerrado's `authoring-a-map` and its pitfall 14 require, when the generator or a lens moves nodes: a saved layout hides such a change until it is bumped). On a reload a node with no saved place is scattered and solved while the nodes the layout knows keep theirs. The camera floor sits 2.5 times below the framing of the whole map (the engine ties the two
+together), by wrapping the camera's `setZoomRange`. `default.cview`, `chat.cview` and `agent.cview` reproduce the
 current lenses (`knowledge-graph-canvas.tsx:670-780`: mass re-weighting, recolouring, which edges show).
 All three are written with cerrado's `authoring-a-map` and `authoring-a-view` skills, and validated with
 `validateMap`/`validateView` against data from the adapter. A lens switch calls `morphTo`, which needs the
@@ -178,7 +182,7 @@ allowlist are checked rather than assumed to need no change.
 - [x] **Track 2 — Identifiers, adapter, map and lenses.** Task: [tasks/002-graph-identifiers-and-the-cerrado-adapter.md](../tasks/002-graph-identifiers-and-the-cerrado-adapter.md). `lib/knowledge/ref.ts` and
   `lib/knowledge/cerrado-adapter.ts`, with unit tests over a fixture of records (every node kind, the
   hidden agent, an agent id carrying `:v~digest`), `@entelekheia/ref-id` added as a dependency, the
-  vis-network canvas moved onto the adapter's output, and `murici.cmap` plus the three `.cview` files.
+  vis-network canvas moved onto the adapter's output, and the map builder `graph/map.ts` plus the three `.cview` files.
   Acceptance: the adapter tests pass; every node id the adapter emits parses through `@entelekheia/ref-id`
   with the type `unknown` and the species `murici` or `dot-agent`; and `validateMap` and `validateView`
   report no error against the adapter's output for the fixture.
@@ -267,6 +271,83 @@ allowlist are checked rather than assumed to need no change.
   Rationale: the adapter is mechanical under the id scheme written in Design; the map, the lenses and the
   fallback are judgements about how the graph should look and behave.
   Date / Author: 2026-10-08 / Danilo Borges
+- Decision: the map is generated from the content, one region per agent, instead of the hand-written three
+  regions (Agents, Conversations, Knowledge) of `murici.cmap`, which is deleted.
+  Rationale: the vis-network graph grouped by content — a canopy per hub — and three fixed regions lost that.
+  cerrado 0.3.0-alpha.0 declares a node `cluster` field that no engine code reads, so the grouping goes
+  through a routing rule over a `murici.group` classification, with the map built in code as eita's is.
+  Lenses stay `.cview` files over one map, so `morphTo` keeps working. Per agent rather than per
+  conversation was the maintainer's choice, and so was leaving conversations without an agent loose rather
+  than giving them a territory.
+  Date / Author: 2026-10-08 / Danilo Borges
+- Decision: every lens doubles its `size_multiplier` (nodes and icons) and halves `paint.drop_scale` to 6.5; the
+  chat and agent canopies keep the region's colour; the chat lens shows the territory names only from zoom
+  0.3 on; the adapter writes a `weight` on conversations and agents.
+  Rationale: a node's radius is `(8 + 2·√weight) × size_multiplier` and the canopy radius is that radius times
+  `drop_scale` (13 by default), so doubling the nodes alone doubled the wash and merged neighbouring
+  territories; halving `drop_scale` keeps the wash where it was. A lens styles by tier, so one canopy colour
+  per tier would have painted every conversation alike where vis-network gave each its own; the region's
+  colour, one per agent, carries the identity instead. The weight makes a busy conversation or agent read as
+  the hub vis-network drew it. The chat lens hides the names at the macro zoom because the whole map is
+  already named by its territories' colours there.
+  The default lens then grew its high tier by 50% and its other two by 100% more (4.8, 4.0, 3.6, with
+  `drop_scale` 4.5) and dropped its fixed node colours, and the chat lens dropped the fixed fills of
+  conversations and agents: a connection line takes the colours of its two ends, so the region's colour on
+  both ends is what makes the chat–agent line the region's colour. The loose parent's ring colour
+  (`loose_color`) is transparent in the default and chat lenses, so a conversation's ring is its region's
+  rather than the agent's amber; the line is wide and opaque, and the region's node colour is darker than its
+  wash so the line reads against it. The default lens stages its labels as eita's default view does, in the
+  course form: icons and territory names from afar, the nodes' own names from zoom 0.6 and the territory names leave at the same seam, over a ramp
+  0.075 wide (the framing of the whole map sits near 0.36 on that scale); the values were read by the
+  maintainer off a zoom readout while zooming.
+  Date / Author: 2026-10-08 / Danilo Borges
+- Decision: a territory's place and hue come from a permanent slot, not from its position in the sorted list,
+  and the map's `version` is a constant.
+  Rationale: placing by list position moved every region whenever an agent was added, and a `version`
+  derived from the set of territories threw the saved layout away at the same moment, so the whole graph was
+  re-solved. A slot is kept in `localStorage` (`murici.graph.slots`) and a new territory takes the lowest
+  free one, so only the new region appears; slots of agents that left stay reserved. The cerrado
+  alpha re-solves every node when the saved layout lacks some of them (its local re-solve is a separate,
+  unbuilt step), but the known nodes start at their saved places inside unmoved anchors, and only the
+  nodes with no saved place are scattered.
+  Date / Author: 2026-10-09 / Danilo Borges
+- Decision: the canvas sets `Engine.nodeZoomGrowth` to 0.35.
+  Rationale: the engine's default of 0.15 grows a node's on-screen size by only about 1.5 times across the
+  whole zoom range, so zooming in did not make the icons larger; at 0.5 they grew by about 3.5 times and the captions, which
+  follow by the same factor (the engine ties the two), grew too large, so 0.35 (about 2.4 times) is the
+  value kept. It is a host setting, not a map or
+  view key, so it lives in `cerrado-graph-canvas.tsx`.
+  Date / Author: 2026-10-09 / Danilo Borges
+- Decision: the chat lens uses the overview lens's zoom scale: from afar only the chats and the agents, each
+  named, with the files and the territory names off; at 0.6 the files and the territory names come in, over
+  the same 0.075 ramp.
+  Rationale: the same thresholds mean the same distance in every lens, and the chat lens is about the
+  conversations, which are the layer worth naming first. Replaces the earlier stop at 0.3 that only hid the
+  territory names.
+  Date / Author: 2026-10-09 / Danilo Borges
+- Decision: the watercolour follows the page theme. The lenses keep only `drop_scale` in `paint:`; the rest
+  is `graph/paint.ts`: one shared form taken from the five signatures of the technique study
+  (`project/research/cerrado/2026-07-31-tecnicas-de-aquarela-npr.md`: a pigment rim, a world-space wobble of
+  the contour, two glazes, sub-coats crumbling at the edge, a faint broad grain), laid at alpha 0.85 with an
+  underwash on a light page and at alpha 0.85 with a soft edge and a light mask on a dark one, merged into
+  each view before the scene is built; the map's node colour is deep on a light page and bright on a dark
+  one. A change of theme remounts the engine, which waits for the page's colour transition to end before it
+  reads the paper.
+  Rationale: the paint was the dark-canvas recipe tuned by eye against a light page, and a lens carries one
+  paint block. A theme's colours are not a property of a lens, so they live in code beside the map rather than
+  in duplicated `.cview` files; duplicating the lenses per theme is the fallback if a colour that the lenses
+  themselves declare (the grey of the files, the edge colour) stops reading on one theme.
+  Date / Author: 2026-10-09 / Danilo Borges
+- Decision: the agent lens mirrors the chat lens with the roles swapped: agents are the large anchors
+  (`size_multiplier` 6.8, repulsion 2.6, mass 3), conversations take the wide, loosely held tier (size 3,
+  edge length 2.2, mass 1), the zoom course is the same (agents and chats named from afar, files as dots,
+  names and territory names at 0.6), the fixed fills and the amber loose colour are gone, and the strong line
+  is the one the vis-network lens drew lightly (knowledge to conversation), since agent to conversation stays
+  hidden there.
+  Rationale: the same lens behaviour in both, with the line that is visible in each carrying the weight.
+  The loose conversations of this lens fall to the engine's fixed grey of the lowest tier, which is dark
+  and reads poorly on a dark page; the colour of unrouted nodes is left to a change in cerrado.
+  Date / Author: 2026-10-09 / Danilo Borges
 
 ## Outcomes & Retrospective
 

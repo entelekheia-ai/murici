@@ -5,19 +5,23 @@ import { join } from "node:path"
 
 import {
   buildScene,
-  parseMap,
   parseView,
-  routeAll
+  routeAll,
+  validateMap
 } from "@entelekheia-ai/cerrado"
 import { yamlFrontEnd } from "@entelekheia-ai/cerrado/spec"
 
+import type { GraphData } from "@entelekheia-ai/cerrado/spec"
 import { buildGraphData } from "@/lib/knowledge/cerrado-adapter"
+import {
+  allocateSlots,
+  buildMap,
+  GROUP_SCHEME,
+  territoriesOf
+} from "@/lib/knowledge/graph/map"
 import type { AgentBundleRecord } from "@/lib/local-db/schema"
 import type { Tables } from "@/types/database"
 import type { KnowledgeRecord } from "@/types/knowledge"
-
-const MAP_PATH = join(process.cwd(), "lib/knowledge/graph/murici.cmap")
-const source = readFileSync(MAP_PATH, "utf8")
 
 function record(
   id: string,
@@ -65,39 +69,63 @@ const data = buildGraphData({
   ] as unknown as Tables<"chats">[]
 })
 
-describe("murici.cmap", () => {
-  const map = parseMap(source)
+const mapOf = (d: GraphData, table = {}) =>
+  buildMap(
+    d,
+    allocateSlots(
+      territoriesOf(d).map(t => t.group),
+      table
+    )
+  )
 
-  it("routes every node kind to its own territory, leaving none unrouted", () => {
-    const counts = new Map<string | null, number>()
-    for (const region of routeAll(data.nodes, map).values()) {
-      counts.set(region, (counts.get(region) ?? 0) + 1)
-    }
-    expect(Object.fromEntries(counts)).toEqual({
-      reg_agents: 1,
-      reg_conversations: 2,
-      reg_knowledge: 2
-    })
+const agentNode = (id: string): GraphData["nodes"][number] => ({
+  id,
+  type: "agent",
+  label: id,
+  classifications: [{ scheme: GROUP_SCHEME, id }]
+})
+
+describe("the generated map", () => {
+  const map = mapOf(data)
+
+  it("is a valid map", () => {
+    expect(() => validateMap(map)).not.toThrow()
   })
 
-  it("keeps every key the file writes", () => {
-    const raw = yamlFrontEnd.readMap(source) as unknown as {
-      regions: Record<string, unknown>[]
-      zoom: Record<string, unknown>
+  it("gives each agent a territory and leaves the agentless conversations and their knowledge unrouted", () => {
+    const names = new Map(map.regions.map(r => [r.id, r.label]))
+    const counts = new Map<string | null, number>()
+    for (const region of routeAll(data.nodes, map).values()) {
+      const name = region === null ? null : names.get(region)!
+      counts.set(name, (counts.get(name) ?? 0) + 1)
     }
-    raw.regions.forEach((region, i) => {
-      for (const key of Object.keys(region)) {
-        expect(map.regions[i]).toHaveProperty(key)
-      }
-    })
-    for (const key of Object.keys(raw.zoom)) {
-      expect(map.zoom).toHaveProperty(key)
-    }
+    expect(Object.fromEntries(counts)).toEqual({ Scribe: 3, null: 2 })
+  })
+
+  it("leaves every existing territory where it was when one is added", () => {
+    const one = { nodes: [agentNode("b")], edges: [] }
+    const two = { nodes: [agentNode("a"), agentNode("b")], edges: [] }
+    const table = allocateSlots(["b"], {})
+    const before = buildMap(one, table)
+    const after = buildMap(two, allocateSlots(["a", "b"], table))
+    const place = (m: typeof before, label: string) =>
+      m.regions.find(r => r.label === label)
+    // "a" sorts before "b", yet it takes the next free slot rather than the first.
+    expect(place(after, "b")).toEqual(place(before, "b"))
+    expect(place(after, "a")!.anchor_position).not.toEqual(
+      place(after, "b")!.anchor_position
+    )
+    expect(after.version).toBe(before.version)
+  })
+
+  it("keeps the slot of a territory that left, free of reuse", () => {
+    const table = allocateSlots(["a", "b"], {})
+    expect(allocateSlots(["c"], table).c).toBe(2)
   })
 })
 
 describe("murici lenses", () => {
-  const map = parseMap(source)
+  const map = mapOf(data)
   const read = (lens: string) =>
     readFileSync(
       join(process.cwd(), `lib/knowledge/graph/${lens}.cview`),

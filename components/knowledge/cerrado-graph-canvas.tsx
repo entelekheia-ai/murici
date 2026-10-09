@@ -4,14 +4,18 @@
 
 import { FC, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useTheme } from "next-themes"
 import type { Engine, LabelSpec } from "@entelekheia-ai/cerrado/engine"
-import type { Region, Scene } from "@entelekheia-ai/cerrado"
+import type { GraphView, Region, Scene } from "@entelekheia-ai/cerrado"
 import { buildGraphData } from "@/lib/knowledge/cerrado-adapter"
 import {
-  LENS_SOURCES,
-  MAP_SOURCE,
-  type LensKey
-} from "@/lib/knowledge/graph/sources"
+  allocateSlots,
+  buildMap,
+  territoriesOf
+} from "@/lib/knowledge/graph/map"
+import { paintFor } from "@/lib/knowledge/graph/paint"
+import { loadSlots, saveSlots } from "@/lib/knowledge/graph/slots"
+import { LENS_SOURCES, type LensKey } from "@/lib/knowledge/graph/sources"
 import { parseGraphRef } from "@/lib/knowledge/ref"
 import type {
   AgentBundleRecord,
@@ -35,24 +39,40 @@ export interface CerradoGraphCanvasProps {
   onUnavailable?: (reason: string) => void
 }
 
+/**
+ * How much a node's size follows the zoom: 0 keeps it the same on screen at any zoom, 1 grows it as the
+ * map grows. The engine's 0.15 leaves nodes almost the same size from the widest view to the closest.
+ */
+const NODE_ZOOM_GROWTH = 0.35
+
+/** Amplitude of the sway while the graph rests, in world units; the engine's default is 20.2, 0 turns it off. */
+const IDLE_SWAY = 40
+
+/** How many times farther than the framing of the whole map the camera may back out. */
+const ZOOM_OUT_PAST_FIT = 2.5
+
 const NO_RECENT_AGENTS: RecentAgentRecord[] = []
 const LENSES: LensKey[] = ["default", "chat", "agent"]
 
-/** The key of the translation of a node kind, for the hover subtitle. */
-function kindOf(id: string): string {
-  switch (parseGraphRef(id)?.kind) {
-    case "conversation":
-      return "Chat"
-    case "knowledge":
-      return "Knowledge"
-    case "agent":
-      return "Agent"
-    default:
-      return ""
-  }
+/** The first opaque background colour from `el` up to the document, as a CSS string. */
+/**
+ * Resolves once the page has stopped changing colour. A change of theme repaints the page through a CSS
+ * transition, and a colour read while it runs is the old one or a blend of both.
+ */
+async function pageSettled(): Promise<void> {
+  await new Promise<void>(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  )
+  // An environment without the Web Animations API has no CSS transition to wait for.
+  if (typeof document.getAnimations !== "function") return
+  await Promise.all(
+    document
+      .getAnimations()
+      .filter(a => a instanceof CSSTransition)
+      .map(a => a.finished.catch(() => undefined))
+  )
 }
 
-/** The first opaque background colour from `el` up to the document, as a CSS string. */
 function pageBackground(el: HTMLElement): string {
   for (let n: HTMLElement | null = el; n; n = n.parentElement) {
     const c = getComputedStyle(n).backgroundColor
@@ -186,6 +206,9 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
   onUnavailable
 }) => {
   const { t } = useTranslation()
+  // Only a change of theme matters here: it remounts the engine, which reads the page's paper colour and
+  // picks the watercolour for it.
+  const { resolvedTheme } = useTheme()
   const { onNodeClick, overlay } = useGraphClick({
     knowledge,
     chats,
@@ -194,7 +217,6 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
   })
   const containerRef = useRef<HTMLDivElement>(null)
   const [activeLens, setActiveLens] = useState<LensKey>("default")
-  const [hoverKind, setHoverKind] = useState("")
   const [ready, setReady] = useState(false)
   // Read through refs so a new callback identity never remounts the engine.
   const onNodeClickRef = useRef(onNodeClick)
@@ -209,7 +231,6 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
     const container = containerRef.current
     if (!container) return
     setReady(false)
-    setHoverKind("")
     let cancelled = false
     let engine: Engine | null = null
     let started = false
@@ -218,14 +239,31 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
     canvas.style.display = "block"
     container.appendChild(canvas)
 
+    // The engine re-measures its surface only on a window `resize`; a sidebar opening or closing changes
+    // this container without touching the window, so the observer replays that event for it.
+    let observed = false
+    const sizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            if (!observed) {
+              observed = true
+              return
+            }
+            window.dispatchEvent(new Event("resize"))
+          })
+    sizeObserver?.observe(container)
+
     const mount = async (): Promise<void> => {
       // No server render may reach navigator.gpu: the engine loads here, in the browser, on demand.
       const cerrado = await import("@entelekheia-ai/cerrado")
       const { Engine: EngineClass } =
         await import("@entelekheia-ai/cerrado/engine")
-      const { buildScene, parseColor, parseMap, parseView, ZOOM_ALWAYS } =
-        cerrado
+      const { buildScene, parseColor, parseView, ZOOM_ALWAYS } = cerrado
       const { layoutKey, loadLayout, saveLayout, restoreLayout } = cerrado
+
+      await pageSettled()
+      if (cancelled) return
 
       const data = buildGraphData({
         knowledge,
@@ -233,11 +271,26 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
         chats,
         recentAgents
       })
-      const map = parseMap(MAP_SOURCE)
+      const store = window.localStorage
+      const slots = allocateSlots(
+        territoriesOf(data).map(t => t.group),
+        loadSlots(store)
+      )
+      saveSlots(store, slots)
+      // The lenses declare no canvas_background: the page decides the paper colour.
+      const paper = parseColor(pageBackground(container), [1, 1, 1, 1])
+      const lightPage =
+        0.299 * paper[0]! + 0.587 * paper[1]! + 0.114 * paper[2]! > 0.5
+      const map = buildMap(data, slots, lightPage)
+      // The paint of a lens is the page theme's watercolour with the lens's own keys (its `drop_scale`) on top.
+      const withPaint = (view: GraphView): GraphView => ({
+        ...view,
+        paint: { ...paintFor(lightPage), ...view.paint }
+      })
       const views = {
-        default: parseView(LENS_SOURCES.default),
-        chat: parseView(LENS_SOURCES.chat),
-        agent: parseView(LENS_SOURCES.agent)
+        default: withPaint(parseView(LENS_SOURCES.default)),
+        chat: withPaint(parseView(LENS_SOURCES.chat)),
+        agent: withPaint(parseView(LENS_SOURCES.agent))
       }
 
       if (cancelled) return
@@ -257,8 +310,15 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
       eng.fitMargin = map.zoom?.fit_margin ?? eng.fitMargin
       eng.maxMagnification = map.zoom?.max_magnification ?? eng.maxMagnification
       eng.camera.elastic = map.zoom?.elastic ?? eng.camera.elastic
+      eng.nodeZoomGrowth = NODE_ZOOM_GROWTH
+      eng.idleSway = IDLE_SWAY
+      // The engine's zoom-out floor IS the framing of the whole map, so backing out past it needs the floor
+      // set lower than the framing. Every range the camera sets (a fit, the end of a glide, a resize) goes
+      // through `setZoomRange`, so wrapping it keeps the floor ZOOM_OUT_PAST_FIT below the framing.
+      const setZoomRange = eng.camera.setZoomRange.bind(eng.camera)
+      eng.camera.setZoomRange = (fit, magnification) =>
+        setZoomRange(fit / ZOOM_OUT_PAST_FIT, magnification * ZOOM_OUT_PAST_FIT)
 
-      const store = window.localStorage
       let active: LensKey = readLastLens(store)
       const keyFor = (lens: LensKey): string => layoutKey(map, views[lens])
       let scene = buildScene(data, map, views[active])
@@ -269,21 +329,20 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
         ? restoreLayout(scene.nodes, idsOf(scene), saved)
         : null
       if (!restored?.complete) {
-        // Nothing usable saved: scatter the seed so the first solve is visibly at work.
-        for (const n of scene.nodes) {
+        // Scatter the seed of the nodes with no saved place, so the solve is visibly at work on them; the
+        // ones the layout knows keep where it put them.
+        const ids = idsOf(scene)
+        scene.nodes.forEach((n, i) => {
+          if (saved && saved[ids[i]!] !== undefined) return
           n.x += (Math.random() - 0.5) * 700
           n.y += (Math.random() - 0.5) * 700
-        }
+        })
       }
 
-      // The lenses declare no canvas_background: the page decides the paper colour.
-      const paper = parseColor(pageBackground(container), [1, 1, 1, 1])
       eng.setBackground(paper)
-      const lightPage =
-        0.299 * paper[0]! + 0.587 * paper[1]! + 0.114 * paper[2]! > 0.5
       const ink: [number, number, number, number] = lightPage
         ? [0.16, 0.18, 0.22, 1]
-        : [0.9, 0.92, 0.95, 1]
+        : [0.72, 0.74, 0.78, 1]
 
       const applyCrossfade = (): void => {
         if (scene.zoom.crossfade !== undefined)
@@ -364,8 +423,6 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
           if (xy && !cancelled) saveLayout(store, keyFor(lens), ids, xy)
         })
       }
-      eng.onHover = i =>
-        setHoverKind(i === null ? "" : kindOf(scene.meta[i]!.id))
       eng.onClick = i => {
         if (i !== null) onNodeClickRef.current(scene.meta[i]!.id)
       }
@@ -406,12 +463,13 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
 
     return () => {
       cancelled = true
+      sizeObserver?.disconnect()
       switchLensRef.current = () => {}
       // Releases the listeners, the frame loop and the GPU device, started or not; idempotent.
       engine?.destroy()
       canvas.remove()
     }
-  }, [knowledge, chats, agentBundles, recentAgents])
+  }, [knowledge, chats, agentBundles, recentAgents, resolvedTheme])
 
   const LENS_LABEL: Record<LensKey, string> = {
     default: t("Default"),
@@ -438,11 +496,6 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
         ))}
       </div>
       <div ref={containerRef} className="size-full" />
-      {hoverKind && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-40 text-center text-xs text-muted-foreground">
-          {t(hoverKind)}
-        </div>
-      )}
       {overlay}
     </div>
   )

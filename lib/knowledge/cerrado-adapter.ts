@@ -5,6 +5,7 @@ import type {
   GraphEdge,
   GraphNode
 } from "@entelekheia-ai/cerrado/spec"
+import { GROUP_SCHEME } from "@/lib/knowledge/graph/map"
 import {
   buildAgentLayer,
   locateFromRecentAgents
@@ -67,6 +68,43 @@ export function buildGraphData(source: GraphSource): GraphData {
     ])
   )
 
+  const agents = Array.from(
+    buildAgentLayer(
+      knowledge,
+      agentBundles,
+      locateFromRecentAgents(source.recentAgents ?? [])
+    ).values()
+  )
+    .filter(agent => canRefAgent(agent.agentId))
+    .sort((a, b) => a.agentId.localeCompare(b.agentId))
+
+  // A conversation belongs to the first agent (by id) that ran in it, and so
+  // does everything it produced; a conversation no agent ran in carries no group,
+  // stays unrouted and settles loose by its edges. The group is the territory's key, never an identifier.
+  const groupOfChat = new Map<string, string>()
+  for (const agent of agents) {
+    for (const convId of agent.conversationIds) {
+      if (!groupOfChat.has(convId))
+        groupOfChat.set(convId, agentRef(agent.agentId))
+    }
+  }
+  const classify = (
+    group: string | undefined
+  ): Pick<GraphNode, "classifications"> =>
+    group === undefined
+      ? {}
+      : { classifications: [{ scheme: GROUP_SCHEME, id: group }] }
+
+  // A node's weight sets its drawn size: a conversation grows with what it produced, an agent with where
+  // it ran and what it made.
+  const artifactsOfChat = new Map<string, number>()
+  for (const k of knowledge) {
+    artifactsOfChat.set(
+      k.originConversationId,
+      (artifactsOfChat.get(k.originConversationId) ?? 0) + 1
+    )
+  }
+
   const nodes: GraphNode[] = []
   const edges: GraphEdge[] = []
 
@@ -76,6 +114,8 @@ export function buildGraphData(source: GraphSource): GraphData {
       id: conversationRef(chatId),
       type: "conversation",
       ...(chat?.name ? { label: chat.name } : {}),
+      ...classify(groupOfChat.get(chatId)),
+      weight: 1 + (artifactsOfChat.get(chatId) ?? 0),
       ...optionalCreatedAt(toMillis(chat?.created_at))
     })
   }
@@ -86,6 +126,7 @@ export function buildGraphData(source: GraphSource): GraphData {
       type: "knowledge",
       label: k.title,
       attrs: { nodeType: k.nodeType },
+      ...classify(groupOfChat.get(k.originConversationId)),
       ...optionalCreatedAt(toMillis(k.createdAt))
     })
     edges.push({
@@ -95,18 +136,15 @@ export function buildGraphData(source: GraphSource): GraphData {
     })
   }
 
-  const agents = Array.from(
-    buildAgentLayer(
-      knowledge,
-      agentBundles,
-      locateFromRecentAgents(source.recentAgents ?? [])
-    ).values()
-  )
-    .filter(agent => canRefAgent(agent.agentId))
-    .sort((a, b) => a.agentId.localeCompare(b.agentId))
   for (const agent of agents) {
     const id = agentRef(agent.agentId)
-    nodes.push({ id, type: "agent", label: agent.name })
+    nodes.push({
+      id,
+      type: "agent",
+      label: agent.name,
+      weight: 1 + agent.conversationIds.size + agent.artifactIds.size,
+      ...classify(id)
+    })
     for (const convId of agent.conversationIds) {
       edges.push({ from: id, to: conversationRef(convId), type: "ran_in" })
     }
