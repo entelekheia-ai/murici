@@ -6,7 +6,7 @@ vibe-ops-template: plan@3
 
 | Field | Value |
 |---|---|
-| Status | In Progress |
+| Status | Shipped |
 | Created | 2026-10-08 |
 | Author | Danilo Borges |
 | Depends on | `@entelekheia-ai/cerrado` with `Engine.destroy()` and `onDeviceLost` (Track 4) |
