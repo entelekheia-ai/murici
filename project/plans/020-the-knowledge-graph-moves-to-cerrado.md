@@ -148,8 +148,8 @@ reload then renders the same landscape instead of re-solving it.
 
 `CerradoGraphCanvas` creates the `Engine` in an effect and calls `engine.destroy()` in that effect's
 cleanup. React 18's StrictMode mounts effects twice in development, which exercises exactly this path on
-every load. Until a cerrado release carries `destroy()`, Track 3 runs on `0.2.0` without it; Track 4 makes
-the cleanup real.
+every load. `@entelekheia-ai/cerrado@0.3.0-alpha.0` carries `destroy()` and `onDeviceLost`; a lost device
+destroys the engine and hands the mount to the vis-network fallback.
 
 ### Installing the package
 
@@ -176,7 +176,7 @@ allowlist are checked rather than assumed to need no change.
   `handleGraphClick`, layout persistence, and the fallback on `init()` failure. Acceptance: in a
   browser with WebGPU the graph is drawn by cerrado and each node kind's click does what it does today;
   with WebGPU disabled (`--disable-features=WebGPU`) the vis-network graph appears in the same place.
-- [ ] **Track 4 — Lifecycle.** Bump to the cerrado prerelease that ships `destroy()` and `onDeviceLost`,
+- [x] **Track 4 — Lifecycle.** Task: [tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md](../tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md). Bump to the cerrado prerelease that ships `destroy()` and `onDeviceLost`,
   call `destroy()` on unmount, and fall back on device loss. Acceptance: a Playwright test navigates
   between `/chat` and `/graph` ten times and then asserts one live engine; a second test forces device
   loss and asserts the vis-network graph is shown.

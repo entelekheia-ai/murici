@@ -174,9 +174,9 @@ async function loadIcons(eng: Engine): Promise<boolean> {
  * buttons that morph the layout in place. A click acts through `useGraphClick`.
  *
  * Any failure before the engine starts — including a browser without WebGPU —
- * calls `onUnavailable` instead of throwing. Unmounting calls `stop()`; the
- * engine of cerrado 0.2.0 has no teardown, so its GPU resources outlive the
- * component until the page does.
+ * calls `onUnavailable` instead of throwing, and so does losing the GPU device
+ * afterwards. Unmounting calls `destroy()`, which releases the engine's
+ * listeners, frame loop and GPU device.
  */
 export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
   knowledge,
@@ -376,6 +376,15 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
         eng.setLabels(allLabels())
       }
 
+      // A lost GPU device leaves the engine inert: release it and draw with the fallback instead.
+      eng.onDeviceLost(info => {
+        if (cancelled) return
+        eng.destroy()
+        onUnavailableRef.current?.(
+          `GPU device lost (${info.reason}): ${info.message}`
+        )
+      })
+
       if (cancelled) return
       eng.start()
       started = true
@@ -393,8 +402,8 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
     return () => {
       cancelled = true
       switchLensRef.current = () => {}
-      // An engine that never started has no loop to stop (and may still be in init()).
-      if (started) engine?.stop()
+      // Releases the listeners, the frame loop and the GPU device, started or not; idempotent.
+      engine?.destroy()
       canvas.remove()
     }
   }, [knowledge, chats, agentBundles, recentAgents])
