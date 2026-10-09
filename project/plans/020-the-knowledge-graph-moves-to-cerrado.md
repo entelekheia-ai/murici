@@ -6,12 +6,22 @@ vibe-ops-template: plan@3
 
 | Field | Value |
 |---|---|
-| Status | Backlog |
+| Status | In Progress |
 | Created | 2026-10-08 |
 | Author | Danilo Borges |
 | Depends on | `@entelekheia-ai/cerrado` with `Engine.destroy()` and `onDeviceLost` (Track 4) |
 
 ---
+
+## Read these first
+
+1. This plan's Decision Log — the identifier scheme, the alpha base and the fallback were decided there.
+2. `project/tasks/003-cerrado-draws-vis-network-falls-back.md` — how the cerrado canvas mounts, and the
+   browser check that proves it.
+3. `project/tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md` — teardown, device loss
+   and the Playwright lifecycle spec.
+4. `project/tasks/002-graph-identifiers-and-the-cerrado-adapter.md` — the `ref:` identifiers per node kind
+   and the dot-agent namespace tiers.
 
 ## Summary
 
