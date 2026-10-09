@@ -16,12 +16,12 @@ vibe-ops-template: plan@3
 ## Read these first
 
 1. This plan's Decision Log — the identifier scheme, the alpha base and the fallback were decided there.
-2. `project/tasks/003-cerrado-draws-vis-network-falls-back.md` — how the cerrado canvas mounts, and the
-   browser check that proves it.
-3. `project/tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md` — teardown, device loss
-   and the Playwright lifecycle spec.
-4. `project/tasks/002-graph-identifiers-and-the-cerrado-adapter.md` — the `ref:` identifiers per node kind
-   and the dot-agent namespace tiers.
+2. The closed dossier of Track 3 — how the cerrado canvas mounts, and the browser check that proves it:
+   `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/003-cerrado-draws-vis-network-falls-back.md`.
+3. The closed dossier of Track 4 — teardown, device loss and the Playwright lifecycle spec:
+   `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/004-the-engine-is-torn-down-and-falls-back-on-device-loss.md`.
+4. The closed dossier of Track 2 — the `ref:` identifiers per node kind and the dot-agent namespace tiers:
+   `git show 5b86971ab421e25943d06df36eba4beb81aaa69f:project/tasks/002-graph-identifiers-and-the-cerrado-adapter.md`.
 
 ## Summary
 
