@@ -391,12 +391,13 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
       const restored = saved
         ? restoreLayout(scene.nodes, idsOf(scene), saved)
         : null
-      if (!restored?.complete) {
-        // Scatter the seed of the nodes with no saved place, so the solve is visibly at work on them; the
-        // ones the layout knows keep where it put them.
-        const ids = idsOf(scene)
-        scene.nodes.forEach((n, i) => {
-          if (saved && saved[ids[i]!] !== undefined) return
+      // A layout that knows some of the nodes is kept: a new conversation or agent settles into the map the
+      // reader memorised, from its region's seed, while the known nodes stay asleep (`wakeLocal` below).
+      const partial =
+        restored !== null && restored.restored > 0 && !restored.complete
+      if (!restored?.complete && !partial) {
+        // Nothing saved: scatter every seed, so the first solve is visibly at work.
+        scene.nodes.forEach(n => {
           n.x += (Math.random() - 0.5) * 700
           n.y += (Math.random() - 0.5) * 700
         })
@@ -412,6 +413,8 @@ export const CerradoGraphCanvas: FC<CerradoGraphCanvasProps> = ({
       eng.setCanopyConfig(scene.paint)
       eng.setGraph(scene.nodes, scene.edges)
       eng.simulate = true
+      // `setGraph` wakes every node; only the ones the saved layout does not know, and their neighbours, move.
+      if (partial) eng.wakeLocal(restored.missingIndices)
       eng.canopy = true
       eng.requestFit()
       // A fully restored layout is the answer: physics over it would drift from the geography the reader knows.
